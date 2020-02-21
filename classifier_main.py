@@ -9,7 +9,7 @@ import argparse
 from dataset import TimeSeriesChunkDataset
 from gan import Generator
 from classifier import Classifier
-from utils import inference, get_accuracy
+from utils import classifier_inference, get_accuracy
 
 parser = argparse.ArgumentParser(description='Time series adaptation')
 parser.add_argument("--data_path", type=str, default="/projects/rsalakhugroup/complex/domain_adaptation", help="dataset path")
@@ -66,10 +66,10 @@ def train(model, train_dataloader, vali_dataloader, lr, n_epochs, device, args):
             train_acc += acc.item()
             
             if batches > 1 and batches % int(num_batches/3) == 0:
-                vali_acc = inference(model, vali_dataloader, device)
+                vali_acc = classifier_inference(model, vali_dataloader, device)
                 print("validation_acc: ", vali_acc)
 
-        vali_acc = inference(model, vali_dataloader, device)
+        vali_acc = classifier_inference(model, vali_dataloader, device)
         train_loss_.append(train_loss/num_data)
         train_acc_.append(train_acc/num_data)
         vali_acc_.append(vali_acc)
