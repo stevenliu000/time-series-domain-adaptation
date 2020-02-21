@@ -92,6 +92,7 @@ def train(model, train_dataloader, vali_dataloader, lr, n_epochs, device, args):
 if __name__ == "__main__":
     cuda = torch.cuda.is_available()
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+    print(device)
     
     data_dict = np.load(args.data_path, allow_pickle=True)
     
