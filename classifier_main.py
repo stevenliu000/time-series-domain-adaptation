@@ -123,7 +123,7 @@ if __name__ == "__main__":
     
     # build model
     source_classifier = SourceDomainClassifier(**model_args)
-    source_classifier.apply(init_weights)
+    # source_classifier.apply(init_weights)
     
     # train
     train(source_classifier, train_dataloader, vali_dataloader, args.lr, args.epochs, device, args)
