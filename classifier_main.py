@@ -12,7 +12,7 @@ from classifier import Classifier
 from utils import classifier_inference, get_accuracy
 
 parser = argparse.ArgumentParser(description='Time series adaptation')
-parser.add_argument("--data_path", type=str, default="/projects/rsalakhugroup/complex/domain_adaptation", help="dataset path")
+parser.add_argument("--data_path", type=str, default="/projects/rsalakhugroup/complex/wifi/", help="dataset path")
 parser.add_argument("--task", type=str, help='3A or 3E')
 parser.add_argument('--batch_size', type=int, default=256, help='batch size')
 parser.add_argument('--epochs', type=int, default=50, help='number of epochs')
@@ -23,6 +23,9 @@ parser.add_argument('--save_period', type=int, default=5, help="how many epochs 
 parser.add_argument('--model_name', type=str, default="classifer", help="model name")
 
 args = parser.parse_args()
+
+args.task = "processed_file_3Av2.pkl" if args.task == "3A" else "processed_file_3E.pkl"
+args.data_path = args.data_path + args.task
 
 class SourceDomainClassifier(nn.Module):
     def __init__(self, **kwargs):
@@ -92,10 +95,6 @@ if __name__ == "__main__":
     
     data_dict = np.load(args.data_path, allow_pickle=True)
     
-    # TODO: to be commented
-    data_dict['tr_data'] = data_dict['tr_data'][:10]
-    data_dict['tr_data'] = data_dict['tr_data'][:10]
-    
     # split train data and validation data
     np.random.seed(seed=0)
     indices = np.random.permutation(data_dict['tr_data'].shape[0])
@@ -104,12 +103,13 @@ if __name__ == "__main__":
     vali_x = data_dict['tr_data'][indices[int(indices.shape[0]*0.9):],:,:].astype("float32")
     vali_y = data_dict['tr_lbl'][indices[int(indices.shape[0]*0.9):],:].astype("float32")
 
-    
+    # build dataset
     train_dataset = TimeSeriesChunkDataset(train_x, train_y, args.context)
     train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, pin_memory=True, num_workers=8)
     vali_dataset = TimeSeriesChunkDataset(vali_x, vali_y, args.context)
     vali_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, pin_memory=True, num_workers=8)
     
+    # TODO: change it to read json
     model_args = {
         'classifier': {
             'layers_size': [args.context*2, 100, 100], 
@@ -121,8 +121,10 @@ if __name__ == "__main__":
         }
     }
     
+    # build model
     source_classifier = SourceDomainClassifier(**model_args)
     source_classifier.apply(init_weights)
     
+    # train
     train(source_classifier, train_dataloader, vali_dataloader, args.lr, args.epochs, device, args)
     
