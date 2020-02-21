@@ -93,7 +93,7 @@ if __name__ == "__main__":
     cuda = torch.cuda.is_available()
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     print(device)
-    
+
     data_dict = np.load(args.data_path, allow_pickle=True)
     
     # split train data and validation data
@@ -124,6 +124,7 @@ if __name__ == "__main__":
     
     # build model
     source_classifier = SourceDomainClassifier(**model_args)
+    source_classifier.to(device)
     # source_classifier.apply(init_weights)
     
     # train
