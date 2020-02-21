@@ -68,9 +68,9 @@ def train(model, train_dataloader, vali_dataloader, lr, n_epochs, device, args):
             train_loss += loss.item()
             train_acc += acc.item()
             
-            if batches > 1 and batches % int(num_batches/3) == 0:
-                vali_acc = classifier_inference(model, vali_dataloader, device)
-                print("validation_acc: ", vali_acc)
+            # if batches > 1 and batches % int(num_batches/3) == 0:
+            #     vali_acc = classifier_inference(model, vali_dataloader, device)
+            #     print("validation_acc: ", vali_acc)
 
         vali_acc = classifier_inference(model, vali_dataloader, device)
         train_loss_.append(train_loss/num_data)
@@ -99,10 +99,10 @@ if __name__ == "__main__":
     # split train data and validation data
     np.random.seed(seed=0)
     indices = np.random.permutation(data_dict['tr_data'].shape[0])
-    train_x = data_dict['tr_data'][indices[:int(indices.shape[0]*0.9)],:,:].astype("float32")
-    train_y = data_dict['tr_lbl'][indices[:int(indices.shape[0]*0.9)],:].astype("float32")
-    vali_x = data_dict['tr_data'][indices[int(indices.shape[0]*0.9):],:,:].astype("float32")
-    vali_y = data_dict['tr_lbl'][indices[int(indices.shape[0]*0.9):],:].astype("float32")
+    train_x = data_dict['tr_data'][indices[:int(indices.shape[0]*0.95)],:,:].astype("float32")
+    train_y = data_dict['tr_lbl'][indices[:int(indices.shape[0]*0.95)],:].astype("float32")
+    vali_x = data_dict['tr_data'][indices[int(indices.shape[0]*0.05):],:,:].astype("float32")
+    vali_y = data_dict['tr_lbl'][indices[int(indices.shape[0]*0.05):],:].astype("float32")
 
     # build dataset
     train_dataset = TimeSeriesChunkDataset(train_x, train_y, args.context)
