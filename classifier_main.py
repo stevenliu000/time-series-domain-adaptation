@@ -9,13 +9,13 @@ import argparse
 from dataset import TimeSeriesChunkDataset
 from gan import Generator
 from classifier import Classifier
-from utils import classifier_inference, get_accuracy
+from my_utils import classifier_inference, get_accuracy
 
 parser = argparse.ArgumentParser(description='Time series adaptation')
 parser.add_argument("--data_path", type=str, default="/projects/rsalakhugroup/complex/wifi/", help="dataset path")
 parser.add_argument("--task", type=str, help='3A or 3E')
 parser.add_argument('--batch_size', type=int, default=256, help='batch size')
-parser.add_argument('--epochs', type=int, default=50, help='number of epochs')
+parser.add_argument('--epochs', type=int, default=8, help='number of epochs')
 parser.add_argument('--lr', type=float, default=1e-4, help='learning rate')
 parser.add_argument('--context', type=int, default=40, help='context of time series data')
 parser.add_argument('--output', type=str, default="./train_related", help="output path")
