@@ -113,7 +113,7 @@ if __name__ == "__main__":
     # TODO: change it to read json
     model_args = {
         'classifier': {
-            'layers_size': [args.context*2, args.context*2, args.context, args.context], 
+            'layers_size': [args.context*2, args.context*3, args.context*3, args.context*2, args.context*2], 
             'dim_out': 50 if args.task == '3A' else 65
         },
         'generator':{
