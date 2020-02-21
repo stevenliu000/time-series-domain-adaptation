@@ -47,6 +47,7 @@ class Generator(nn.Module):
         self.transformer = nn.TransformerEncoder(self.transformer_layer, **self.transformer_args)
         
     def forward(self, x):
-        out = self.transformer(x)
+        out = self.linear(x)
+        out = self.transformer(out)
         return out
         
