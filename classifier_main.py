@@ -18,7 +18,7 @@ parser.add_argument('--batch_size', type=int, default=256, help='batch size')
 parser.add_argument('--epochs', type=int, default=50, help='number of epochs')
 parser.add_argument('--lr', type=float, default=1e-4, help='learning rate')
 parser.add_argument('--context', type=int, default=40, help='context of time series data')
-parser.add_argument('--output', type=str, default="/projects/rsalakhugroup/complex/domain_adaptation", help="output path")
+parser.add_argument('--output', type=str, default="./train_related", help="output path")
 parser.add_argument('--save_period', type=int, default=5, help="how many epochs to save model")
 parser.add_argument('--model_name', type=str, default="classifer", help="model name")
 
