@@ -117,7 +117,7 @@ if __name__ == "__main__":
             'dim_out': 50 if args.task == '3A' else 65
         },
         'generator':{
-            'transformer_layer': {}},
+            'transformer_layer': {},
             'transformer': {'num_layers':2}
         }
     }
