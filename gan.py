@@ -37,7 +37,7 @@ class Discriminator(nn.Module):
 class Generator(nn.Module):
     def __init__(self, **kwargs):
         super(Generator, self).__init__()
-        self.transformer_layer_args = {'d_model':2, 'nhead':4, 'dim_feedforward':1024, 'dropout':0.1, 'activation':'gelu'}
+        self.transformer_layer_args = {'d_model':2, 'nhead':2, 'dim_feedforward':1024, 'dropout':0.1, 'activation':'gelu'}
         self.transformer_args = {'num_layers':3, 'norm':None}
         self.transformer_layer_args.update(kwargs['transformer_layer'])
         self.transformer_args.update(kwargs['transformer'])
