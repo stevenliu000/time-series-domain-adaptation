@@ -106,9 +106,9 @@ if __name__ == "__main__":
 
     # build dataset
     train_dataset = TimeSeriesChunkDataset(train_x, train_y, args.context)
-    train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, pin_memory=True, num_workers=12)
+    train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, pin_memory=True, num_workers=20)
     vali_dataset = TimeSeriesChunkDataset(vali_x, vali_y, args.context)
-    vali_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, pin_memory=True, num_workers=12)
+    vali_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, pin_memory=True, num_workers=20)
     
     # TODO: change it to read json
     model_args = {
