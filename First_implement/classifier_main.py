@@ -35,7 +35,7 @@ class SourceDomainClassifier(nn.Module):
             nn.Flatten(),
             Classifier(**(kwargs['classifier']))
         )
-        
+
     def forward(self, x):
         x = self.net(x)
         return x
@@ -47,7 +47,7 @@ def train(model, train_dataloader, vali_dataloader, lr, n_epochs, device, args):
     train_loss_ = []
     train_acc_ = []
     vali_acc_ = []
-    
+
     for epoch in range(1, n_epochs+1):
         train_loss = 0.0
         train_acc = 0.0
@@ -67,10 +67,10 @@ def train(model, train_dataloader, vali_dataloader, lr, n_epochs, device, args):
             optimizer.step()
             train_loss += loss.item()
             train_acc += acc.item()
-            
-            if batches > 1 and batches % int(num_batches/3) == 0:
-                vali_acc = classifier_inference(model, vali_dataloader, device)
-                print("validation_acc: ", vali_acc)
+
+            # if batches > 1 and batches % int(num_batches/3) == 0:
+            #     vali_acc = classifier_inference(model, vali_dataloader, device)
+            #     print("validation_acc: ", vali_acc)
 
         vali_acc = classifier_inference(model, vali_dataloader, device)
         train_loss_.append(train_loss/num_data)
@@ -80,7 +80,7 @@ def train(model, train_dataloader, vali_dataloader, lr, n_epochs, device, args):
 
         if epoch % args.save_period == 0 and epoch > 1:
           output_path = args.output + "/" + args.model_name + "/"
-          name = output_path + "model_" + str(epoch) + ".t7"   
+          name = output_path + "model_" + str(epoch) + ".t7"
           np.save(output_path + "train_loss_.npy",train_loss_)
           np.save(output_path + "train_acc_.npy",train_acc_)
           np.save(output_path + "vali_acc_.npy",vali_acc_)
@@ -95,25 +95,25 @@ if __name__ == "__main__":
     print(device)
 
     data_dict = np.load(args.data_path, allow_pickle=True)
-    
+
     # split train data and validation data
     np.random.seed(seed=0)
     indices = np.random.permutation(data_dict['tr_data'].shape[0])
-    train_x = data_dict['tr_data'][indices[:int(indices.shape[0]*0.9)],:,:].astype("float32")
-    train_y = data_dict['tr_lbl'][indices[:int(indices.shape[0]*0.9)],:].astype("float32")
-    vali_x = data_dict['tr_data'][indices[int(indices.shape[0]*0.9):],:,:].astype("float32")
-    vali_y = data_dict['tr_lbl'][indices[int(indices.shape[0]*0.9):],:].astype("float32")
+    train_x = data_dict['tr_data'][indices[:int(indices.shape[0]*0.95)],:,:].astype("float32")
+    train_y = data_dict['tr_lbl'][indices[:int(indices.shape[0]*0.95)],:].astype("float32")
+    vali_x = data_dict['tr_data'][indices[int(indices.shape[0]*0.05):],:,:].astype("float32")
+    vali_y = data_dict['tr_lbl'][indices[int(indices.shape[0]*0.05):],:].astype("float32")
 
     # build dataset
     train_dataset = TimeSeriesChunkDataset(train_x, train_y, args.context)
-    train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, pin_memory=True, num_workers=12)
+    train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, pin_memory=True, num_workers=20)
     vali_dataset = TimeSeriesChunkDataset(vali_x, vali_y, args.context)
-    vali_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, pin_memory=True, num_workers=12)
-    
+    vali_dataloader = DataLoader(vali_dataset, batch_size=args.batch_size, shuffle=True, pin_memory=True, num_workers=12)
+
     # TODO: change it to read json
     model_args = {
         'classifier': {
-            'layers_size': [args.context*2, args.context*3, args.context*3, args.context*2, args.context*2], 
+            'layers_size': [args.context*2, args.context*3, args.context*3, args.context*2, args.context*2],
             'dim_out': 50 if args.task == '3A' else 65
         },
         'generator':{
@@ -121,12 +121,12 @@ if __name__ == "__main__":
             'transformer': {'num_layers':2}
         }
     }
-    
+
     # build model
     source_classifier = SourceDomainClassifier(**model_args)
     source_classifier.to(device)
     # source_classifier.apply(init_weights)
-    
+
     # train
     train(source_classifier, train_dataloader, vali_dataloader, args.lr, args.epochs, device, args)
-    
+
