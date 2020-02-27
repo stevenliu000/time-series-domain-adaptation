@@ -47,3 +47,4 @@ class ComplexTransformer(nn.Module):
         h_as = h_as.transpose(0, 1)
         h_bs = h_bs.transpose(0, 1)
         return h_as, h_bs
+
