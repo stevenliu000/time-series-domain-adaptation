@@ -437,8 +437,11 @@ for epoch in range(args.epochs):
             continue
         target_unlabel_x_batch = torch.tensor(target_unlabel_x[batch*args.batch_size:(batch+1)*args.batch_size], device=device).float()
         target_unlabel_y_batch = torch.tensor(target_unlabel_y[batch*args.batch_size:(batch+1)*args.batch_size], device=device)
-        pred, loss = classifier_inference(encoder, CNet, target_unlabel_x_batch, target_unlabel_y_batch, target_mean, target_std, batch_size)
-        unlabel_correct_target += (pred.argmax(-1) == target_unlabel_y_batch.argmax(-1)).sum().item()
+        target_unlabel_x_batch = target_unlabel_x_batch.reshape(batch_size, seq_len, feature_dim_joint)
+        target_unlabel_x_batch = (target_unlabel_x_batch - target_mean) / target_std
+        target_unlabel_x_batch_transform = GNet(target_unlabel_x_batch).reshape(batch_size, -1, 2)
+        pred, loss = classifier_inference(encoder, CNet, target_unlabel_x_batch_transform, target_unlabel_y_batch, target_mean, target_std, batch_size)
+        unlabel_correct_target += (pred.argmax(-1) == target_unlabel_y_batch).sum().item()
         unlabel_loss += loss.item()
         target_pesudo_y.extend(pred.argmax(-1).cpu().numpy())
         
@@ -450,8 +453,10 @@ for epoch in range(args.epochs):
             continue
         target_label_x_batch = torch.tensor(target_label_x[batch*args.batch_size:(batch+1)*args.batch_size], device=device).float()
         target_label_y_batch = torch.tensor(target_label_y[batch*args.batch_size:(batch+1)*args.batch_size], device=device)
-        pred, loss = classifier_inference(encoder, CNet, target_label_x_batch, target_label_y_batch, target_mean, target_std, batch_size)
-        label_correct_target += (pred.argmax(-1) == target_label_y_batch.argmax(-1)).sum().item()
+        target_label_x_batch = target_label_x_batch.reshape(batch_size, seq_len, feature_dim_joint)
+        target_label_x_batch = (target_label_x_batch - target_mean) / target_std
+        target_label_x_batch_transform = GNet(target_label_x_batch).reshape(batch_size, -1, 2)        
+        label_correct_target += (pred.argmax(-1) == target_label_y_batch).sum().item()
         label_loss += loss.item()
         target_pesudo_y.extend(pred.argmax(-1).cpu().numpy()) 
     
@@ -619,8 +624,11 @@ for epoch in range(args.epochs):
             continue
         target_unlabel_x_batch = torch.tensor(target_unlabel_x[batch*args.batch_size:(batch+1)*args.batch_size], device=device).float()
         target_unlabel_y_batch = torch.tensor(target_unlabel_y[batch*args.batch_size:(batch+1)*args.batch_size], device=device)
-        pred, loss = classifier_inference(encoder, CNet, target_unlabel_x_batch, target_unlabel_y_batch, target_mean, target_std, batch_size)
-        unlabel_correct_target += (pred.argmax(-1) == target_unlabel_y_batch.argmax(-1)).sum().item()
+        target_unlabel_x_batch = target_unlabel_x_batch.reshape(batch_size, seq_len, feature_dim_joint)
+        target_unlabel_x_batch = (target_unlabel_x_batch - target_mean) / target_std
+        target_unlabel_x_batch_transform = GNet(target_unlabel_x_batch).reshape(batch_size, -1, 2)
+        pred, loss = classifier_inference(encoder, CNet, target_unlabel_x_batch_transform, target_unlabel_y_batch, target_mean, target_std, batch_size)
+        unlabel_correct_target += (pred.argmax(-1) == target_unlabel_y_batch).sum().item()
         unlabel_loss += loss.item()
         target_pesudo_y.extend(pred.argmax(-1).cpu().numpy())
         
@@ -632,8 +640,10 @@ for epoch in range(args.epochs):
             continue
         target_label_x_batch = torch.tensor(target_label_x[batch*args.batch_size:(batch+1)*args.batch_size], device=device).float()
         target_label_y_batch = torch.tensor(target_label_y[batch*args.batch_size:(batch+1)*args.batch_size], device=device)
-        pred, loss = classifier_inference(encoder, CNet, target_label_x_batch, target_label_y_batch, target_mean, target_std, batch_size)
-        label_correct_target += (pred.argmax(-1) == target_label_y_batch.argmax(-1)).sum().item()
+        target_label_x_batch = target_label_x_batch.reshape(batch_size, seq_len, feature_dim_joint)
+        target_label_x_batch = (target_label_x_batch - target_mean) / target_std
+        target_label_x_batch_transform = GNet(target_label_x_batch).reshape(batch_size, -1, 2)        
+        label_correct_target += (pred.argmax(-1) == target_label_y_batch).sum().item()
         label_loss += loss.item()
         target_pesudo_y.extend(pred.argmax(-1).cpu().numpy()) 
     
