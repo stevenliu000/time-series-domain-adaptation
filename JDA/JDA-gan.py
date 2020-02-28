@@ -443,6 +443,8 @@ for epoch in range(args.epochs):
     label_correct_target = 0.0
     label_loss = 0.0
     for batch in range(math.ceil(target_label_x.shape[0]/args.batch_size)):
+        print('HERE!!!!!!!!',target_label_x.shape)
+        print('HERE222222222', target_label_x[batch*args.batch_size:(batch+1)*args.batch_size].shape[0])
         batch_size = target_label_x[batch*args.batch_size:(batch+1)*args.batch_size].shape[0]
         target_label_x_batch = torch.tensor(target_label_x[batch*args.batch_size:(batch+1)*args.batch_size], device=device).float()
         target_label_y_batch = torch.tensor(target_label_y[batch*args.batch_size:(batch+1)*args.batch_size], device=device)
