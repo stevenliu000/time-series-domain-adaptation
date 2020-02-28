@@ -221,7 +221,7 @@ def get_target_dict(file_path, num_class, lbl_percentage, seed=0):
         with_label[i] = train_data[index]
 
     
-    return with_label, (np.delete(train_data,labeled_index,axis=0), np.delete(train_lbl,labeled_index,axis=0)), train_data.shape[0]
+    return with_label, (np.delete(train_data,labeled_index,axis=0), np.delete(train_lbl,labeled_index,axis=0)), (train_data[labeled_index], train_lbl[labeled_index]), train_data.shape[0]
 
 def get_class_data_dict(data, lbl, num_class):
     '''
@@ -321,7 +321,7 @@ model_sub_folder = '/task_%s_gap_%s_lblPer_%1.1f_numPerClass_%i'%(args.task, arg
 # In[22]:
 
 
-target_dict, (target_unlabel_x, target_unlabel_y), target_len  = get_target_dict(args.data_path+'processed_file_%s.pkl'%args.task, d_out, args.lbl_percentage)
+target_dict, (target_unlabel_x, target_unlabel_y), (target_label_x, target_label_y), target_len  = get_target_dict(args.data_path+'processed_file_%s.pkl'%args.task, d_out, args.lbl_percentage)
 source_dict, source_len = get_source_dict(args.data_path+'/processed_file_%s.pkl'%args.task, d_out, data_len=target_len)
 
 
@@ -333,7 +333,9 @@ feature_dim = 160
 classifier_model_folder = 'Final_FNN_' + args.task 
 CNet_path = args.classifier + '/' + classifier_model_folder + "/CNet_model.ep100"
 encoder_path = args.classifier + '/' + classifier_model_folder + "/Encoder_model.ep100"
-    
+
+criterion = nn.CrossEntropyLoss()
+
 CNet = FNN(d_in=feature_dim * 2 * seq_len, d_h=500, d_out=d_out, dp=0.5)
 
 encoder = ComplexTransformer(layers=1,
@@ -366,7 +368,9 @@ def classifier_inference(encoder, CNet, x, x_mean_tr, x_std_tr, batch_size):
             imag.to(device)
         real, imag = encoder(real, imag)
         pred = CNet(torch.cat((real, imag), -1).reshape(x.shape[0], -1))
-    return pred
+        loss = criterion(pred, y.argmax(-1))
+
+    return pred, loss
 
 
 # In[29]:
@@ -407,7 +411,12 @@ target_std = joint_set.te_data_std
 D_global_losses = []
 D_local_losses = []
 G_losses = []
-classifier_acc = []
+unlabel_acces = []
+unlabel_losses = []
+label_acces = []
+label_losses = []
+combine_acces = []
+combine_losses = []
 print(device)
 
 
@@ -419,20 +428,45 @@ else:
     print("Directory " , args.save_path+model_sub_folder ,  " already exists")
 
 for epoch in range(args.epochs):
-    correct_target = 0.0
+    unlabel_correct_target = 0.0
+    unlabel_loss = 0.0
     target_pesudo_y = []
     for batch in range(math.ceil(target_unlabel_x.shape[0]/args.batch_size)):
         batch_size = target_unlabel_x[batch*args.batch_size:(batch+1)*args.batch_size].shape[0]
         target_unlabel_x_batch = torch.tensor(target_unlabel_x[batch*args.batch_size:(batch+1)*args.batch_size], device=device).float()
         target_unlabel_y_batch = torch.tensor(target_unlabel_y[batch*args.batch_size:(batch+1)*args.batch_size], device=device)
-        pred = classifier_inference(encoder, CNet, target_unlabel_x_batch, target_mean, target_std, batch_size)
-        correct_target += (pred.argmax(-1) == target_unlabel_y_batch.argmax(-1)).sum().item()
+        pred, loss = classifier_inference(encoder, CNet, target_unlabel_x_batch, target_mean, target_std, batch_size)
+        unlabel_correct_target += (pred.argmax(-1) == target_unlabel_y_batch.argmax(-1)).sum().item()
+        unlabel_loss += loss.item()
         target_pesudo_y.extend(pred.argmax(-1).cpu().numpy())
+        
+    label_correct_target = 0.0
+    label_loss = 0.0
+    for batch in range(math.ceil(target_label_x.shape[0]/args.batch_size)):
+        batch_size = target_label_x[batch*args.batch_size:(batch+1)*args.batch_size].shape[0]
+        target_label_x_batch = torch.tensor(target_label_x[batch*args.batch_size:(batch+1)*args.batch_size], device=device).float()
+        target_label_y_batch = torch.tensor(target_label_y[batch*args.batch_size:(batch+1)*args.batch_size], device=device)
+        pred, loss = classifier_inference(encoder, CNet, target_label_x_batch, target_mean, target_std, batch_size)
+        label_correct_target += (pred.argmax(-1) == target_label_y_batch.argmax(-1)).sum().item()
+        label_loss += loss.item()
+        target_pesudo_y.extend(pred.argmax(-1).cpu().numpy()) 
     
     target_pesudo_y = np.array(target_pesudo_y)
     pesudo_dict = get_class_data_dict(target_unlabel_x, target_pesudo_y, d_out)
-    print('Epoch: %i, Classifier Acc on Target Domain: %f'%(epoch-1, correct_target/target_unlabel_x.shape[0]))
-    classifier_acc.append(correct_target/target_unlabel_x.shape[0])
+    unlabel_acc_ = unlabel_correct_target/target_unlabel_x.shape[0]
+    unlabel_loss_ = unlabel_loss/target_unlabel_x.shape[0]
+    label_acc_ = label_correct_target/target_label_x.shape[0]
+    label_loss_ = label_loss/target_label_x.shape[0]
+    combine_acc_ = (unlabel_correct_target+label_correct_target)/(target_unlabel_x.shape[0]+target_label_x.shape[0])
+    combine_loss_ = (label_loss+unlabel_loss)/(target_unlabel_x.shape[0]+target_label_x.shape[0])
+    print('Epoch: %i, Classifier: Unlabel acc: %f, loss: %f; Label acc: %f, loss: %f; Combine acc: %f, loss: %f'%(epoch-1,unlabel_acc_,unlabel_loss_,label_acc_,label_loss_,combine_acc_,combine_loss_))
+    
+    unlabel_acces.append(unlabel_acc_)
+    unlabel_losses.append(unlabel_loss_)
+    label_acces.append(label_acc_)
+    label_losses.append(label_loss_)
+    combine_acces.append(combine_acc_)
+    combine_losses.append(combine_loss_)
     
     print('Start Training On global Discriminator')
     total_error_D_global = 0
@@ -554,21 +588,57 @@ for epoch in range(args.epochs):
     np.save(args.save_path+model_sub_folder+'/D_global_losses.npy', D_global_losses)
     np.save(args.save_path+model_sub_folder+'/D_local_losses.npy', D_local_losses)
     np.save(args.save_path+model_sub_folder+'/G_loss.npy', G_losses)
-    np.save(args.save_path+model_sub_folder+'/classifier_acc.npy', classifier_acc[1:])
+    np.save(args.save_path+model_sub_folder+'/unlabel_acces.npy', unlabel_acces[1:])
+    np.save(args.save_path+model_sub_folder+'/unlabel_losses.npy', unlabel_losses[1:])
+    np.save(args.save_path+model_sub_folder+'/label_acces.npy', label_acces[1:])
+    np.save(args.save_path+model_sub_folder+'/label_losses.npy', label_losses[1:])
+    np.save(args.save_path+model_sub_folder+'/combine_acc_.npy', combine_acc_[1:])
+    np.save(args.save_path+model_sub_folder+'/combine_loss_.npy', combine_loss_[1:])
 
 
-correct_target = 0.0
-target_pesudo_y = []
-for batch in range(math.ceil(target_unlabel_x.shape[0]/args.batch_size)):
-    batch_size = target_unlabel_x[batch*args.batch_size:(batch+1)*args.batch_size].shape[0]
-    target_unlabel_x_batch = torch.tensor(target_unlabel_x[batch*args.batch_size:(batch+1)*args.batch_size], device=device).float()
-    target_unlabel_y_batch = torch.tensor(target_unlabel_y[batch*args.batch_size:(batch+1)*args.batch_size], device=device)
-    pred = classifier_inference(encoder, CNet, target_unlabel_x_batch, target_mean, target_std, batch_size)
-    correct_target += (pred.argmax(-1) == target_unlabel_y_batch.argmax(-1)).sum().item()
-    target_pesudo_y.extend(pred.argmax(-1).cpu().numpy())
+    unlabel_correct_target = 0.0
+    unlabel_loss = 0.0
+    target_pesudo_y = []
+    for batch in range(math.ceil(target_unlabel_x.shape[0]/args.batch_size)):
+        batch_size = target_unlabel_x[batch*args.batch_size:(batch+1)*args.batch_size].shape[0]
+        target_unlabel_x_batch = torch.tensor(target_unlabel_x[batch*args.batch_size:(batch+1)*args.batch_size], device=device).float()
+        target_unlabel_y_batch = torch.tensor(target_unlabel_y[batch*args.batch_size:(batch+1)*args.batch_size], device=device)
+        pred, loss = classifier_inference(encoder, CNet, target_unlabel_x_batch, target_mean, target_std, batch_size)
+        unlabel_correct_target += (pred.argmax(-1) == target_unlabel_y_batch.argmax(-1)).sum().item()
+        unlabel_loss += loss.item()
+        target_pesudo_y.extend(pred.argmax(-1).cpu().numpy())
+        
+    label_correct_target = 0.0
+    label_loss = 0.0
+    for batch in range(math.ceil(target_label_x.shape[0]/args.batch_size)):
+        batch_size = target_label_x[batch*args.batch_size:(batch+1)*args.batch_size].shape[0]
+        target_label_x_batch = torch.tensor(target_label_x[batch*args.batch_size:(batch+1)*args.batch_size], device=device).float()
+        target_label_y_batch = torch.tensor(target_label_y[batch*args.batch_size:(batch+1)*args.batch_size], device=device)
+        pred, loss = classifier_inference(encoder, CNet, target_label_x_batch, target_mean, target_std, batch_size)
+        label_correct_target += (pred.argmax(-1) == target_label_y_batch.argmax(-1)).sum().item()
+        label_loss += loss.item()
+        target_pesudo_y.extend(pred.argmax(-1).cpu().numpy()) 
     
-target_pesudo_y = np.array(target_pesudo_y)
-pesudo_dict = get_class_data_dict(target_unlabel_x, target_pesudo_y, d_out)
-print('Epoch: %i, Classifier Acc on Target Domain: %f'%(epoch, correct_target/target_unlabel_x.shape[0]))
-classifier_acc.append(correct_target/target_unlabel_x.shape[0])
-np.save(args.save_path+model_sub_folder+'/classifier_acc.npy', classifier_acc[1:])
+    target_pesudo_y = np.array(target_pesudo_y)
+    pesudo_dict = get_class_data_dict(target_unlabel_x, target_pesudo_y, d_out)
+    unlabel_acc_ = unlabel_correct_target/target_unlabel_x.shape[0]
+    unlabel_loss_ = unlabel_loss/target_unlabel_x.shape[0]
+    label_acc_ = label_correct_target/target_label_x.shape[0]
+    label_loss_ = label_loss/target_label_x.shape[0]
+    combine_acc_ = (unlabel_correct_target+label_correct_target)/(target_unlabel_x.shape[0]+target_label_x.shape[0])
+    combine_loss_ = (label_loss+unlabel_loss)/(target_unlabel_x.shape[0]+target_label_x.shape[0])
+    print('Epoch: %i, Classifier: Unlabel acc: %f, loss: %f; Label acc: %f, loss: %f; Combine acc: %f, loss: %f'%(epoch-1,unlabel_acc_,unlabel_loss_,label_acc_,label_loss_,combine_acc_,combine_loss_))
+    
+    unlabel_acces.append(unlabel_acc_)
+    unlabel_losses.append(unlabel_loss_)
+    label_acces.append(label_acc_)
+    label_losses.append(label_loss_)
+    combine_acces.append(combine_acc_)
+    combine_losses.append(combine_loss_)
+
+np.save(args.save_path+model_sub_folder+'/unlabel_acces.npy', unlabel_acces[1:])
+np.save(args.save_path+model_sub_folder+'/unlabel_losses.npy', unlabel_losses[1:])
+np.save(args.save_path+model_sub_folder+'/label_acces.npy', label_acces[1:])
+np.save(args.save_path+model_sub_folder+'/label_losses.npy', label_losses[1:])
+np.save(args.save_path+model_sub_folder+'/combine_acc_.npy', combine_acc_[1:])
+np.save(args.save_path+model_sub_folder+'/combine_loss_.npy', combine_loss_[1:])
