@@ -433,6 +433,8 @@ for epoch in range(args.epochs):
     target_pesudo_y = []
     for batch in range(math.ceil(target_unlabel_x.shape[0]/args.batch_size)):
         batch_size = target_unlabel_x[batch*args.batch_size:(batch+1)*args.batch_size].shape[0]
+        if batch_size == 0:
+            pass
         target_unlabel_x_batch = torch.tensor(target_unlabel_x[batch*args.batch_size:(batch+1)*args.batch_size], device=device).float()
         target_unlabel_y_batch = torch.tensor(target_unlabel_y[batch*args.batch_size:(batch+1)*args.batch_size], device=device)
         pred, loss = classifier_inference(encoder, CNet, target_unlabel_x_batch, target_unlabel_y_batch, target_mean, target_std, batch_size)
@@ -443,9 +445,9 @@ for epoch in range(args.epochs):
     label_correct_target = 0.0
     label_loss = 0.0
     for batch in range(math.ceil(target_label_x.shape[0]/args.batch_size)):
-        print('HERE!!!!!!!!',target_label_x.shape)
-        print('HERE222222222', target_label_x[batch*args.batch_size:(batch+1)*args.batch_size].shape[0])
         batch_size = target_label_x[batch*args.batch_size:(batch+1)*args.batch_size].shape[0]
+        if batch_size == 0:
+            pass
         target_label_x_batch = torch.tensor(target_label_x[batch*args.batch_size:(batch+1)*args.batch_size], device=device).float()
         target_label_y_batch = torch.tensor(target_label_y[batch*args.batch_size:(batch+1)*args.batch_size], device=device)
         pred, loss = classifier_inference(encoder, CNet, target_label_x_batch, target_label_y_batch, target_mean, target_std, batch_size)
@@ -594,8 +596,8 @@ for epoch in range(args.epochs):
     np.save(args.save_path+model_sub_folder+'/unlabel_losses.npy', unlabel_losses[1:])
     np.save(args.save_path+model_sub_folder+'/label_acces.npy', label_acces[1:])
     np.save(args.save_path+model_sub_folder+'/label_losses.npy', label_losses[1:])
-    np.save(args.save_path+model_sub_folder+'/combine_acc_.npy', combine_acc_[1:])
-    np.save(args.save_path+model_sub_folder+'/combine_loss_.npy', combine_loss_[1:])
+    np.save(args.save_path+model_sub_folder+'/combine_acces.npy', combine_acces[1:])
+    np.save(args.save_path+model_sub_folder+'/combine_losses.npy', combine_losses[1:])
 
 
     unlabel_correct_target = 0.0
@@ -642,5 +644,5 @@ np.save(args.save_path+model_sub_folder+'/unlabel_acces.npy', unlabel_acces[1:])
 np.save(args.save_path+model_sub_folder+'/unlabel_losses.npy', unlabel_losses[1:])
 np.save(args.save_path+model_sub_folder+'/label_acces.npy', label_acces[1:])
 np.save(args.save_path+model_sub_folder+'/label_losses.npy', label_losses[1:])
-np.save(args.save_path+model_sub_folder+'/combine_acc_.npy', combine_acc_[1:])
-np.save(args.save_path+model_sub_folder+'/combine_loss_.npy', combine_loss_[1:])
+np.save(args.save_path+model_sub_folder+'/combine_acces.npy', combine_acces[1:])
+np.save(args.save_path+model_sub_folder+'/combine_losses.npy', combine_losses[1:])
