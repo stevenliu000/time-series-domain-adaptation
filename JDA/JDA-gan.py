@@ -217,7 +217,7 @@ def get_target_dict(file_path, num_class, lbl_percentage, seed=0):
         index = np.argwhere(train_lbl==i).flatten()
         np.random.seed(seed)
         index = np.random.choice(index, int(lbl_percentage*train_lbl.shape[0]/num_class))
-        labeled_index.append(index)
+        labeled_index.extend(index)
         with_label[i] = train_data[index]
 
     
