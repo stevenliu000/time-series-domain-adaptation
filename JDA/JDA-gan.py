@@ -354,7 +354,7 @@ else:
     encoder.load_state_dict(torch.load(encoder_path, map_location=torch.device('cpu')))
 encoder.to(device)
 CNet.to(device)
-def classifier_inference(encoder, CNet, x, x_mean_tr, x_std_tr, batch_size):
+def classifier_inference(encoder, CNet, x, y, x_mean_tr, x_std_tr, batch_size):
     CNet.eval()
     encoder.eval()
     with torch.no_grad():
@@ -435,7 +435,7 @@ for epoch in range(args.epochs):
         batch_size = target_unlabel_x[batch*args.batch_size:(batch+1)*args.batch_size].shape[0]
         target_unlabel_x_batch = torch.tensor(target_unlabel_x[batch*args.batch_size:(batch+1)*args.batch_size], device=device).float()
         target_unlabel_y_batch = torch.tensor(target_unlabel_y[batch*args.batch_size:(batch+1)*args.batch_size], device=device)
-        pred, loss = classifier_inference(encoder, CNet, target_unlabel_x_batch, target_mean, target_std, batch_size)
+        pred, loss = classifier_inference(encoder, CNet, target_unlabel_x_batch, target_unlabel_y_batch, target_mean, target_std, batch_size)
         unlabel_correct_target += (pred.argmax(-1) == target_unlabel_y_batch.argmax(-1)).sum().item()
         unlabel_loss += loss.item()
         target_pesudo_y.extend(pred.argmax(-1).cpu().numpy())
@@ -446,7 +446,7 @@ for epoch in range(args.epochs):
         batch_size = target_label_x[batch*args.batch_size:(batch+1)*args.batch_size].shape[0]
         target_label_x_batch = torch.tensor(target_label_x[batch*args.batch_size:(batch+1)*args.batch_size], device=device).float()
         target_label_y_batch = torch.tensor(target_label_y[batch*args.batch_size:(batch+1)*args.batch_size], device=device)
-        pred, loss = classifier_inference(encoder, CNet, target_label_x_batch, target_mean, target_std, batch_size)
+        pred, loss = classifier_inference(encoder, CNet, target_label_x_batch, target_label_y_batch, target_mean, target_std, batch_size)
         label_correct_target += (pred.argmax(-1) == target_label_y_batch.argmax(-1)).sum().item()
         label_loss += loss.item()
         target_pesudo_y.extend(pred.argmax(-1).cpu().numpy()) 
