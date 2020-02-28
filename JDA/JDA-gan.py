@@ -315,7 +315,7 @@ device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 if args.num_per_class == -1:
     args.num_per_class = math.ceil(args.batch_size / d_out)
     
-model_sub_folder = '/task_%s_gap_%s_lblPer_%i_numPerClass_%i'%(args.task, args.gap, args.lbl_percentage, args.num_per_class)
+model_sub_folder = '/task_%s_gap_%s_lblPer_%1.1f_numPerClass_%i'%(args.task, args.gap, args.lbl_percentage, args.num_per_class)
     
 
 # In[22]:
