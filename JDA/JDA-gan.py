@@ -51,8 +51,6 @@ np.random.seed(args.seed)
 cudnn.deterministic = True
 torch.backends.cudnn.deterministic = True
 
-print(args.model)
-
 
 # #local only
 # 
@@ -306,7 +304,8 @@ def get_batch_target_data_on_class(real_dict, pesudo_dict, unlabel_data, num_per
 # DNet_local:    class-wise Discriminator
 # GNet:    Generator (Adaptor)
 
-# In[21]:
+# In[35]:
+
 
 
 args.task = '3Av2' if args.task == '3A' else '3E'
@@ -315,6 +314,28 @@ device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
 if args.num_per_class == -1:
     args.num_per_class = math.ceil(args.batch_size / d_out)
+    
+model_sub_folder = '/task_%s_gap_%s_lblPer_%i_numPerClass_%i'%(args.task, args.gap, args.lbl_percentage, args.num_per_class)
+    
+
+
+# In[ ]:
+
+
+parser = argparse.ArgumentParser(description='JDA Time series adaptation')
+parser.add_argument("--data_path", type=str, default="/projects/rsalakhugroup/complex/domain_adaptation", help="dataset path")
+parser.add_argument("--task", type=str, help='3A or 3E')
+parser.add_argument('--batch_size', type=int, default=256, help='batch size')
+parser.add_argument('--epochs', type=int, default=50, help='number of epochs')
+parser.add_argument('--lr_gan', type=float, default=1e-4, help='learning rate for adversarial')
+parser.add_argument('--lr_clf', type=float, default=1e-4, help='learning rate for classification')
+parser.add_argument('--gap', type=int, default=4, help='gap: Generator train GAP times, discriminator train once')
+parser.add_argument('--lbl_percentage', type=float, default=0.2, help='percentage of which target data has label')
+parser.add_argument('--num_per_class', type=int, default=-1, help='number of sample per class when training local discriminator')
+parser.add_argument('--seed', type=int, help='manual seed')
+parser.add_argument('--classifier', type=str, help='cnet model file')
+parser.add_argument('--save_path', type=str, default='../train_related/JDA_GAN', help='where to store data')
+parser.add_argument('--model_save_period', type=int, default=2, help='period in which the model is saved')
 
 
 # In[22]:
@@ -535,12 +556,12 @@ for epoch in range(args.epochs):
     G_losses.append(total_error_G)
     
     if epoch % args.model_save_period == 0:
-        torch.save(DNet_global.state_dict(), args.save_path+'/DNet_global_%i'%epoch)
-        torch.save(DNet_local.state_dict(), args.save_path+'/DNet_local_%i'%epoch)
-        torch.save(GNet.state_dict(), args.save_path+'/GNet_%i'%epoch)
+        torch.save(DNet_global.state_dict(), args.save_path+model_sub_folder+'/DNet_global_%i'%epoch)
+        torch.save(DNet_local.state_dict(), args.save_path+model_sub_folder+'/DNet_local_%i'%epoch)
+        torch.save(GNet.state_dict(), args.save_path+model_sub_folder+'/GNet_%i'%epoch)
         
-    np.save(args.save_path+'/D_global_losses.npy', D_global_losses)
-    np.save(args.save_path+'/D_local_losses.npy', D_local_losses)
-    np.save(args.save_path+'/G_loss.npy', G_losses)
-    np.save(args.save_path+'/classifier_acc.npy', classifier_acc)
+    np.save(args.save_path+model_sub_folder+'/D_global_losses.npy', D_global_losses)
+    np.save(args.save_path+model_sub_folder+'/D_local_losses.npy', D_local_losses)
+    np.save(args.save_path+model_sub_folder+'/G_loss.npy', G_losses)
+    np.save(args.save_path+model_sub_folder+'/classifier_acc.npy', classifier_acc)
 

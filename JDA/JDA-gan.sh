@@ -1,6 +1,6 @@
-!# /bin/bash
+!#/bin/bash
 
-python JDA-gan.py --data_path /home/weixinli \
+python JDA-gan.py --data_path /home/weixinli/ \
 		  --task 3A \
 		  --batch_size 400 \
                   --epochs 10 \
