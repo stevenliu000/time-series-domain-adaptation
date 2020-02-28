@@ -3,3 +3,5 @@
 data_unzip
 train_related
 __pycache__
+data_results*
+Final_*
