@@ -637,31 +637,31 @@ for epoch in range(args.epochs):
         label_loss += loss.item()
         target_pesudo_y.extend(pred.argmax(-1).cpu().numpy()) 
     
-    target_pesudo_y = np.array(target_pesudo_y)
-    pesudo_dict = get_class_data_dict(target_unlabel_x, target_pesudo_y, d_out)
-    if args.lbl_percentage == 1:
-        unlabel_acc_ = 0
-        unlabel_loss_ = 0
-    else:
-        unlabel_acc_ = unlabel_correct_target/target_unlabel_x.shape[0]
-        unlabel_loss_ = unlabel_loss/target_unlabel_x.shape[0]
-        
-    if args.lbl_percentage == 0: 
-        label_acc_ = 0
-        label_loss_ = 0
-    else:
-        label_acc_ = label_correct_target/target_label_x.shape[0]
-        label_loss_ = label_loss/target_label_x.shape[0]
-    combine_acc_ = (unlabel_correct_target+label_correct_target)/(target_unlabel_x.shape[0]+target_label_x.shape[0])
-    combine_loss_ = (label_loss+unlabel_loss)/(target_unlabel_x.shape[0]+target_label_x.shape[0])
-    print('Epoch: %i, Classifier: Unlabel acc: %f, loss: %f; Label acc: %f, loss: %f; Combine acc: %f, loss: %f'%(epoch-1,unlabel_acc_,unlabel_loss_,label_acc_,label_loss_,combine_acc_,combine_loss_))
-    
-    unlabel_acces.append(unlabel_acc_)
-    unlabel_losses.append(unlabel_loss_)
-    label_acces.append(label_acc_)
-    label_losses.append(label_loss_)
-    combine_acces.append(combine_acc_)
-    combine_losses.append(combine_loss_)
+target_pesudo_y = np.array(target_pesudo_y)
+pesudo_dict = get_class_data_dict(target_unlabel_x, target_pesudo_y, d_out)
+if args.lbl_percentage == 1:
+    unlabel_acc_ = 0
+    unlabel_loss_ = 0
+else:
+    unlabel_acc_ = unlabel_correct_target/target_unlabel_x.shape[0]
+    unlabel_loss_ = unlabel_loss/target_unlabel_x.shape[0]
+
+if args.lbl_percentage == 0: 
+    label_acc_ = 0
+    label_loss_ = 0
+else:
+    label_acc_ = label_correct_target/target_label_x.shape[0]
+    label_loss_ = label_loss/target_label_x.shape[0]
+combine_acc_ = (unlabel_correct_target+label_correct_target)/(target_unlabel_x.shape[0]+target_label_x.shape[0])
+combine_loss_ = (label_loss+unlabel_loss)/(target_unlabel_x.shape[0]+target_label_x.shape[0])
+print('Epoch: %i, Classifier: Unlabel acc: %f, loss: %f; Label acc: %f, loss: %f; Combine acc: %f, loss: %f'%(epoch-1,unlabel_acc_,unlabel_loss_,label_acc_,label_loss_,combine_acc_,combine_loss_))
+
+unlabel_acces.append(unlabel_acc_)
+unlabel_losses.append(unlabel_loss_)
+label_acces.append(label_acc_)
+label_losses.append(label_loss_)
+combine_acces.append(combine_acc_)
+combine_losses.append(combine_loss_)
 
 np.save(args.save_path+model_sub_folder+'/unlabel_acces.npy', unlabel_acces[1:])
 np.save(args.save_path+model_sub_folder+'/unlabel_losses.npy', unlabel_losses[1:])
