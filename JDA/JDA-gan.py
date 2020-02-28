@@ -368,7 +368,7 @@ def classifier_inference(encoder, CNet, x, y, x_mean_tr, x_std_tr, batch_size):
             imag.to(device)
         real, imag = encoder(real, imag)
         pred = CNet(torch.cat((real, imag), -1).reshape(x.shape[0], -1))
-        loss = criterion(pred, y.argmax(-1))
+        loss = criterion(pred, y)
 
     return pred, loss
 
