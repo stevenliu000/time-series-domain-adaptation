@@ -29,8 +29,8 @@ parser.add_argument("--data_path", type=str, default="/projects/rsalakhugroup/co
 parser.add_argument("--task", type=str, help='3A or 3E')
 parser.add_argument('--batch_size', type=int, default=256, help='batch size')
 parser.add_argument('--epochs', type=int, default=50, help='number of epochs')
-parser.add_argument('--lr_gan', type=float, default=1e-4, help='learning rate for adversarial')
-parser.add_argument('--lr_clf', type=float, default=1e-4, help='learning rate for classification')
+parser.add_argument('--lr_gan', type=float, default=1e-3, help='learning rate for adversarial')
+parser.add_argument('--lr_clf', type=float, default=1e-3, help='learning rate for classification')
 parser.add_argument('--gap', type=int, default=4, help='gap: Generator train GAP times, discriminator train once')
 parser.add_argument('--lbl_percentage', type=float, default=0.2, help='percentage of which target data has label')
 parser.add_argument('--num_per_class', type=int, default=-1, help='number of sample per class when training local discriminator')
@@ -585,9 +585,9 @@ for epoch in range(args.epochs):
         
         
     total_error_G = total_error_G/2
-    schedulerD_global.step()
-    schedulerD_local.step()
-    schedulerG.step()
+    # schedulerD_global.step()
+    # schedulerD_local.step()
+    # schedulerG.step()
     print('Epoch: %i, total loss: %f, G loss: %f, D_global loss: %f, D_local loss: %f'%(
         epoch, total_error_D_local+total_error_D_global+total_error_G, total_error_G, total_error_D_global, total_error_D_local))
     D_global_losses.append(total_error_D_global)
