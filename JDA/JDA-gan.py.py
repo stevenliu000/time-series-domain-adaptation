@@ -51,8 +51,6 @@ np.random.seed(args.seed)
 cudnn.deterministic = True
 torch.backends.cudnn.deterministic = True
 
-print(args.model)
-
 
 # #local only
 # 
