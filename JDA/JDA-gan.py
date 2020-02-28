@@ -248,7 +248,7 @@ def get_batch_source_data_on_class(class_dict, num_per_class):
         
     return np.array(batch_x), np.array(batch_y)
 
-def get_batch_target_data_on_class(real_dict, pesudo_dict, unlabel_data, num_per_class, compromise=1, real_weight=1, pesudo_weight=0.5):
+def get_batch_target_data_on_class(real_dict, pesudo_dict, unlabel_data, num_per_class, compromise=1, real_weight=1, pesudo_weight=0.2):
     '''
     get batch from target data given a required number of sample per class
     '''
