@@ -18,7 +18,7 @@ import torch.backends.cudnn as cudnn
 from dataset import TimeSeriesDataset, TimeSeriesDatasetConcat
 from martins.complex_transformer import ComplexTransformer
 import argparse
-
+import os
 
 # In[33]:
 
@@ -248,7 +248,7 @@ def get_batch_source_data_on_class(class_dict, num_per_class):
         
     return np.array(batch_x), np.array(batch_y)
 
-def get_batch_target_data_on_class(real_dict, pesudo_dict, unlabel_data, num_per_class, compromise=3, real_weight=1, pesudo_weight=0.1):
+def get_batch_target_data_on_class(real_dict, pesudo_dict, unlabel_data, num_per_class, compromise=1, real_weight=1, pesudo_weight=0.1):
     '''
     get batch from target data given a required number of sample per class
     '''
@@ -263,7 +263,8 @@ def get_batch_target_data_on_class(real_dict, pesudo_dict, unlabel_data, num_per
         if num_in_class < num_per_class:
             # if totoal number sample in this class is less than the required number of sample
             # then fetch the remainding data randomly from the unlabeled set with a compromise
-            num_fetch_unlabeled = (num_in_class - num_per_class) * compromise
+            
+            num_fetch_unlabeled = (num_per_class - num_in_class) * compromise
             index = random.sample(range(unlabel_data.shape[0]), num_fetch_unlabeled)
             batch_x.extend(unlabel_data[index])
             batch_y.extend([key] * num_fetch_unlabeled)
@@ -311,32 +312,11 @@ def get_batch_target_data_on_class(real_dict, pesudo_dict, unlabel_data, num_per
 args.task = '3Av2' if args.task == '3A' else '3E'
 d_out = 50 if args.task == "3Av2" else 65
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-
 if args.num_per_class == -1:
     args.num_per_class = math.ceil(args.batch_size / d_out)
     
 model_sub_folder = '/task_%s_gap_%s_lblPer_%i_numPerClass_%i'%(args.task, args.gap, args.lbl_percentage, args.num_per_class)
     
-
-
-# In[ ]:
-
-
-parser = argparse.ArgumentParser(description='JDA Time series adaptation')
-parser.add_argument("--data_path", type=str, default="/projects/rsalakhugroup/complex/domain_adaptation", help="dataset path")
-parser.add_argument("--task", type=str, help='3A or 3E')
-parser.add_argument('--batch_size', type=int, default=256, help='batch size')
-parser.add_argument('--epochs', type=int, default=50, help='number of epochs')
-parser.add_argument('--lr_gan', type=float, default=1e-4, help='learning rate for adversarial')
-parser.add_argument('--lr_clf', type=float, default=1e-4, help='learning rate for classification')
-parser.add_argument('--gap', type=int, default=4, help='gap: Generator train GAP times, discriminator train once')
-parser.add_argument('--lbl_percentage', type=float, default=0.2, help='percentage of which target data has label')
-parser.add_argument('--num_per_class', type=int, default=-1, help='number of sample per class when training local discriminator')
-parser.add_argument('--seed', type=int, help='manual seed')
-parser.add_argument('--classifier', type=str, help='cnet model file')
-parser.add_argument('--save_path', type=str, default='../train_related/JDA_GAN', help='where to store data')
-parser.add_argument('--model_save_period', type=int, default=2, help='period in which the model is saved')
-
 
 # In[22]:
 
@@ -370,16 +350,17 @@ if torch.cuda.is_available():
 else:
     CNet.load_state_dict(torch.load(CNet_path, map_location=torch.device('cpu')))
     encoder.load_state_dict(torch.load(encoder_path, map_location=torch.device('cpu')))
-
-def classifier_inference(encoder, CNet, x, x_mean_tr, x_std_tr):
+encoder.to(device)
+CNet.to(device)
+def classifier_inference(encoder, CNet, x, x_mean_tr, x_std_tr, batch_size):
     CNet.eval()
     encoder.eval()
     with torch.no_grad():
         #normalize data
         x = (x - x_mean_tr) / x_std_tr
         # take the real and imaginary part out
-        real = x[:,:,0].reshape(args.batch_size, seq_len, feature_dim).float()
-        imag = x[:,:,1].reshape(args.batch_size, seq_len, feature_dim).float()
+        real = x[:,:,0].reshape(batch_size, seq_len, feature_dim).float()
+        imag = x[:,:,1].reshape(batch_size, seq_len, feature_dim).float()
         if torch.cuda.is_available():
             real.to(device)
             imag.to(device)
@@ -427,16 +408,26 @@ D_global_losses = []
 D_local_losses = []
 G_losses = []
 classifier_acc = []
+print(device)
+
+
+# Create target Directory if don't exist
+if not os.path.exists(args.save_path+model_sub_folder):
+    os.mkdir(args.save_path+model_sub_folder)
+    print("Directory " , args.save_path+model_sub_folder ,  " Created ")
+else:    
+    print("Directory " , args.save_path+model_sub_folder ,  " already exists")
 
 for epoch in range(args.epochs):
     correct_target = 0.0
     target_pesudo_y = []
     for batch in range(math.ceil(target_unlabel_x.shape[0]/args.batch_size)):
-        target_unlabel_x_batch = torch.Tensor(target_unlabel_x[batch*args.batch_size:(batch+1)*args.batch_size], device=device).to(device).float()
-        target_unlabel_y_batch = torch.Tensor(target_unlabel_y[batch*args.batch_size:(batch+1)*args.batch_size], device=device)
-        pred = classifier_inference(encoder, CNet, target_unlabel_x_batch, target_mean, target_std)
+        batch_size = target_unlabel_x[batch*args.batch_size:(batch+1)*args.batch_size].shape[0]
+        target_unlabel_x_batch = torch.tensor(target_unlabel_x[batch*args.batch_size:(batch+1)*args.batch_size], device=device).float()
+        target_unlabel_y_batch = torch.tensor(target_unlabel_y[batch*args.batch_size:(batch+1)*args.batch_size], device=device)
+        pred = classifier_inference(encoder, CNet, target_unlabel_x_batch, target_mean, target_std, batch_size)
         correct_target += (pred.argmax(-1) == target_unlabel_y_batch.argmax(-1)).sum().item()
-        target_pesudo_y.extend(pred.argmax(-1).numpy())
+        target_pesudo_y.extend(pred.argmax(-1).cpu().numpy())
     
     target_pesudo_y = np.array(target_pesudo_y)
     pesudo_dict = get_class_data_dict(target_unlabel_x, target_pesudo_y, d_out)
@@ -494,15 +485,15 @@ for epoch in range(args.epochs):
 
     print('Start Training On local Discriminator')
     for batch_id in tqdm(range(math.ceil(target_len/args.batch_size))):
-        get_batch_target_data_on_class(target_dict, pesudo_dict, target_unlabel_x, args.num_per_class)
         target_x, target_y, target_weight = get_batch_target_data_on_class(target_dict, pesudo_dict, target_unlabel_x, args.num_per_class)
         source_x, source_y = get_batch_source_data_on_class(source_dict, args.num_per_class)
         
-        target_x = torch.Tensor(target_x, device=device)
-        source_x = torch.Tensor(source_x, device=device)
-        target_weight = torch.Tensor(target_weight, device=device)
+        target_x = torch.tensor(target_x, device=device)
+        source_x = torch.tensor(source_x, device=device)
+        target_weight = torch.tensor(target_weight, device=device)
         batch_size = target_x.shape[0]
         target_x = target_x.reshape(batch_size, seq_len, feature_dim_joint)
+        batch_size = source_x.shape[0]
         source_x = source_x.reshape(batch_size, seq_len, feature_dim_joint)
         
         # Data Normalization
@@ -563,5 +554,21 @@ for epoch in range(args.epochs):
     np.save(args.save_path+model_sub_folder+'/D_global_losses.npy', D_global_losses)
     np.save(args.save_path+model_sub_folder+'/D_local_losses.npy', D_local_losses)
     np.save(args.save_path+model_sub_folder+'/G_loss.npy', G_losses)
-    np.save(args.save_path+model_sub_folder+'/classifier_acc.npy', classifier_acc)
+    np.save(args.save_path+model_sub_folder+'/classifier_acc.npy', classifier_acc[1:])
 
+
+correct_target = 0.0
+target_pesudo_y = []
+for batch in range(math.ceil(target_unlabel_x.shape[0]/args.batch_size)):
+    batch_size = target_unlabel_x[batch*args.batch_size:(batch+1)*args.batch_size].shape[0]
+    target_unlabel_x_batch = torch.tensor(target_unlabel_x[batch*args.batch_size:(batch+1)*args.batch_size], device=device).float()
+    target_unlabel_y_batch = torch.tensor(target_unlabel_y[batch*args.batch_size:(batch+1)*args.batch_size], device=device)
+    pred = classifier_inference(encoder, CNet, target_unlabel_x_batch, target_mean, target_std, batch_size)
+    correct_target += (pred.argmax(-1) == target_unlabel_y_batch.argmax(-1)).sum().item()
+    target_pesudo_y.extend(pred.argmax(-1).cpu().numpy())
+    
+target_pesudo_y = np.array(target_pesudo_y)
+pesudo_dict = get_class_data_dict(target_unlabel_x, target_pesudo_y, d_out)
+print('Epoch: %i, Classifier Acc on Target Domain: %f'%(epoch, correct_target/target_unlabel_x.shape[0]))
+classifier_acc.append(correct_target/target_unlabel_x.shape[0])
+np.save(args.save_path+model_sub_folder+'/classifier_acc.npy', classifier_acc[1:])
