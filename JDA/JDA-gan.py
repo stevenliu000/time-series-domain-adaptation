@@ -434,7 +434,7 @@ for epoch in range(args.epochs):
     for batch in range(math.ceil(target_unlabel_x.shape[0]/args.batch_size)):
         batch_size = target_unlabel_x[batch*args.batch_size:(batch+1)*args.batch_size].shape[0]
         if batch_size == 0:
-            pass
+            continue
         target_unlabel_x_batch = torch.tensor(target_unlabel_x[batch*args.batch_size:(batch+1)*args.batch_size], device=device).float()
         target_unlabel_y_batch = torch.tensor(target_unlabel_y[batch*args.batch_size:(batch+1)*args.batch_size], device=device)
         pred, loss = classifier_inference(encoder, CNet, target_unlabel_x_batch, target_unlabel_y_batch, target_mean, target_std, batch_size)
@@ -447,7 +447,7 @@ for epoch in range(args.epochs):
     for batch in range(math.ceil(target_label_x.shape[0]/args.batch_size)):
         batch_size = target_label_x[batch*args.batch_size:(batch+1)*args.batch_size].shape[0]
         if batch_size == 0:
-            pass
+            continue
         target_label_x_batch = torch.tensor(target_label_x[batch*args.batch_size:(batch+1)*args.batch_size], device=device).float()
         target_label_y_batch = torch.tensor(target_label_y[batch*args.batch_size:(batch+1)*args.batch_size], device=device)
         pred, loss = classifier_inference(encoder, CNet, target_label_x_batch, target_label_y_batch, target_mean, target_std, batch_size)
@@ -605,9 +605,11 @@ for epoch in range(args.epochs):
     target_pesudo_y = []
     for batch in range(math.ceil(target_unlabel_x.shape[0]/args.batch_size)):
         batch_size = target_unlabel_x[batch*args.batch_size:(batch+1)*args.batch_size].shape[0]
+        if batch_size == 0:
+            continue
         target_unlabel_x_batch = torch.tensor(target_unlabel_x[batch*args.batch_size:(batch+1)*args.batch_size], device=device).float()
         target_unlabel_y_batch = torch.tensor(target_unlabel_y[batch*args.batch_size:(batch+1)*args.batch_size], device=device)
-        pred, loss = classifier_inference(encoder, CNet, target_unlabel_x_batch, target_mean, target_std, batch_size)
+        pred, loss = classifier_inference(encoder, CNet, target_unlabel_x_batch, target_unlabel_y_batch, target_mean, target_std, batch_size)
         unlabel_correct_target += (pred.argmax(-1) == target_unlabel_y_batch.argmax(-1)).sum().item()
         unlabel_loss += loss.item()
         target_pesudo_y.extend(pred.argmax(-1).cpu().numpy())
@@ -616,9 +618,11 @@ for epoch in range(args.epochs):
     label_loss = 0.0
     for batch in range(math.ceil(target_label_x.shape[0]/args.batch_size)):
         batch_size = target_label_x[batch*args.batch_size:(batch+1)*args.batch_size].shape[0]
+        if batch_size == 0:
+            continue
         target_label_x_batch = torch.tensor(target_label_x[batch*args.batch_size:(batch+1)*args.batch_size], device=device).float()
         target_label_y_batch = torch.tensor(target_label_y[batch*args.batch_size:(batch+1)*args.batch_size], device=device)
-        pred, loss = classifier_inference(encoder, CNet, target_label_x_batch, target_mean, target_std, batch_size)
+        pred, loss = classifier_inference(encoder, CNet, target_label_x_batch, target_label_y_batch, target_mean, target_std, batch_size)
         label_correct_target += (pred.argmax(-1) == target_label_y_batch.argmax(-1)).sum().item()
         label_loss += loss.item()
         target_pesudo_y.extend(pred.argmax(-1).cpu().numpy()) 
