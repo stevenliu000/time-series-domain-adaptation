@@ -29,11 +29,11 @@ class TimeSeriesDatasetConcat(Dataset):
     def __init__(self, root_dir, file_name, seed, train=True):
         f = open(os.path.join(root_dir, file_name), "rb")
         dataset = pickle.load(f)
-        self.tr_data = dataset['tr_data'][:5000]
-        self.tr_label = dataset['tr_lbl'][:5000]
-        self.te_data = dataset['te_data_only']
-        self.tr_len = self.tr_data.shape[0]
+        self.te_data = dataset['te_data']
         self.te_len = self.te_data.shape[0]
+        self.tr_data = dataset['tr_data'][:self.te_len]
+        self.tr_label = dataset['tr_lbl'][:self.te_len]
+        self.tr_len = self.tr_data.shape[0]
 
         # random sample from train data so two sets 
         # have same number of data
