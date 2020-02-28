@@ -9,7 +9,7 @@ python JDA-gan.py --data_path /home/weixinli/ \
                   --lbl_percentage 0 \
                   --num_per_class -1 \
                   --classifier /home/weixinli/time-series-domain-adaptation/JDA/FNN_trained_model \
-                  --save_path ../train_related/JDA_GAN \
+                  --save_path ../train_related/JDA_GAN1 \
                   --model_save_period 5
 
 python JDA-gan.py --data_path /home/weixinli/ \
@@ -20,7 +20,7 @@ python JDA-gan.py --data_path /home/weixinli/ \
                   --lbl_percentage 0.2 \
                   --num_per_class -1 \
                   --classifier /home/weixinli/time-series-domain-adaptation/JDA/FNN_trained_model \
-                  --save_path ../train_related/JDA_GAN \
+                  --save_path ../train_related/JDA_GAN1 \
                   --model_save_period 5
 
 python JDA-gan.py --data_path /home/weixinli/ \
@@ -31,7 +31,7 @@ python JDA-gan.py --data_path /home/weixinli/ \
                   --lbl_percentage 0.5 \
                   --num_per_class -1 \
                   --classifier /home/weixinli/time-series-domain-adaptation/JDA/FNN_trained_model \
-                  --save_path ../train_related/JDA_GAN \
+                  --save_path ../train_related/JDA_GAN1 \
                   --model_save_period 5
 
 python JDA-gan.py --data_path /home/weixinli/ \
@@ -42,7 +42,7 @@ python JDA-gan.py --data_path /home/weixinli/ \
                   --lbl_percentage 0.7 \
                   --num_per_class -1 \
                   --classifier /home/weixinli/time-series-domain-adaptation/JDA/FNN_trained_model \
-                  --save_path ../train_related/JDA_GAN \
+                  --save_path ../train_related/JDA_GAN1 \
                   --model_save_period 5
 
 python JDA-gan.py --data_path /home/weixinli/ \
@@ -53,7 +53,7 @@ python JDA-gan.py --data_path /home/weixinli/ \
                   --lbl_percentage 1 \
                   --num_per_class -1 \
                   --classifier /home/weixinli/time-series-domain-adaptation/JDA/FNN_trained_model \
-                  --save_path ../train_related/JDA_GAN \
+                  --save_path ../train_related/JDA_GAN1 \
                   --model_save_period 5
 
 python JDA-gan.py --data_path /home/weixinli/ \
@@ -64,7 +64,7 @@ python JDA-gan.py --data_path /home/weixinli/ \
                   --lbl_percentage 0 \
                   --num_per_class -1 \
                   --classifier /home/weixinli/time-series-domain-adaptation/JDA/FNN_trained_model \
-                  --save_path ../train_related/JDA_GAN \
+                  --save_path ../train_related/JDA_GAN1 \
                   --model_save_period 5
 
 python JDA-gan.py --data_path /home/weixinli/ \
@@ -75,7 +75,7 @@ python JDA-gan.py --data_path /home/weixinli/ \
                   --lbl_percentage 0.2 \
                   --num_per_class -1 \
                   --classifier /home/weixinli/time-series-domain-adaptation/JDA/FNN_trained_model \
-                  --save_path ../train_related/JDA_GAN \
+                  --save_path ../train_related/JDA_GAN1 \
                   --model_save_period 5
 
 python JDA-gan.py --data_path /home/weixinli/ \
@@ -86,7 +86,7 @@ python JDA-gan.py --data_path /home/weixinli/ \
                   --lbl_percentage 0.5 \
                   --num_per_class -1 \
                   --classifier /home/weixinli/time-series-domain-adaptation/JDA/FNN_trained_model \
-                  --save_path ../train_related/JDA_GAN \
+                  --save_path ../train_related/JDA_GAN1 \
                   --model_save_period 5
 
 python JDA-gan.py --data_path /home/weixinli/ \
@@ -97,7 +97,7 @@ python JDA-gan.py --data_path /home/weixinli/ \
                   --lbl_percentage 0.7 \
                   --num_per_class -1 \
                   --classifier /home/weixinli/time-series-domain-adaptation/JDA/FNN_trained_model \
-                  --save_path ../train_related/JDA_GAN \
+                  --save_path ../train_related/JDA_GAN1 \
                   --model_save_period 5
 
 python JDA-gan.py --data_path /home/weixinli/ \
@@ -108,6 +108,6 @@ python JDA-gan.py --data_path /home/weixinli/ \
                   --lbl_percentage 1 \
                   --num_per_class -1 \
                   --classifier /home/weixinli/time-series-domain-adaptation/JDA/FNN_trained_model \
-                  --save_path ../train_related/JDA_GAN \
+                  --save_path ../train_related/JDA_GAN1 \
                   --model_save_period 5
 
