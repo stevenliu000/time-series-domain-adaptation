@@ -15,12 +15,12 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
 class FNN_crelu(nn.Module):
-    def __init__(self, input_size, hidden_size, output_size, non_linear='tanh', dropout=0.0):
+    def __init__(self, input_size, hidden_size, output_size, non_linear='tanh', dropout=0.0, leaky_slope=0.2):
         super(FNN_crelu, self).__init__()
         self.input_size = input_size
         self.hidden_size = hidden_size
         self.num_hidden = len(hidden_size)
-        self.non_linear = nn.nn.LeakyReLU(negative_slope=0.02, inplace=True)
+        self.non_linear = nn.nn.LeakyReLU(negative_slope=leaky_slope, inplace=True)
 
 
         self.fc1_w_real = nn.Linear(input_size//2, hidden_size[0]//2, bias=False)
@@ -100,10 +100,10 @@ class ComplexDropout(nn.Module):
 
 class ComplexReLU(nn.Module):
     # For training with GAN, change to LeakyReLU here
-    def __init__(self):
+    def __init__(self, leaky_slope=0.2):
         super(ComplexReLU,self).__init__()
-        self.relu_r = nn.LeakyReLU(negative_slope=0.02, inplace=True)
-        self.relu_i = nn.LeakyReLU(negative_slope=0.02, inplace=True)
+        self.relu_r = nn.LeakyReLU(negative_slope=leaky_slope, inplace=True)
+        self.relu_i = nn.LeakyReLU(negative_slope=leaky_slope, inplace=True)
 
     def forward(self,input_r,input_i):
         return self.relu_r(input_r), self.relu_i(input_i)
