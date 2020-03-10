@@ -13,7 +13,7 @@ from torch.utils.data import Dataset, DataLoader
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 import torch.nn.functional as F
 from martins.complex_transformer import ComplexTransformer
-from dataset import TimeSeriesDataset
+from martins.dataset import TimeSeriesDataset
 
 import argparse
 
@@ -95,7 +95,7 @@ vali_loader = DataLoader(vali_set, batch_size=args.batch_size, shuffle=True)
 
 
 
-
+print()
 encoder = ComplexTransformer(layers=1,
                                time_step=seq_len,
                                input_dim=feature_dim,
