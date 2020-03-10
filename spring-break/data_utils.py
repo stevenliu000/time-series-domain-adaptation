@@ -21,8 +21,10 @@ def get_target_dict(file_path, num_class, lbl_percentage, seed=0):
     split target domain data
     
     output:
-        with label:
+        with label dict:
             {class: [data]}
+        with label:
+            [data], [lbl]
         without label:
             [data], [lbl]
         data_len
