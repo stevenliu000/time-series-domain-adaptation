@@ -25,7 +25,7 @@ parser.add_argument("--task", type=str, default="3Av2", help='3Av2 or 3E')
 parser.add_argument('--batch_size', type=int, default=256, help='batch size')
 parser.add_argument('--lr_clf', type=float, default=1e-4, help='learning rate for classification')
 parser.add_argument('--epochs', type=int, default=50, help='number of epochs')
-parser.add_argument('--PATH', type=str, default= "/Users/tianqinli/Code/Working-on/Russ/time-series-domain-adaptation/JDA/data_results/", help='Model save location')
+parser.add_argument('--PATH', type=str, default= "/Users/tianqinli/Code/Working-on/Russ/time-series-domain-adaptation/data_results/", help='Model save location')
 parser.add_argument('--log', type=str, default="FNN_log.out", help="Output log file for training and validation loss")
 
 
@@ -102,7 +102,8 @@ encoder = ComplexTransformer(layers=1,
                                hidden_size=64,
                                output_dim=64,
                                num_heads=8,
-                               out_dropout=0.5)
+                               out_dropout=0.5,
+                               leaky_slope=0.2)
 
 if torch.cuda.is_available(): encoder.to(device)
 
@@ -139,7 +140,6 @@ unique_id = "b" + str(args.batch_size) + ".e" + str(args.epochs) + ".lr" + str(a
 folder_path = args.PATH[:-1] + unique_id + "/"
 if not os.path.isdir(folder_path):
     os.mkdir(folder_path)
-
 
 
 logfile_full_path = folder_path + args.log + unique_id
