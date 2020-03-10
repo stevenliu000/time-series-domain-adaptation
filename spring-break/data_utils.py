@@ -80,6 +80,7 @@ def get_batch_source_data_on_class(class_dict, num_per_class):
 
 def get_batch_target_data_on_class(real_dict, pesudo_dict, unlabel_data, num_per_class, compromise=3, real_weight=1, pesudo_weight=0.1):
     '''
+    TODO: Change to fetch duplicate!!
     get batch from target data given a required number of sample per class
     '''
     batch_x = []
