@@ -31,10 +31,10 @@ class ComplexTransformer(nn.Module):
 
         # because this is an encoder which reduces shape, embed_dim=d_a
         self.embed_dim = d_a
-        
+
         # Transformer networks
         self.trans = self.get_network()
-        
+
         self.fc_a = []
         self.fc_b = []
         for reduction in range(reduction_times-1):
@@ -46,14 +46,14 @@ class ComplexTransformer(nn.Module):
                          
         self.fc_a = nn.Sequential(*self.fc_a)
         self.fc_b = nn.Sequential(*self.fc_b)
-        
+
         # Projection layers
         self.proj = ComplexLinear(self.d_a, self.embed_dim)
     def get_network(self):
-        
+
         return TransformerEncoder(embed_dim=self.embed_dim, num_heads=self.num_heads, layers=self.layers, attn_dropout=self.attn_dropout,
             relu_dropout=self.relu_dropout, res_dropout=self.res_dropout, attn_mask=self.attn_mask)
-            
+
     def forward(self, input_a, input_b):
         """
         x_a and x_b should have dimension [batch_size, seq_len, n_features] (i.e., N, L, C).

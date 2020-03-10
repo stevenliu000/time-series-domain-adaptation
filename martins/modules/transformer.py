@@ -22,7 +22,7 @@ class TransformerEncoder(nn.Module):
         attn_mask (bool): whether to apply mask on the attention weights
     """
 
-    def __init__(self, embed_dim, num_heads, layers, attn_dropout, relu_dropout, res_dropout, attn_mask=False):
+    def __init__(self, embed_dim, num_heads, layers, attn_dropout, relu_dropout, res_dropout, attn_mask=False, leaky_slope=0.2):
         super().__init__()
         self.dropout = 0.3      # Embedding dropout
         self.attn_dropout = attn_dropout
@@ -37,7 +37,8 @@ class TransformerEncoder(nn.Module):
                                     attn_dropout=attn_dropout,
                                     relu_dropout=relu_dropout,
                                     res_dropout=res_dropout,
-                                    attn_mask=attn_mask)
+                                    attn_mask=attn_mask,
+                                    leaky_slope=leaky_slope)
             for _ in range(layers)
         ])
         self.register_buffer('version', torch.Tensor([2]))
@@ -69,10 +70,13 @@ class TransformerEncoderLayer(nn.Module):
         embed_dim: Embedding dimension
     """
 
-    def __init__(self, embed_dim, num_heads=4, attn_dropout=0.1, relu_dropout=0.1, res_dropout=0.1, attn_mask=False):
+    def __init__(self, embed_dim, num_heads=4, attn_dropout=0.1, relu_dropout=0.1, res_dropout=0.1, attn_mask=False, leaky_slope=0.2):
         super().__init__()
         self.embed_dim = embed_dim
         self.num_heads = num_heads
+
+        self.leaky_slope = leaky_slope
+
         self.self_attn = MultiheadAttention(
             embed_dim=self.embed_dim,
             num_heads=self.num_heads,
@@ -138,8 +142,8 @@ class TransformerEncoderLayer(nn.Module):
         # FC1
         x_A, x_B = self.fc1(x_A, x_B)
         ### Use leaky_relu here for consisitance with GAN training
-        x_A = F.leaky_relu(x_A, negative_slope=0.02, inplace=True)
-        x_B = F.leaky_relu(x_B, negative_slope=0.02, inplace=True)
+        x_A = F.leaky_relu(x_A, negative_slope=self.leaky_slope, inplace=True)
+        x_B = F.leaky_relu(x_B, negative_slope=self.leaky_slope, inplace=True)
         x_A = F.dropout(x_A, p=self.relu_dropout, training=self.training)
         x_B = F.dropout(x_B, p=self.relu_dropout, training=self.training)
 
