@@ -21,7 +21,6 @@ class ComplexTransformer(nn.Module):
         self.d_a = int(input_dim/reduction_factor)
         self.d_b = int(input_dim/reduction_factor)
         reduction_times = int(np.log2(reduction_factor))
-        h_out = hidden_size
         self.num_heads = num_heads
         self.layers = layers
         self.attn_dropout = attn_dropout
