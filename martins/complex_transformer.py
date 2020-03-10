@@ -6,12 +6,21 @@ from modules.transformer import TransformerEncoder
 from modules.complex_unit import ComplexLinear
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
+class LinearLayerNormLeakyReLU(nn.Squential):
+    def __init__(in_dim, out_dim, leaky_factor=0.2):
+        super(LinearLayerNormLeakyReLU, self).__init__(
+            nn.Linear(in_dim, out_dim),
+            nn.LayerNorm(out_dim),
+            nn.LeakyReLU(0.2, inplace=True)
+        )
 
 class ComplexTransformer(nn.Module):
-    def __init__(self, layers, time_step, input_dim, hidden_size, output_dim, num_heads, attn_dropout=0.0, relu_dropout=0.0, res_dropout=0.0, out_dropout=0.5, attn_mask=False):
+    def __init__(self, layers, time_step, input_dim, hidden_size, output_dim, num_heads, attn_dropout=0.0, relu_dropout=0.0, res_dropout=0.0, out_dropout=0.5, attn_mask=False, reduction_factor=8):
         super(ComplexTransformer, self).__init__()
         self.orig_d_a = self.orig_d_b = input_dim
-        self.d_a, self.d_b = 512, 512 
+        self.d_a = int(input_dim/reduction_factor)
+        self.d_b = int(input_dim/reduction_factor)
+        reduction_times = int(np.log2(reduction_factor))
         h_out = hidden_size
         self.num_heads = num_heads
         self.layers = layers
@@ -20,13 +29,24 @@ class ComplexTransformer(nn.Module):
         self.res_dropout = res_dropout
         self.attn_mask = attn_mask
 
-        # because this is an encoder which preserves shape, embed_dim=input_dim
-        self.embed_dim = input_dim
+        # because this is an encoder which reduces shape, embed_dim=d_a
+        self.embed_dim = d_a
         
         # Transformer networks
         self.trans = self.get_network()
-        self.fc_a = nn.Linear(self.orig_d_a, self.d_a)
-        self.fc_b = nn.Linear(self.orig_d_b, self.d_b)
+        
+        self.fc_a = []
+        self.fc_b = []
+        for reduction in range(reduction_times-1):
+            self.fc_a.append(LinearLayerNormLeakyReLU(self.orig_d_a/(2**reduction), self.orig_d_a/(2**(reduction+1))
+            self.fc_b.append(LinearLayerNormLeakyReLU(self.orig_d_b/(2**reduction), self.orig_d_b/(2**(reduction+1))
+        
+        self.fc_a.append(LinearLayerNormLeakyReLU(self.orig_d_a/(2**(reduction+1), d_a))
+        self.fc_a.append(LinearLayerNormLeakyReLU(self.orig_d_b/(2**(reduction+1), d_b))
+                         
+        self.fc_a = nn.Sequential(*self.fc_a)
+        self.fc_b = nn.Sequential(*self.fc_b)
+        
         # Projection layers
         self.proj = ComplexLinear(self.d_a, self.embed_dim)
     def get_network(self):
