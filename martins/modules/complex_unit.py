@@ -20,7 +20,8 @@ class FNN_crelu(nn.Module):
         self.input_size = input_size
         self.hidden_size = hidden_size
         self.num_hidden = len(hidden_size)
-        self.non_linear = nn.ReLU()
+        self.non_linear = nn.nn.LeakyReLU(negative_slope=0.02, inplace=True)
+
 
         self.fc1_w_real = nn.Linear(input_size//2, hidden_size[0]//2, bias=False)
         self.fc1_w_imag = nn.Linear(input_size//2, hidden_size[0]//2, bias=False)
@@ -33,8 +34,8 @@ class FNN_crelu(nn.Module):
         self.bn = nn.ModuleList()
         self.b = []
         for i in range(self.num_hidden - 1):
-            self.w_real.append(nn.Linear(hidden_size[i]//2, hidden_size[i+1]//2, bias=False)) 
-            self.w_imag.append(nn.Linear(hidden_size[i]//2, hidden_size[i+1]//2, bias=False)) 
+            self.w_real.append(nn.Linear(hidden_size[i]//2, hidden_size[i+1]//2, bias=False))
+            self.w_imag.append(nn.Linear(hidden_size[i]//2, hidden_size[i+1]//2, bias=False))
             self.bn.append(nn.BatchNorm1d(hidden_size[i+1]))
             self.b.append(torch.Tensor(np.random.randn(hidden_size[i+1]) / np.sqrt(hidden_size[i+1])).to(device=device))
 
@@ -42,19 +43,19 @@ class FNN_crelu(nn.Module):
         self.fc2_w_imag = nn.Linear(hidden_size[self.num_hidden - 1]//2, output_size//2, bias=False)
         self.fc2_b = torch.Tensor(np.random.randn(output_size) / np.sqrt(output_size)).to(device=device)
         self.dropout = nn.Dropout(dropout)
-    
+
     def forward(self, x):
-        global device 
+        global device
         x = x.to(device=device)
 
         even_indices = torch.tensor([i for i in range(self.input_size) if i % 2 == 0]).to(device=device)
         odd_indices = torch.tensor([i for i in range(self.input_size) if i % 2 == 1]).to(device=device)
 
-        real_input = torch.index_select(x, 1, even_indices) # (bs, input_size/2) 
-        imag_input = torch.index_select(x, 1, odd_indices) # (bs, input_size/2) 
+        real_input = torch.index_select(x, 1, even_indices) # (bs, input_size/2)
+        imag_input = torch.index_select(x, 1, odd_indices) # (bs, input_size/2)
         up = self.fc1_w_real(real_input) - self.fc1_w_imag(imag_input)
         down = self.fc1_w_imag(real_input) + self.fc1_w_real(imag_input)
-        logitis = torch.cat((up, down), dim=1) 
+        logitis = torch.cat((up, down), dim=1)
         logitis += self.fc1_b
         logitis = self.dropout(self.non_linear(self.bn1(logitis)))
 
@@ -63,19 +64,19 @@ class FNN_crelu(nn.Module):
             imag_input = logitis[:, self.hidden_size[i]//2:]
             up = self.w_real[i](real_input) - self.w_imag[i](imag_input)
             down = self.w_imag[i](real_input) + self.w_real[i](imag_input)
-            logitis = torch.cat((up, down), dim=1) 
-            logitis += self.b[i] 
+            logitis = torch.cat((up, down), dim=1)
+            logitis += self.b[i]
             logitis = self.dropout(self.non_linear(self.bn[i](logitis)))
 
-        compressed_signal = logitis 
+        compressed_signal = logitis
 
         var_real_input = logitis[:, :self.hidden_size[self.num_hidden-1]//2]
         var_imag_input = logitis[:, self.hidden_size[self.num_hidden-1]//2:]
 
         up = self.fc2_w_real(var_real_input) - self.fc2_w_imag(var_imag_input)
         down = self.fc2_w_imag(var_real_input) +  self.fc2_w_real(var_imag_input)
-        logitis = torch.cat((up, down), dim=1) 
-        logitis += self.fc2_b 
+        logitis = torch.cat((up, down), dim=1)
+        logitis += self.fc2_b
         logitis = self.non_linear(logitis)
 
         return compressed_signal, nn.functional.log_softmax(logitis, dim=1)
@@ -98,10 +99,11 @@ class ComplexDropout(nn.Module):
         return self.dropout_r(input_r), self.dropout_i(input_i)
 
 class ComplexReLU(nn.Module):
+    # For training with GAN, change to LeakyReLU here
     def __init__(self):
         super(ComplexReLU,self).__init__()
-        self.relu_r = nn.ReLU()
-        self.relu_i = nn.ReLU()
+        self.relu_r = nn.LeakyReLU(negative_slope=0.02, inplace=True)
+        self.relu_i = nn.LeakyReLU(negative_slope=0.02, inplace=True)
 
     def forward(self,input_r,input_i):
         return self.relu_r(input_r), self.relu_i(input_i)
@@ -276,7 +278,7 @@ class ComplexBatchNorm1d(_ComplexBatchNorm):
         input_r = input_r.reshape(shape)
         input_i = input_i.reshape(shape)
 
-        return input_r, input_i            
+        return input_r, input_i
 
 class ComplexFlatten(nn.Module):
     def forward(self, input_r, input_i):
