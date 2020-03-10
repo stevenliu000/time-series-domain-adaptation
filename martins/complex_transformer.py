@@ -7,7 +7,7 @@ from modules.complex_unit import ComplexLinear
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 class LinearLayerNormLeakyReLU(nn.Sequential):
-    def __init__(in_dim, out_dim, leaky_slope=0.2):
+    def __init__(self, in_dim, out_dim, leaky_slope=0.2):
         super(LinearLayerNormLeakyReLU, self).__init__(
             nn.Linear(in_dim, out_dim),
             nn.LayerNorm(out_dim),
@@ -30,7 +30,7 @@ class ComplexTransformer(nn.Module):
         self.attn_mask = attn_mask
 
         # because this is an encoder which reduces shape, embed_dim=d_a
-        self.embed_dim = d_a
+        self.embed_dim = self.d_a
 
         # Transformer networks
         self.trans = self.get_network()
@@ -41,8 +41,8 @@ class ComplexTransformer(nn.Module):
             self.fc_a.append(LinearLayerNormLeakyReLU(self.orig_d_a/(2**reduction), self.orig_d_a/(2**(reduction+1)), leaky_slope=leaky_slope))
             self.fc_b.append(LinearLayerNormLeakyReLU(self.orig_d_b/(2**reduction), self.orig_d_b/(2**(reduction+1)), leaky_slope=leaky_slope))
         
-        self.fc_a.append(LinearLayerNormLeakyReLU(self.orig_d_a/(2**(reduction+1)), d_a, leaky_slope=leaky_slope))
-        self.fc_a.append(LinearLayerNormLeakyReLU(self.orig_d_b/(2**(reduction+1)), d_b, leaky_slope=leaky_slope))
+        self.fc_a.append(LinearLayerNormLeakyReLU(self.orig_d_a/(2**(reduction+1)), self.d_a, leaky_slope=leaky_slope))
+        self.fc_a.append(LinearLayerNormLeakyReLU(self.orig_d_b/(2**(reduction+1)), self.d_b, leaky_slope=leaky_slope))
                          
         self.fc_a = nn.Sequential(*self.fc_a)
         self.fc_b = nn.Sequential(*self.fc_b)
