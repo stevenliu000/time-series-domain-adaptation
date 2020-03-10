@@ -1,7 +1,11 @@
 import numpy as np
+import random
 
 def get_source_dict(file_path, num_class, data_len=None):
     '''
+    input:
+        data_len: keep how many data points
+
     output:
         {class: [data]},
         data_len
@@ -21,9 +25,11 @@ def get_target_dict(file_path, num_class, lbl_percentage, seed=0):
     split target domain data
     
     output:
-        with label:
+        with label dict:
             {class: [data]}
         without label:
+            [data], [lbl]
+        with label:
             [data], [lbl]
         data_len
     '''
@@ -44,9 +50,6 @@ def get_target_dict(file_path, num_class, lbl_percentage, seed=0):
         index = np.random.choice(index, int(lbl_percentage*train_lbl.shape[0]/num_class))
         labeled_index.extend(index)
         with_label[i] = train_data[index]
-        
-    print(labeled_index)
-
     
     return with_label, (np.delete(train_data,labeled_index,axis=0), np.delete(train_lbl,labeled_index,axis=0)), (train_data[labeled_index], train_lbl[labeled_index]), train_data.shape[0]
 
