@@ -28,7 +28,7 @@ class TransformerEncoder(nn.Module):
         self.attn_dropout = attn_dropout
         self.embed_dim = embed_dim
         self.embed_scale = 1
-        self.embed_positions = SinusoidalPositionalEmbedding(embed_dim)        
+        self.embed_positions = SinusoidalPositionalEmbedding(embed_dim)
         self.attn_mask = attn_mask
         self.layers = nn.ModuleList([])
         self.layers.extend([
@@ -78,7 +78,7 @@ class TransformerEncoderLayer(nn.Module):
             num_heads=self.num_heads,
             attn_dropout=attn_dropout,
             bias=True,
-            add_bias_kv=True, 
+            add_bias_kv=True,
             add_zero_attn=True
         )
         self.attn_mask = attn_mask
@@ -119,8 +119,8 @@ class TransformerEncoderLayer(nn.Module):
 
         x_A = x_aaa - x_abb - x_bab - x_bba
         x_B = -x_bbb + x_baa + x_aba + x_aab
-        
-         
+
+
         x_A = self.layer_norms_A[0](x_A)
         x_B = self.layer_norms_B[0](x_B)
         # Dropout and Residual
@@ -129,29 +129,30 @@ class TransformerEncoderLayer(nn.Module):
 
         x_A = residual_A + x_A
         x_B = residual_B + x_B
-    
-        
+
+
         # ##FC Part
         residual_A = x_A
         residual_B = x_B
-        
+
         # FC1
         x_A, x_B = self.fc1(x_A, x_B)
-        x_A = F.relu(x_A)
-        x_B = F.relu(x_B)
+        ### Use leaky_relu here for consisitance with GAN training
+        x_A = F.leaky_relu(x_A, negative_slope=0.02, inplace=True)
+        x_B = F.leaky_relu(x_B, negative_slope=0.02, inplace=True)
         x_A = F.dropout(x_A, p=self.relu_dropout, training=self.training)
         x_B = F.dropout(x_B, p=self.relu_dropout, training=self.training)
-        
+
         # FC2
         x_A, x_B = self.fc2(x_A, x_B)
 
-        
+
         x_A = self.layer_norms_A[1](x_A)
         x_B = self.layer_norms_B[1](x_B)
 
         x_A = F.dropout(x_A, p=self.res_dropout, training=self.training)
         x_B = F.dropout(x_B, p=self.res_dropout, training=self.training)
-        
+
         x_A = residual_A + x_A
         x_B = residual_B + x_B
 
@@ -171,7 +172,7 @@ class TransformerEncoderLayer(nn.Module):
         return x
 
 
-def fill_with_one(t): 
+def fill_with_one(t):
     return t.float().fill_(float(1)).type_as(t)
 
 def buffered_future_mask(tensor, tensor2=None):
