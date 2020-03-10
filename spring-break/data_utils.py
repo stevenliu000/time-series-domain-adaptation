@@ -81,6 +81,9 @@ def get_batch_source_data_on_class(class_dict, num_per_class):
 def get_batch_target_data_on_class(real_dict, pesudo_dict, unlabel_data, num_per_class, real_weight=1, pesudo_weight=0.1):
     '''
     get batch from target data given a required number of sample per class
+
+    if totoal number sample in this class is less than the required number of sample
+    then fetch the remainding data duplicatly from the labeled set
     '''
     batch_x = []
     batch_y = []
