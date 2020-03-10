@@ -78,13 +78,16 @@ def get_batch_source_data_on_class(class_dict, num_per_class):
         
     return np.array(batch_x), np.array(batch_y)
 
-def get_batch_target_data_on_class(real_dict, pesudo_dict, unlabel_data, num_per_class, compromise=3, real_weight=1, pesudo_weight=0.1):
+def get_batch_target_data_on_class(real_dict, pesudo_dict, unlabel_data, num_per_class, real_weight=1, pesudo_weight=0.1):
     '''
     get batch from target data given a required number of sample per class
+
+    if totoal number sample in this class is less than the required number of sample
+    then fetch the remainding data duplicatly from the labeled set
     '''
     batch_x = []
     batch_y = []
-    batch_real_or_pesudo = []
+    batch_weight = []
     for key in real_dict:
         real_num = len(real_dict[key])
         pesudo_num = len(pesudo_dict[key])
@@ -92,17 +95,17 @@ def get_batch_target_data_on_class(real_dict, pesudo_dict, unlabel_data, num_per
         
         if num_in_class < num_per_class:
             # if totoal number sample in this class is less than the required number of sample
-            # then fetch the remainding data randomly from the unlabeled set with a compromise
-            num_fetch_unlabeled = (num_in_class - num_per_class) * compromise
-            index = random.sample(range(unlabel_data.shape[0]), num_fetch_unlabeled)
-            batch_x.extend(unlabel_data[index])
+            # then fetch the remainding data duplicatly from the labeled set
+            num_fetch_unlabeled = (num_in_class - num_per_class)
+            index = np.random.choice(real_num, num_fetch_unlabeled)
+            batch_x.extend(real_dict[key][index])
             batch_y.extend([key] * num_fetch_unlabeled)
-            batch_real_or_pesudo.extend([pesudo_weight] * num_fetch_unlabeled)
+            batch_weight.extend([real_weight] * num_fetch_unlabeled)
             
             batch_x.extend(real_dict[key])
-            batch_real_or_pesudo.extend([real_weight] * real_num)
+            batch_weight.extend([real_weight] * real_num)
             batch_x.extend(pesudo_dict[key])
-            batch_real_or_pesudo.extend([pesudo_weight] * pesudo_num)
+            batch_weight.extend([pesudo_weight] * pesudo_num)
             batch_y.extend([key] * num_in_class)
             
         else:
@@ -116,9 +119,9 @@ def get_batch_target_data_on_class(real_dict, pesudo_dict, unlabel_data, num_per
                     index_in_real.append(i)
                     
             batch_x.extend(real_dict[key][index_in_real])
-            batch_real_or_pesudo.extend([real_weight] * len(index_in_real))
-            batch_x.extend(pesudo_dict[key][index_in_pesudo,:])
-            batch_real_or_pesudo.extend([pesudo_weight] * len(index_in_pesudo))
+            batch_weight.extend([real_weight] * len(index_in_real))
+            batch_x.extend(pesudo_dict[key][index_in_pesudo])
+            batch_weight.extend([pesudo_weight] * len(index_in_pesudo))
             batch_y.extend([key] * num_per_class)
     
-    return np.array(batch_x), np.array(batch_y), np.array(batch_real_or_pesudo)
+    return np.array(batch_x), np.array(batch_y), np.array(batch_weight)
