@@ -6,16 +6,16 @@ from modules.transformer import TransformerEncoder
 from modules.complex_unit import ComplexLinear
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-class LinearLayerNormLeakyReLU(nn.Squential):
-    def __init__(in_dim, out_dim, leaky_factor=0.2):
+class LinearLayerNormLeakyReLU(nn.Sequential):
+    def __init__(in_dim, out_dim, leaky_slope=0.2):
         super(LinearLayerNormLeakyReLU, self).__init__(
             nn.Linear(in_dim, out_dim),
             nn.LayerNorm(out_dim),
-            nn.LeakyReLU(0.2, inplace=True)
+            nn.LeakyReLU(leaky_slope, inplace=True)
         )
 
 class ComplexTransformer(nn.Module):
-    def __init__(self, layers, time_step, input_dim, hidden_size, output_dim, num_heads, attn_dropout=0.0, relu_dropout=0.0, res_dropout=0.0, out_dropout=0.5, attn_mask=False, reduction_factor=8):
+    def __init__(self, layers, time_step, input_dim, hidden_size, output_dim, num_heads, attn_dropout=0.0, relu_dropout=0.0, res_dropout=0.0, out_dropout=0.5, attn_mask=False, reduction_factor=8, leaky_slope=0.2):
         super(ComplexTransformer, self).__init__()
         self.orig_d_a = self.orig_d_b = input_dim
         self.d_a = int(input_dim/reduction_factor)
@@ -38,11 +38,11 @@ class ComplexTransformer(nn.Module):
         self.fc_a = []
         self.fc_b = []
         for reduction in range(reduction_times-1):
-            self.fc_a.append(LinearLayerNormLeakyReLU(self.orig_d_a/(2**reduction), self.orig_d_a/(2**(reduction+1))
-            self.fc_b.append(LinearLayerNormLeakyReLU(self.orig_d_b/(2**reduction), self.orig_d_b/(2**(reduction+1))
+            self.fc_a.append(LinearLayerNormLeakyReLU(self.orig_d_a/(2**reduction), self.orig_d_a/(2**(reduction+1)), leaky_slope=leaky_slope))
+            self.fc_b.append(LinearLayerNormLeakyReLU(self.orig_d_b/(2**reduction), self.orig_d_b/(2**(reduction+1)), leaky_slope=leaky_slope))
         
-        self.fc_a.append(LinearLayerNormLeakyReLU(self.orig_d_a/(2**(reduction+1), d_a))
-        self.fc_a.append(LinearLayerNormLeakyReLU(self.orig_d_b/(2**(reduction+1), d_b))
+        self.fc_a.append(LinearLayerNormLeakyReLU(self.orig_d_a/(2**(reduction+1)), d_a, leaky_slope=leaky_slope))
+        self.fc_a.append(LinearLayerNormLeakyReLU(self.orig_d_b/(2**(reduction+1)), d_b, leaky_slope=leaky_slope))
                          
         self.fc_a = nn.Sequential(*self.fc_a)
         self.fc_b = nn.Sequential(*self.fc_b)
