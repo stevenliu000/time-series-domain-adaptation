@@ -2,8 +2,8 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 import numpy as np
-from modules.transformer import TransformerEncoder
-from modules.complex_unit import ComplexLinear
+from .modules.transformer import TransformerEncoder
+from .modules.complex_unit import ComplexLinear
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 class LinearLayerNormLeakyReLU(nn.Sequential):

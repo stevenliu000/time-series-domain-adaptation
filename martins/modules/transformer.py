@@ -2,10 +2,10 @@ import torch
 from torch import nn
 from torch.nn import Parameter
 import torch.nn.functional as F
-from modules.position_embedding import SinusoidalPositionalEmbedding
-from modules.multihead_attention import MultiheadAttention
+from martins.modules.position_embedding import SinusoidalPositionalEmbedding
+from martins.modules.multihead_attention import MultiheadAttention
 import math
-from modules.complex_unit import ComplexLinear
+from martins.modules.complex_unit import ComplexLinear
 
 
 class TransformerEncoder(nn.Module):
