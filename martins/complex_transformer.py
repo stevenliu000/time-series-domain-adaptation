@@ -39,10 +39,10 @@ class ComplexTransformer(nn.Module):
         for reduction in range(reduction_times-1):
             self.fc_a.append(LinearLayerNormLeakyReLU(self.orig_d_a/(2**reduction), self.orig_d_a/(2**(reduction+1)), leaky_slope=leaky_slope))
             self.fc_b.append(LinearLayerNormLeakyReLU(self.orig_d_b/(2**reduction), self.orig_d_b/(2**(reduction+1)), leaky_slope=leaky_slope))
-        
+
         self.fc_a.append(LinearLayerNormLeakyReLU(self.orig_d_a/(2**(reduction+1)), self.d_a, leaky_slope=leaky_slope))
         self.fc_a.append(LinearLayerNormLeakyReLU(self.orig_d_b/(2**(reduction+1)), self.d_b, leaky_slope=leaky_slope))
-                         
+
         self.fc_a = nn.Sequential(*self.fc_a)
         self.fc_b = nn.Sequential(*self.fc_b)
 
