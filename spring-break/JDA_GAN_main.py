@@ -88,9 +88,9 @@ parser.add_argument("--data_path", type=str, default="/projects/rsalakhugroup/co
 parser.add_argument("--task", type=str, help='3A or 3E')
 parser.add_argument('--batch_size', type=int, default=256, help='batch size')
 parser.add_argument('--epochs', type=int, default=50, help='number of epochs')
-parser.add_argument('--lr_gan', type=float, default=1e-4, help='learning rate for adversarial')
-parser.add_argument('--lr_FNN', type=float, default=1e-4, help='learning rate for classification')
-parser.add_argument('--lr_encoder', type=float, default=1e-4, help='learning rate for classification')
+parser.add_argument('--lr_gan', type=float, default=1e-3, help='learning rate for adversarial')
+parser.add_argument('--lr_FNN', type=float, default=1e-3, help='learning rate for classification')
+parser.add_argument('--lr_encoder', type=float, default=1e-3, help='learning rate for classification')
 parser.add_argument('--n_critic', type=int, default=4, help='gap: Generator train GAP times, discriminator train once')
 parser.add_argument('--lbl_percentage', type=float, default=0.2, help='percentage of which target data has label')
 parser.add_argument('--num_per_class', type=int, default=-1, help='number of sample per class when training local discriminator')
@@ -334,7 +334,7 @@ for epoch in range(args.epochs):
         loss = criterion_classifier(pred, target_y)
         loss.backward()
         optimizerFNN.step()
-        optimizerG.step()
+#         optimizerG.step()
         optimizerEncoder.step()
     
     target_acc = target_acc / num_datas
