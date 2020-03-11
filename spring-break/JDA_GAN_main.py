@@ -480,7 +480,7 @@ for epoch in range(args.epochs):
     np.save(args.save_path+model_sub_folder+'/error_D_local.npy',error_D_local)
     np.save(args.save_path+model_sub_folder+'/error_G_local.npy',error_G_local)
 
-    if epoch % model_save_period == 0:
+    if epoch % args.model_save_period == 0:
         torch.save(CNet.state_dict(), args.save_path+model_sub_folder+ '/CNet_%.t7'%(epoch+1))
         torch.save(GNet.state_dict(), args.save_path+model_sub_folder+ '/GNet_%.t7'%(epoch+1))
         torch.save(encoder.state_dict(), args.save_path+model_sub_folder+ '/encoder_%.t7'%(epoch+1))
