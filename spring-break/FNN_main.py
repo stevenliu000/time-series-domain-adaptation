@@ -97,7 +97,7 @@ vali_loader = DataLoader(vali_set, batch_size=args.batch_size, shuffle=True)
 
 
 print()
-encoder = ComplexTransformer(layers=1,
+encoder = ComplexTransformer(layers=2,
                                time_step=seq_len,
                                input_dim=feature_dim,
                                hidden_size=64,
@@ -167,6 +167,7 @@ for epoch in range(args.epochs):
             real.to(device)
             imag.to(device)
         real, imag = encoder(real, imag)
+        print(real.shape)
         pred = CNet(torch.cat((real, imag), -1).reshape(x.shape[0], -1))
         loss = criterion(pred, y.argmax(-1))
         #print(pred.argmax(-1), y.argmax(-1))
