@@ -1,18 +1,22 @@
 import numpy as np
 import pickle
+import os
 
 import argparse
 
 
 parser = argparse.ArgumentParser(description='Time series adaptation: Split data')
-parser.add_argument("-n", type=int, default=0, help="split data into train and validate")
+parser.add_argument("-n", type=int, default=1, help="split data into train and validate")
 parser.add_argument("--data_prop", type=float, default=0.1, help="split proportion")
-path_train = "data_unzip/processed_file_{}.pkl"
+parser.add_argument("--path_train", type=str, default = "data_unzip/processed_file_{}.pkl", help='source data path')
+parser.add_argument("--output_folder", type=str, default="/home/tianqinl/time-series-domain-adaptation/data_unzip/")
+
 dataset = ["3Av2", "3E"]
 args = parser.parse_args()
-
+path_train = args.path_train
 dataname = dataset[int(args.n)]
-data_ = np.load(path_train.format(dataname), allow_pickle=True)
+datafilename = path_train.format(dataname)
+data_ = np.load(datafilename, allow_pickle=True)
 
 name_class = 50 if dataname == '3Av2' else 65
 vali_num = 5 if dataname == '3Av2' else 10
@@ -68,10 +72,22 @@ print(train_data_.shape, train_lbl_.shape)
 vali_data_dict = {'tr_data': vali_data, 'tr_lbl': vali_lbl}
 train_data_dict = {'tr_data': train_data_, 'tr_lbl': train_lbl_}
 
-f = open("data_unzip/validation_{}.pkl".format(dataname),"wb")
+
+save_vali_path = os.path.join(args.output_folder, "validation_{}.pkl".format("-".join(datafilename.split("/")[-1].split(".")[:-1])))
+print("-".join(datafilename.split("/")[-1].split(".")[:-1]))
+print(datafilename)
+
+
+
+print(save_vali_path)
+
+save_train_path = os.path.join(args.output_folder, "train_{}.pkl".format(".".join(datafilename.split("/")[-1].split(".")[:-1])))
+print(save_train_path)
+
+f = open(save_vali_path,"wb")
 pickle.dump(vali_data_dict, f)
 f.close()
-f = open("data_unzip/train_{}.pkl".format(dataname),"wb")
+f = open(save_train_path,"wb")
 pickle.dump(train_data_dict, f)
 f.close()
 
