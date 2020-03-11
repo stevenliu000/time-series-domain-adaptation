@@ -5,4 +5,5 @@ train_related
 __pycache__
 data_results*
 Final_data*
+FNN_data*
 
