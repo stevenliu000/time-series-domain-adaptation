@@ -228,17 +228,17 @@ device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
 seq_len = 10
 feature_dim = 160
-encoder = ComplexTransformer(layers=1,
-                             time_step=seq_len,
-                             input_dim=feature_dim,
-                             hidden_size=64,
-                             output_dim=64,
-                             num_heads=8,
-                             out_dropout=0.5,
-                             leaky_slope=0.2)
+encoder = ComplexTransformer(layers=3,
+                               time_step=seq_len,
+                               input_dim=feature_dim,
+                               hidden_size=64,
+                               output_dim=64,
+                               num_heads=8,
+                               out_dropout=0.2,
+                               leaky_slope=0.2)
 encoder.to(device)
 
-CNet = FNN(d_in=64 * 2 * seq_len, d_h1=500, d_h2=500, d_out=num_class, dp=0.7)
+CNet = FNN(d_in=64 * 2 * seq_len, d_h1=500, d_h2=500, d_out=d_out, dp=0.2)
 CNet.to(device)
 
 DNet_global = Discriminator(feature_dim=64*20, d_out=1).to(device)
