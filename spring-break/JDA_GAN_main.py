@@ -359,7 +359,7 @@ for epoch in range(50):
 torch.save(GNet.state_dict(), args.save_path+model_sub_folder+ '/GNet_pre_trained.t7')
 torch.save(encoder.state_dict(), args.save_path+model_sub_folder+ '/encoder_pre_trained.t7')
 torch.save(CNet.state_dict(), args.save_path+model_sub_folder+ '/CNet_pre_trained.t7')
-logger.info('Pre-train: source acc: %f; target labled acc: %f; target unlabeled acc: %f'%(epoch+1, source_acc, target_acc, target_unlabel_acc))
+logger.info('Pre-train: source acc: %f; target labled acc: %f; target unlabeled acc: %f'%(source_acc, target_acc, target_unlabel_acc))
 
 logger.info('Started Training')
 for epoch in range(args.epochs):
