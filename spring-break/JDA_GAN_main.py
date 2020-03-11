@@ -345,8 +345,8 @@ for epoch in range(args.epochs):
     correct_target = 0.0
     target_pesudo_y = []
     for batch in range(math.ceil(target_unlabel_x.shape[0]/args.batch_size)):
-        target_unlabel_x_batch = torch.Tensor(target_unlabel_x[batch*args.batch_size:(batch+1)*args.batch_size], device=device).float()
-        target_unlabel_y_batch = torch.Tensor(target_unlabel_y[batch*args.batch_size:(batch+1)*args.batch_size], device=device)
+        target_unlabel_x_batch = torch.Tensor(target_unlabel_x[batch*args.batch_size:(batch+1)*args.batch_size]).to(device).float()
+        target_unlabel_y_batch = torch.Tensor(target_unlabel_y[batch*args.batch_size:(batch+1)*args.batch_size]).to(device)
         pred = classifier_inference(encoder, CNet, target_unlabel_x_batch)
         correct_target += (pred.argmax(-1) == target_unlabel_y_batch).sum().item()
         target_pesudo_y.extend(pred.argmax(-1).numpy())
@@ -414,11 +414,11 @@ for epoch in range(args.epochs):
         target_x, target_y, target_weight = get_batch_target_data_on_class(target_dict, pesudo_dict, target_unlabel_x, args.num_per_class)
         source_x, source_y = get_batch_source_data_on_class(source_dict, args.num_per_class)
         
-        source_x = torch.Tensor(source_x, device=device).float()
-        target_x = torch.Tensor(target_x, device=device).float()
-        source_y = torch.LongTensor(target_y, device=device)
-        target_y = torch.LongTensor(target_y, device=device)
-        target_weight = torch.Tensor(target_weight, device=device)
+        source_x = torch.Tensor(source_x).to(device).float()
+        target_x = torch.Tensor(target_x).to(device).float()
+        source_y = torch.LongTensor(target_y).to(device)
+        target_y = torch.LongTensor(target_y).to(device)
+        target_weight = torch.Tensor(target_weight).to(device)
         source_mask = torch.zeros(source_x.size(0), num_class).scatter_(1, source_y.unsqueeze(-1), 1)
         target_mask = torch.zeros(target_x.size(0), num_class).scatter_(1, target_y.unsqueeze(-1), 1)
         target_weight = torch.zeros(target_x.size(0), num_class).scatter_(1, target_y.unsqueeze(-1), target_weight.unsqueeze(-1))
