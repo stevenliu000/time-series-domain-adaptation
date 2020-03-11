@@ -44,7 +44,7 @@ def get_target_dict(file_path, num_class, lbl_percentage, seed=0):
     np.random.seed(seed)
     index = np.random.permutation(train_data.shape[0])
     train_data = train_data[index]
-    train_lbl = np.argmax(train_lbl[index], -1)
+    train_lbl = train_lbl[index]
 
     with_label = {i:[] for i in range(num_class)}
     labeled_index = []
@@ -61,7 +61,7 @@ def get_class_data_dict(data, lbl, num_class):
     '''
     construct a dict {label: data}
     '''
-    lbl_not_one_hot = np.argmax(lbl, -1)
+    lbl_not_one_hot = lbl
     result = {i:[] for i in range(num_class)}
     for i in result:
         index = np.argwhere(lbl_not_one_hot==i).flatten()
