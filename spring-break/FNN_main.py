@@ -27,6 +27,7 @@ parser.add_argument('--lr_clf', type=float, default=1e-4, help='learning rate fo
 parser.add_argument('--epochs', type=int, default=50, help='number of epochs')
 parser.add_argument('--PATH', type=str, default= "/Users/tianqinli/Code/Working-on/Russ/time-series-domain-adaptation/data_results/", help='Model save location')
 parser.add_argument('--log', type=str, default="FNN_log.out", help="Output log file for training and validation loss")
+parser.add_argument('--job_type', type=str, default="source", help="choose form source or target")
 
 
 # # fake args
@@ -108,7 +109,7 @@ encoder = ComplexTransformer(layers=1,
 if torch.cuda.is_available(): encoder.to(device)
 
 
-CNet = FNN(d_in=feature_dim * 2 * seq_len, d_h=500, d_out=d_out, dp=0.5)
+CNet = FNN(d_in=64 * 2 * seq_len, d_h=500, d_out=d_out, dp=0.5)
 if torch.cuda.is_available():
     CNet = CNet.to(device)
 
@@ -134,12 +135,11 @@ x_std_tr = training_set.data_std
 
 best_acc_train = best_acc_test = 0
 
-unique_id = "b" + str(args.batch_size) + ".e" + str(args.epochs) + ".lr" + str(args.lr_clf) + ".task" + args.task
+unique_id = args.job_type + "-b" + str(args.batch_size) + ".e" + str(args.epochs) + ".lr" + str(args.lr_clf) + ".task" + args.task
 
 
-folder_path = args.PATH[:-1] + unique_id + "/"
-if not os.path.isdir(folder_path):
-    os.mkdir(folder_path)
+folder_path = args.PATH + unique_id + "/"
+os.makedirs(folder_path, exist_ok=True)
 
 
 logfile_full_path = folder_path + args.log + unique_id

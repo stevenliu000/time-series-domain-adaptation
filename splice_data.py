@@ -6,6 +6,7 @@ import argparse
 
 parser = argparse.ArgumentParser(description='Time series adaptation: Split data')
 parser.add_argument("-n", type=int, default=0, help="split data into train and validate")
+parser.add_argument("--data_prop", type=float, default=0.1, help="split proportion")
 path_train = "data_unzip/processed_file_{}.pkl"
 dataset = ["3Av2", "3E"]
 args = parser.parse_args()
@@ -15,7 +16,7 @@ data_ = np.load(path_train.format(dataname), allow_pickle=True)
 
 name_class = 50 if dataname == '3Av2' else 65
 vali_num = 5 if dataname == '3Av2' else 10
-vali_prop = 0.1
+#vali_prop = float(args.data_prop)
 
 tmp = {i:[] for i in range(name_class)}
 
@@ -23,7 +24,8 @@ np.random.seed(0)
 
 train_data = data_['tr_data']
 train_lbl = data_['tr_lbl']
-vali_num = train_data.shape[0] * vali_prop
+#vali_num = np.round(train_data.shape[0] * vali_prop).astype(int)
+print(vali_num)
 
 index = np.random.permutation(train_data.shape[0])
 
@@ -61,15 +63,22 @@ vali_lbl = vali_lbl[index,:]
 train_data_ = np.array(train_data_)
 train_lbl_ = np.array(train_lbl_)
 
+print(train_data_.shape, train_lbl_.shape)
 
 vali_data_dict = {'tr_data': vali_data, 'tr_lbl': vali_lbl}
 train_data_dict = {'tr_data': train_data_, 'tr_lbl': train_lbl_}
 
-
-f = open("data_unzip/split_{}_validation_{}.pkl".format(vali_prop, dataname),"wb")
+f = open("data_unzip/validation_{}.pkl".format(dataname),"wb")
 pickle.dump(vali_data_dict, f)
 f.close()
-f = open("data_unzip/split_{}_train_{}.pkl".format(vali_prop, dataname),"wb")
+f = open("data_unzip/train_{}.pkl".format(dataname),"wb")
 pickle.dump(train_data_dict, f)
 f.close()
+
+#f = open("data_unzip/split_{}_validation_{}.pkl".format(vali_prop, dataname),"wb")
+#pickle.dump(vali_data_dict, f)
+#f.close()
+#f = open("data_unzip/split_{}_train_{}.pkl".format(vali_prop, dataname),"wb")
+#pickle.dump(train_data_dict, f)
+#f.close()
 
