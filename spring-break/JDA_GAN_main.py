@@ -419,9 +419,9 @@ for epoch in range(args.epochs):
         source_y = torch.LongTensor(target_y).to(device)
         target_y = torch.LongTensor(target_y).to(device)
         target_weight = torch.Tensor(target_weight).to(device)
-        source_mask = torch.zeros(source_x.size(0), num_class).scatter_(1, source_y.unsqueeze(-1), 1)
-        target_mask = torch.zeros(target_x.size(0), num_class).scatter_(1, target_y.unsqueeze(-1), 1)
-        target_weight = torch.zeros(target_x.size(0), num_class).scatter_(1, target_y.unsqueeze(-1), target_weight.unsqueeze(-1))
+        source_mask = torch.zeros(source_x.size(0), num_class).to(device).scatter_(1, source_y.unsqueeze(-1), 1)
+        target_mask = torch.zeros(target_x.size(0), num_class).to(device).scatter_(1, target_y.unsqueeze(-1), 1)
+        target_weight = torch.zeros(target_x.size(0), num_class).to(device).scatter_(1, target_y.unsqueeze(-1), target_weight.unsqueeze(-1))
     
         """Update D Net"""
         optimizerD_local.zero_grad()
