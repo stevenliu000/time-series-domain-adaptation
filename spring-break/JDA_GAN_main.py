@@ -286,7 +286,7 @@ def encoder_inference(encoder, x):
 
 target_acc_label_ = []
 source_acc_ = []
-target_acc_all_ = []
+target_acc_unlabel_ = []
 error_D_global = []
 error_G_global = []
 error_D_local = []
@@ -474,7 +474,7 @@ for epoch in range(args.epochs):
     
     np.save(args.save_path+model_sub_folder+'/target_acc_label_.npy',target_acc_label_)
     np.save(args.save_path+model_sub_folder+'/source_acc_.npy',source_acc_)
-    np.save(args.save_path+model_sub_folder+'/target_acc_all_.npy',target_acc_all_)
+    np.save(args.save_path+model_sub_folder+'/target_acc_unlabel_.npy',target_acc_unlabel_)
     np.save(args.save_path+model_sub_folder+'/error_D_global.npy',error_D_global)
     np.save(args.save_path+model_sub_folder+'/error_G_global.npy',error_G_global)
     np.save(args.save_path+model_sub_folder+'/error_D_local.npy',error_D_local)
