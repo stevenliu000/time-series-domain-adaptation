@@ -238,7 +238,7 @@ encoder = ComplexTransformer(layers=3,
                                leaky_slope=0.2)
 encoder.to(device)
 
-CNet = FNN(d_in=64 * 2 * seq_len, d_h1=500, d_h2=500, d_out=d_out, dp=0.2)
+CNet = FNN(d_in=64 * 2 * seq_len, d_h1=500, d_h2=500, d_out=num_class, dp=0.2)
 CNet.to(device)
 
 DNet_global = Discriminator(feature_dim=64*20, d_out=1).to(device)
