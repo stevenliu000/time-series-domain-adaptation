@@ -320,6 +320,7 @@ for epoch in range(50):
     source_acc = source_acc / num_datas
     source_acc_.append(source_acc)
     
+    
     # on target domain
     target_acc = 0.0
     num_datas = 0.0
@@ -345,6 +346,9 @@ for epoch in range(50):
     
     logger.info('Epoch: %i, update classifier: source acc: %f; target acc: %f'%(epoch+1, source_acc, target_acc))
     
+torch.save(GNet.state_dict(), args.save_path+model_sub_folder+ '/GNet_pre_trained.t7')
+torch.save(encoder.state_dict(), args.save_path+model_sub_folder+ '/encoder_pre_trained.t7')
+torch.save(CNet.state_dict(), args.save_path+model_sub_folder+ '/CNet_pre_trained.t7')
 
 
 logger.info('Started Training')
