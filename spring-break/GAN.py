@@ -35,7 +35,6 @@ class Discriminator(nn.Module):
     def __init__(self, feature_dim, d_out):
         super(Discriminator, self).__init__()
         self.net = nn.Sequential(
-
             nn.Linear(feature_dim, feature_dim),
             nn.LeakyReLU(0.2, inplace=True),
 
@@ -51,12 +50,15 @@ class Discriminator(nn.Module):
             nn.LayerNorm(feature_dim),
             nn.LeakyReLU(0.2, inplace=True),
         ) 
-        self.fc = nn.Linear(3200, 1)
-        self.sigmoid = nn.Sigmoid()
-    def forward(self, x):
+
+        self.d_out = d_out
+        self.fc = nn.Linear(3200, self.d_out)
+    def forward(self, x, mask):
         # x: [bs, seq, feature_dim]
+        batch_size, seq_len, feature_dim = x.shape
         x = self.net(x)
-        bs = x.shape[0]
-        x = x.reshape(bs, -1)
-        out = self.sigmoid(self.fc(x))
+        x = x.reshape(batch_size, -1)
+        out = self.fc(x)
+        if self.d_out != 1:
+            out = out * mask
         return out
