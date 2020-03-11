@@ -349,7 +349,7 @@ for epoch in range(args.epochs):
         target_unlabel_y_batch = torch.Tensor(target_unlabel_y[batch*args.batch_size:(batch+1)*args.batch_size]).to(device)
         pred = classifier_inference(encoder, CNet, target_unlabel_x_batch)
         correct_target += (pred.argmax(-1) == target_unlabel_y_batch).sum().item()
-        target_pesudo_y.extend(pred.argmax(-1).numpy())
+        target_pesudo_y.extend(pred.argmax(-1).cpu().numpy())
         
     target_pesudo_y = np.array(target_pesudo_y)
     pesudo_dict = get_class_data_dict(target_unlabel_x, target_pesudo_y, num_class)
