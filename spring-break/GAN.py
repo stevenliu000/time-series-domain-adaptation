@@ -23,7 +23,6 @@ class Generator(nn.Module):
 
             nn.Linear(feature_dim, feature_dim),
             nn.LayerNorm(feature_dim),
-            #nn.Tanh()
         ) 
 
     def forward(self, x):
