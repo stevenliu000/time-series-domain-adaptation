@@ -95,7 +95,7 @@ parser.add_argument('--n_critic', type=int, default=4, help='gap: Generator trai
 parser.add_argument('--lbl_percentage', type=float, default=0.2, help='percentage of which target data has label')
 parser.add_argument('--num_per_class', type=int, default=-1, help='number of sample per class when training local discriminator')
 parser.add_argument('--seed', type=int, help='manual seed')
-parser.add_argument('--save_path', type=str, default='../train_related/JDA_GAN', help='where to store data')
+parser.add_argument('--save_path', type=str, help='where to store data')
 parser.add_argument('--model_save_period', type=int, default=2, help='period in which the model is saved')
 parser.add_argument('--clip_value', type=float, default=0.01, help='clip_value for WGAN')
 
@@ -294,7 +294,7 @@ error_G_local = []
 
 
 # pre-trained
-logger.info('Started Pre training')
+print('Started Pre training')
 for epoch in range(50):
     # update classifier
     # on source domain
@@ -344,12 +344,22 @@ for epoch in range(50):
     target_acc = target_acc / num_datas
     target_acc_label_.append(target_acc)
     
-    logger.info('Epoch: %i, update classifier: source acc: %f; target acc: %f'%(epoch+1, source_acc, target_acc))
+    correct_target = 0.0
+    num_datas = 0.0
+    for batch in range(math.ceil(target_unlabel_x.shape[0]/args.batch_size)):
+        target_unlabel_x_batch = torch.Tensor(target_unlabel_x[batch*args.batch_size:(batch+1)*args.batch_size]).to(device).float()
+        target_unlabel_y_batch = torch.Tensor(target_unlabel_y[batch*args.batch_size:(batch+1)*args.batch_size]).to(device)
+        num_datas += target_unlabel_x_batch.shape[0]
+        pred = classifier_inference(encoder, CNet, target_unlabel_x_batch)
+        correct_target += (pred.argmax(-1) == target_unlabel_y_batch).sum().item()
+        
+    target_unlabel_acc = correct_target/num_datas
+    print('Epoch: %i, update classifier: source acc: %f; target labled acc: %f; target unlabeled acc: %f'%(epoch+1, source_acc, target_acc, target_unlabel_acc))
     
 torch.save(GNet.state_dict(), args.save_path+model_sub_folder+ '/GNet_pre_trained.t7')
 torch.save(encoder.state_dict(), args.save_path+model_sub_folder+ '/encoder_pre_trained.t7')
 torch.save(CNet.state_dict(), args.save_path+model_sub_folder+ '/CNet_pre_trained.t7')
-
+logger.info('Pre-train: source acc: %f; target labled acc: %f; target unlabeled acc: %f'%(epoch+1, source_acc, target_acc, target_unlabel_acc))
 
 logger.info('Started Training')
 for epoch in range(args.epochs):
