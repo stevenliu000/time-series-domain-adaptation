@@ -67,7 +67,7 @@ class MultiheadAttention(nn.Module):
 
         aved_state = None
 
-        # projecting q, k, v 
+        # projecting q, k, v
         if qkv_same:
             # self-attention
             q, k, v = self.in_proj_qkv(query)
@@ -83,10 +83,10 @@ class MultiheadAttention(nn.Module):
             q = self.in_proj_q(query)
             k = self.in_proj_k(key)
             v = self.in_proj_v(value)
-        # scaling q 
+        # scaling q
         q *= self.scaling
 
-        # extending k, v by one time step at the end, with self.bias_k and self.bias_v 
+        # extending k, v by one time step at the end, with self.bias_k and self.bias_v
         if self.bias_k is not None:
             assert self.bias_v is not None
 
@@ -104,7 +104,7 @@ class MultiheadAttention(nn.Module):
 
         src_len = k.size(1)
 
-        # extending k, v by another time step at the end, (bsz * num_heads, 1, head_dim) of zeros 
+        # extending k, v by another time step at the end, (bsz * num_heads, 1, head_dim) of zeros
         if self.add_zero_attn:
 
             src_len += 1

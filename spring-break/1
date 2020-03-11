@@ -1,0 +1,5 @@
+usage: FNN_main.py [-h] [--data_path DATA_PATH] [--train_file TRAIN_FILE]
+                   [--vali_file VALI_FILE] [--task TASK]
+                   [--batch_size BATCH_SIZE] [--lr_clf LR_CLF]
+                   [--epochs EPOCHS] [--PATH PATH] [--log LOG]
+FNN_main.py: error: unrecognized arguments: 2

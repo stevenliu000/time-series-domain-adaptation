@@ -18,9 +18,8 @@ class ComplexTransformer(nn.Module):
     def __init__(self, layers, time_step, input_dim, hidden_size, output_dim, num_heads, attn_dropout=0.0, relu_dropout=0.0, res_dropout=0.0, out_dropout=0.5, attn_mask=False, reduction_factor=8, leaky_slope=0.2):
         super(ComplexTransformer, self).__init__()
         self.orig_d_a = self.orig_d_b = input_dim
-        self.d_a = int(input_dim/reduction_factor)
-        self.d_b = int(input_dim/reduction_factor)
-        reduction_times = int(np.log2(reduction_factor))
+        self.d_a = 64
+        self.d_b = 64
         self.num_heads = num_heads
         self.layers = layers
         self.attn_dropout = attn_dropout
@@ -34,17 +33,17 @@ class ComplexTransformer(nn.Module):
         # Transformer networks
         self.trans = self.get_network()
 
-        self.fc_a = []
-        self.fc_b = []
-        for reduction in range(reduction_times-1):
-            self.fc_a.append(LinearLayerNormLeakyReLU(self.orig_d_a/(2**reduction), self.orig_d_a/(2**(reduction+1)), leaky_slope=leaky_slope))
-            self.fc_b.append(LinearLayerNormLeakyReLU(self.orig_d_b/(2**reduction), self.orig_d_b/(2**(reduction+1)), leaky_slope=leaky_slope))
+        self.fc_a = nn.Sequential(
+                        LinearLayerNormLeakyReLU(self.orig_d_a, 512, leaky_slope=leaky_slope),
+                        LinearLayerNormLeakyReLU(512, 100, leaky_slope=leaky_slope),
+                        LinearLayerNormLeakyReLU(100, self.d_a, leaky_slope=leaky_slope),
+        )
 
-        self.fc_a.append(LinearLayerNormLeakyReLU(self.orig_d_a/(2**(reduction+1)), self.d_a, leaky_slope=leaky_slope))
-        self.fc_a.append(LinearLayerNormLeakyReLU(self.orig_d_b/(2**(reduction+1)), self.d_b, leaky_slope=leaky_slope))
-
-        self.fc_a = nn.Sequential(*self.fc_a)
-        self.fc_b = nn.Sequential(*self.fc_b)
+        self.fc_b = nn.Sequential(
+                        LinearLayerNormLeakyReLU(self.orig_d_b, 512, leaky_slope=leaky_slope),
+                        LinearLayerNormLeakyReLU(512, 100, leaky_slope=leaky_slope),
+                        LinearLayerNormLeakyReLU(100, self.d_b, leaky_slope=leaky_slope),
+        )
 
         # Projection layers
         self.proj = ComplexLinear(self.d_a, self.embed_dim)
