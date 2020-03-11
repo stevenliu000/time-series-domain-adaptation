@@ -119,8 +119,10 @@ device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 if args.num_per_class == -1:
     args.num_per_class = math.ceil(args.batch_size / num_class)
     
-model_sub_folder = '/task_%s_gap_%s_lblPer_%i_numPerClass_%i'%(args.task, args.gap, args.lbl_percentage, args.num_per_class)
-    
+model_sub_folder = '/task_%s_clip_%.4f_lblPer_%i_numPerClass_%i'%(args.task, args.clip_value, args.lbl_percentage, args.num_per_class)
+
+if not os.path.exists(args.save_path+model_sub_folder):
+    os.makedirs(args.save_path+model_sub_folder)
 
 
 # In[4]:
@@ -170,7 +172,7 @@ model_sub_folder = '/task_%s_gap_%s_lblPer_%i_numPerClass_%i'%(args.task, args.g
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
-file_log_handler = logging.FileHandler('/Users/stevenliu/Downloads/aws/logfile.log')
+file_log_handler = logging.FileHandler(args.save_path+model_sub_folder+ '/logfile.log')
 logger.addHandler(file_log_handler)
 
 stdout_log_handler = logging.StreamHandler(sys.stdout)
@@ -223,10 +225,6 @@ def weights_init(m):
 
 
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-
-real_label = 0.99 # target domain
-fake_label = 0.01 # source domain
-
 
 seq_len = 10
 feature_dim = 160
@@ -474,18 +472,18 @@ for epoch in range(args.epochs):
     error_D_local.append(total_error_D_local)
     error_G_global.append(total_error_G)
     
-    np.save(args.save_path + '/target_acc_label_.npy',target_acc_label_)
-    np.save(args.save_path + '/source_acc_.npy',source_acc_)
-    np.save(args.save_path + '/target_acc_all_.npy',target_acc_all_)
-    np.save(args.save_path + '/error_D_global.npy',error_D_global)
-    np.save(args.save_path + '/error_G_global.npy',error_G_global)
-    np.save(args.save_path + '/error_D_local.npy',error_D_local)
-    np.save(args.save_path + '/error_G_local.npy',error_G_local)
+    np.save(args.save_path+model_sub_folder+'/target_acc_label_.npy',target_acc_label_)
+    np.save(args.save_path+model_sub_folder+'/source_acc_.npy',source_acc_)
+    np.save(args.save_path+model_sub_folder+'/target_acc_all_.npy',target_acc_all_)
+    np.save(args.save_path+model_sub_folder+'/error_D_global.npy',error_D_global)
+    np.save(args.save_path+model_sub_folder+'/error_G_global.npy',error_G_global)
+    np.save(args.save_path+model_sub_folder+'/error_D_local.npy',error_D_local)
+    np.save(args.save_path+model_sub_folder+'/error_G_local.npy',error_G_local)
 
     if epoch % model_save_period == 0:
-        torch.save(CNet.state_dict(), args.save_path + '/CNet_%.t7'%(epoch+1))
-        torch.save(GNet.state_dict(), args.save_path + '/GNet_%.t7'%(epoch+1))
-        torch.save(encoder.state_dict(), args.save_path + '/encoder_%.t7'%(epoch+1))
-        torch.save(DNet_global.state_dict(), args.save_path + '/DNet_global_%.t7'%(epoch+1))
-        torch.save(DNet_local.state_dict(), args.save_path + '/DNet_local_%.t7'%(epoch+1))
+        torch.save(CNet.state_dict(), args.save_path+model_sub_folder+ '/CNet_%.t7'%(epoch+1))
+        torch.save(GNet.state_dict(), args.save_path+model_sub_folder+ '/GNet_%.t7'%(epoch+1))
+        torch.save(encoder.state_dict(), args.save_path+model_sub_folder+ '/encoder_%.t7'%(epoch+1))
+        torch.save(DNet_global.state_dict(),  args.save_path+model_sub_folder+ '/DNet_global_%.t7'%(epoch+1))
+        torch.save(DNet_local.state_dict(), args.save_path+model_sub_folder+ '/DNet_local_%.t7'%(epoch+1))
 
