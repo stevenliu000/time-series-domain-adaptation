@@ -96,6 +96,7 @@ def get_batch_target_data_on_class(real_dict, pesudo_dict, unlabel_data, num_per
         if num_in_class < num_per_class:
             # if totoal number sample in this class is less than the required number of sample
             # then fetch the remainding data duplicatly from the labeled set
+            
             num_fetch_unlabeled = (num_in_class - num_per_class)
             index = np.random.choice(real_num, num_fetch_unlabeled)
             batch_x.extend(real_dict[key][index])
