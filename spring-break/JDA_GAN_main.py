@@ -292,6 +292,62 @@ error_G_global = []
 error_D_local = []
 error_G_local = []
 
+
+# pre-trained
+logger.info('Started Pre training')
+for epoch in range(50):
+    # update classifier
+    # on source domain
+    CNet.train()
+    encoder.train()
+    GNet.train()
+    source_acc = 0.0
+    num_datas = 0.0
+    for batch_id, (source_x, source_y) in tqdm(enumerate(source_dataloader), total=len(source_dataloader)):
+        optimizerFNN.zero_grad()
+        optimizerEncoder.zero_grad()
+        source_x = source_x.to(device).float()
+        source_y = source_y.to(device)
+        num_datas += source_x.size(0)
+        source_x_embedding = encoder_inference(encoder, source_x)
+        pred = CNet(source_x_embedding)
+        source_acc += (pred.argmax(-1) == source_y).sum().item()
+        loss = criterion_classifier(pred, source_y)
+        loss.backward()
+        optimizerFNN.step()
+        optimizerEncoder.step()
+        
+    source_acc = source_acc / num_datas
+    source_acc_.append(source_acc)
+    
+    # on target domain
+    target_acc = 0.0
+    num_datas = 0.0
+    for batch_id, (target_x, target_y) in tqdm(enumerate(target_dataloader), total=len(target_dataloader)):
+        optimizerFNN.zero_grad()
+        optimizerG.zero_grad()
+        optimizerEncoder.zero_grad()
+        target_x = target_x.to(device).float()
+        target_y = target_y.to(device)
+        num_datas += target_x.size(0)
+        target_x_embedding = encoder_inference(encoder, target_x)
+        fake_source_embedding = GNet(target_x_embedding)
+        pred = CNet(fake_source_embedding)
+        target_acc += (pred.argmax(-1) == target_y).sum().item()
+        loss = criterion_classifier(pred, target_y)
+        loss.backward()
+        optimizerFNN.step()
+        optimizerG.step()
+        optimizerEncoder.step()
+    
+    target_acc = target_acc / num_datas
+    target_acc_label_.append(target_acc)
+    
+    logger.info('Epoch: %i, update classifier: source acc: %f; target acc: %f'%(epoch+1, source_acc, target_acc))
+    
+
+
+logger.info('Started Training')
 for epoch in range(args.epochs):
     # update classifier
     # on source domain
