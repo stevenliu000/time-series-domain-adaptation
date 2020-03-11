@@ -97,7 +97,7 @@ parser.add_argument('--num_per_class', type=int, default=-1, help='number of sam
 parser.add_argument('--seed', type=int, help='manual seed')
 parser.add_argument('--save_path', type=str, default='../train_related/JDA_GAN', help='where to store data')
 parser.add_argument('--model_save_period', type=int, default=2, help='period in which the model is saved')
-parser.add_argument('--clip_value', type=int, default=0.01, help='clip_value for WGAN')
+parser.add_argument('--clip_value', type=float, default=0.01, help='clip_value for WGAN')
 
 args = parser.parse_args()
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
