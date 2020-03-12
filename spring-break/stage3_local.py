@@ -98,6 +98,7 @@ parser.add_argument('--seed', type=int, help='manual seed')
 parser.add_argument('--save_path', type=str, help='where to store data')
 parser.add_argument('--model_save_period', type=int, default=2, help='period in which the model is saved')
 parser.add_argument('--clip_value', type=float, default=0.01, help='clip_value for WGAN')
+parser.add_argument('--sclass', type=float, default=0.7, help='source domain classification weight on loss function')
 parser.add_argument('--dlocal', type=float, default=0.01, help='local GAN weight on loss function')
 
 
@@ -398,7 +399,7 @@ for epoch in range(args.epochs):
         source_x_embedding = encoder_inference(encoder, source_x)
         pred = CNet(source_x_embedding)
         source_acc += (pred.argmax(-1) == source_y).sum().item()
-        loss = criterion_classifier(pred, source_y) * 0.5
+        loss = criterion_classifier(pred, source_y) * args.sclass
         loss.backward()
         optimizerFNN.step()
 #         optimizerEncoder.step()
