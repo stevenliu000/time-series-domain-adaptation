@@ -97,7 +97,7 @@ parser.add_argument('--num_per_class', type=int, default=-1, help='number of sam
 parser.add_argument('--seed', type=int, help='manual seed')
 parser.add_argument('--save_path', type=str, help='where to store data')
 parser.add_argument('--model_save_period', type=int, default=2, help='period in which the model is saved')
-parser.add_argument('--clip_value', type=float, default=0.1, help='clip_value for WGAN')
+parser.add_argument('--clip_value', type=float, default=0.01, help='clip_value for WGAN')
 
 args = parser.parse_args()
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
@@ -295,7 +295,7 @@ error_G_local = []
 
 # pre-trained
 print('Started Pre training')
-for epoch in range(50):
+for epoch in range(30):
     # update classifier
     # on source domain
     CNet.train()
@@ -471,7 +471,7 @@ for epoch in range(args.epochs):
             
             loss_G.backward()
             optimizerG.step()
-            optimizerEncoder.step()
+#             optimizerEncoder.step()
             
     logger.info('Epoch: %i, Global Discrimator Updates: Loss D_global: %f, Loss G: %f'%(epoch+1, total_error_D_global, total_error_G))
     error_D_global.append(total_error_D_global)
@@ -536,7 +536,7 @@ for epoch in range(args.epochs):
             
             loss_G.backward()
             optimizerG.step()
-            optimizerEncoder.step()
+#             optimizerEncoder.step()
             
     logger.info('Epoch: %i, Local Discrimator Updates: Loss D_global: %f, Loss G: %f'%(epoch+1, total_error_D_local, total_error_G))
     error_D_local.append(total_error_D_local)
