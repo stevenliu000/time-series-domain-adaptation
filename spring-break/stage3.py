@@ -122,7 +122,7 @@ device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 if args.num_per_class == -1:
     args.num_per_class = math.ceil(args.batch_size / num_class)
     
-model_sub_folder = '/task_%s_clip_%f_dglobal_%f_critic_%i_sclass_%f'%(args.task, args.clip_value, args.dglobal, args.n_critic, args.sclass)
+model_sub_folder = '/stage3/task_%s_clip_%f_dglobal_%f_critic_%i_sclass_%f'%(args.task, args.clip_value, args.dglobal, args.n_critic, args.sclass)
 
 if not os.path.exists(args.save_path+model_sub_folder):
     os.makedirs(args.save_path+model_sub_folder)
