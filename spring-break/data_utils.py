@@ -99,7 +99,7 @@ def get_batch_target_data_on_class(real_dict, pesudo_dict, unlabel_data, num_per
 
         if no_pesudo:
             index = random.sample(range(100000000000), num_per_class)
-            index = [i % num_in_class for i in index]
+            index = [i % real_num for i in index]
             batch_x.extend(real_dict[key][index])
             batch_y.extend([key] * num_per_class)
             batch_weight.extend([real_weight] * num_per_class)
