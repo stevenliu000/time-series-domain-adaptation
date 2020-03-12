@@ -173,6 +173,9 @@ if not os.path.exists(args.save_path+model_sub_folder):
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
+if os.path.isfile(args.save_path+model_sub_folder+ '/logfile.log'):
+    os.remove(args.save_path+model_sub_folder+ '/logfile.log')
+    
 file_log_handler = logging.FileHandler(args.save_path+model_sub_folder+ '/logfile.log')
 logger.addHandler(file_log_handler)
 
@@ -366,9 +369,9 @@ for epoch in range(args.epochs):
     target_acc_unlabel_.append(target_unlabel_acc)
     
     if epoch % args.model_save_period == 0:
-        torch.save(GNet.state_dict(), args.save_path+model_sub_folder+ '/GNet_pre_trained.t7')
-        torch.save(encoder.state_dict(), args.save_path+model_sub_folder+ '/encoder_pre_trained.t7')
-        torch.save(CNet.state_dict(), args.save_path+model_sub_folder+ '/CNet_pre_trained.t7')
+        torch.save(GNet.state_dict(), args.save_path+model_sub_folder+ '/GNet_%i.t7'%(epoch+1))
+        torch.save(encoder.state_dict(), args.save_path+model_sub_folder+ '/encoder_%i.t7'%(epoch+1))
+        torch.save(CNet.state_dict(), args.save_path+model_sub_folder+ '/CNet_%i.t7'%(epoch+1))
     logger.info('Epochs %i: source acc: %f; target labled acc: %f; target unlabeled acc: %f'%(epoch+1, source_acc, target_acc, target_unlabel_acc))
     
     np.save(args.save_path+model_sub_folder+'/target_acc_label_.npy',target_acc_label_)
