@@ -229,7 +229,7 @@ device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
 seq_len = 10
 feature_dim = 160
-encoder = ComplexTransformer(layers=3,
+encoder_source = ComplexTransformer(layers=3,
                                time_step=seq_len,
                                input_dim=feature_dim,
                                hidden_size=64,
@@ -237,7 +237,17 @@ encoder = ComplexTransformer(layers=3,
                                num_heads=8,
                                out_dropout=0.2,
                                leaky_slope=0.2)
-encoder.to(device)
+encoder_source.to(device)
+
+encoder_target = ComplexTransformer(layers=3,
+                               time_step=seq_len,
+                               input_dim=feature_dim,
+                               hidden_size=64,
+                               output_dim=64,
+                               num_heads=8,
+                               out_dropout=0.2,
+                               leaky_slope=0.2)
+encoder_target.to(device)
 
 CNet = FNN(d_in=64 * 2 * 1, d_h1=500, d_h2=500, d_out=num_class, dp=0.2)
 CNet.to(device)
@@ -254,7 +264,8 @@ optimizerD_global = torch.optim.Adam(DNet_global.parameters(), lr=args.lr_gan)
 optimizerD_local = torch.optim.Adam(DNet_local.parameters(), lr=args.lr_gan)
 optimizerG = torch.optim.Adam(GNet.parameters(), lr=args.lr_gan)
 optimizerFNN = torch.optim.Adam(CNet.parameters(), lr=args.lr_FNN)
-optimizerEncoder = torch.optim.Adam(encoder.parameters(), lr=args.lr_encoder)
+optimizerEncoderSource = torch.optim.Adam(encoder_source.parameters(), lr=args.lr_encoder)
+optimizerEncoderTarget = torch.optim.Adam(encoder_target.parameters(), lr=args.lr_encoder)
 criterion_classifier = nn.CrossEntropyLoss().to(device)
 
 
@@ -300,23 +311,24 @@ for epoch in range(args.epochs):
     # update classifier
     # on source domain
     CNet.train()
-    encoder.train()
+    encoder_source.train()
+    encoder_target.train()
     GNet.train()
     source_acc = 0.0
     num_datas = 0.0
     for batch_id, (source_x, source_y) in tqdm(enumerate(source_dataloader), total=len(source_dataloader)):
         optimizerFNN.zero_grad()
-        optimizerEncoder.zero_grad()
+        optimizerEncoderSource.zero_grad()
         source_x = source_x.to(device).float()
         source_y = source_y.to(device)
         num_datas += source_x.size(0)
-        source_x_embedding = encoder_inference(encoder, source_x)
+        source_x_embedding = encoder_inference(encoder_source, source_x)
         pred = CNet(source_x_embedding)
         source_acc += (pred.argmax(-1) == source_y).sum().item()
         loss = criterion_classifier(pred, source_y) * args.sclass
         loss.backward()
         optimizerFNN.step()
-        optimizerEncoder.step()
+        optimizerEncoderSource.step()
         
     source_acc = source_acc / num_datas
     source_acc_.append(source_acc)
@@ -328,11 +340,11 @@ for epoch in range(args.epochs):
     for batch_id, (target_x, target_y) in tqdm(enumerate(target_dataloader), total=len(target_dataloader)):
         optimizerFNN.zero_grad()
         optimizerG.zero_grad()
-        optimizerEncoder.zero_grad()
+        optimizerEncoderTarget.zero_grad()
         target_x = target_x.to(device).float()
         target_y = target_y.to(device)
         num_datas += target_x.size(0)
-        target_x_embedding = encoder_inference(encoder, target_x)
+        target_x_embedding = encoder_inference(encoder_target, target_x)
         fake_source_embedding = GNet(target_x_embedding)
         pred = CNet(fake_source_embedding)
         target_acc += (pred.argmax(-1) == target_y).sum().item()
@@ -340,7 +352,7 @@ for epoch in range(args.epochs):
         loss.backward()
         optimizerFNN.step()
         optimizerG.step()
-        optimizerEncoder.step()
+        optimizerEncoderTarget.step()
     
     target_acc = target_acc / num_datas
     target_acc_label_.append(target_acc)
@@ -351,16 +363,17 @@ for epoch in range(args.epochs):
         target_unlabel_x_batch = torch.Tensor(target_unlabel_x[batch*args.batch_size:(batch+1)*args.batch_size]).to(device).float()
         target_unlabel_y_batch = torch.Tensor(target_unlabel_y[batch*args.batch_size:(batch+1)*args.batch_size]).to(device)
         num_datas += target_unlabel_x_batch.shape[0]
-        pred = classifier_inference(encoder, CNet, target_unlabel_x_batch)
+        pred = classifier_inference(encoder_target, CNet, target_unlabel_x_batch)
         correct_target += (pred.argmax(-1) == target_unlabel_y_batch).sum().item()
         
     target_unlabel_acc = correct_target/num_datas
     target_acc_unlabel_.append(target_unlabel_acc)
     
     if epoch % args.model_save_period == 0:
-        torch.save(GNet.state_dict(), args.save_path+model_sub_folder+ '/GNet_pre_trained.t7')
-        torch.save(encoder.state_dict(), args.save_path+model_sub_folder+ '/encoder_pre_trained.t7')
-        torch.save(CNet.state_dict(), args.save_path+model_sub_folder+ '/CNet_pre_trained.t7')
+        torch.save(GNet.state_dict(), args.save_path+model_sub_folder+ '/GNet_stage2.t7')
+        torch.save(encoder_source.state_dict(), args.save_path+model_sub_folder+ '/encoder_source_stage2.t7')
+        torch.save(encoder_target.state_dict(), args.save_path+model_sub_folder+ '/encoder_target_stage2.t7')
+        torch.save(CNet.state_dict(), args.save_path+model_sub_folder+ '/CNet_stage2.t7')
     logger.info('Epochs %i: source acc: %f; target labled acc: %f; target unlabeled acc: %f'%(epoch+1, source_acc, target_acc, target_unlabel_acc))
     
     np.save(args.save_path+model_sub_folder+'/target_acc_label_.npy',target_acc_label_)
