@@ -75,10 +75,16 @@ def get_batch_source_data_on_class(class_dict, num_per_class):
     '''
     batch_x = []
     batch_y = []
-    for key, value in class_dict.items():
-        index = random.sample(range(len(value)), num_per_class)
-        batch_x.extend(value[index])
+    keys = [key for key in class_dict]
+    keys.sort()
+    for key in keys:
+        index = random.sample(range(len(class_dict[key])), num_per_class)
+        batch_x.extend(class_dict[key][index])
         batch_y.extend([key] * num_per_class)
+    # for key, value in class_dict.items():
+    #     index = random.sample(range(len(value)), num_per_class)
+    #     batch_x.extend(value[index])
+    #     batch_y.extend([key] * num_per_class)
 
     return np.array(batch_x), np.array(batch_y)
 
@@ -92,7 +98,9 @@ def get_batch_target_data_on_class(real_dict, pesudo_dict, unlabel_data, num_per
     batch_x = []
     batch_y = []
     batch_weight = []
-    for key in real_dict:
+    keys = [key for key in real_dict]
+    keys.sort()
+    for key in keys:
         real_num = len(real_dict[key])
         pesudo_num = len(pesudo_dict[key])
         num_in_class = real_num + pesudo_num
