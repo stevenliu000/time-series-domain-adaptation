@@ -302,7 +302,7 @@ def _gradient_penalty(real_data, generated_data, DNet, num_class, device, args):
         interpolated = interpolated.to(device)
 
         # Calculate probability of interpolated examples
-        prob_interpolated = DNet(interpolated)
+        prob_interpolated = DNet(interpolated, 1)
 
         # Calculate gradients of probabilities with respect to examples
         gradients = torch_grad(outputs=prob_interpolated, inputs=interpolated,
