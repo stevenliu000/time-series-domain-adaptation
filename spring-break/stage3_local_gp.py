@@ -306,7 +306,7 @@ def _gradient_penalty(real_data, generated_data, DNet, mask, num_class, device, 
 
     # Calculate gradients of probabilities with respect to examples
     gradients = torch_grad(outputs=prob_interpolated, inputs=interpolated,
-                           grad_outputs=torch.ones(prob_interpolated.size()).to(device)
+                           grad_outputs=torch.ones(prob_interpolated.size()).to(device),
                            create_graph=True, retain_graph=True)[0]
 
     # Gradients have shape (batch_size, num_channels, img_width, img_height),
