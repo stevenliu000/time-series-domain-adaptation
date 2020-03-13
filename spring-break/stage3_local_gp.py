@@ -345,7 +345,7 @@ GNet.load_state_dict(torch.load(model_PATH+'/GNet_pre_trained.t7', map_location=
 print('Model Loaded!')
 
 if args.GANweights !='-1':
-    GAN_PATH = '../train_related/spring_break/stage3_local_gp_no_class/task_3E_gpweight_20.000000_dlocal_0.010000_critic_0.160000_sclass_0.700000/'
+    GAN_PATH = '../train_related/spring_break/stage3_local_gp_no_class/task_3E_gpweight_20.000000_dlocal_0.010000_critic_0.160000_sclass_0.700000'
     GNet.load_state_dict(torch.load(GAN_PATH+'/GNet_%i.t7'%args.GANweights, map_location=device))
     DNet_local.load_state_dict(torch.load(GAN_PATH+'/DNet_local_%i.t7'%args.GANweights, map_location=device))
 '''
