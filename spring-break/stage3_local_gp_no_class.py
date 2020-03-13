@@ -564,6 +564,10 @@ for epoch in range(args.epochs):
         source_mask = torch.zeros(source_x.size(0), num_class).to(device).scatter_(1, source_y.unsqueeze(-1), 1)
         target_mask = torch.zeros(target_x.size(0), num_class).to(device).scatter_(1, target_y.unsqueeze(-1), 1)
         target_weight = torch.zeros(target_x.size(0), num_class).to(device).scatter_(1, target_y.unsqueeze(-1), target_weight.unsqueeze(-1))
+        
+
+        source_weight_count = source_mask.sum(dim=0)
+        target_weight_count = target_weight.sum(dim=0)
     
         if args.n_critic > 1:
             """Update D Net"""
@@ -640,9 +644,6 @@ for epoch in range(args.epochs):
                 # adversarial loss
                 source_DNet_local = DNet_local(source_embedding, source_mask)
                 target_DNet_local = DNet_local(fake_source_embedding, target_mask)
-
-                source_weight_count = source_mask.sum(dim=0)
-                target_weight_count = target_weight.sum(dim=0)
 
                 source_DNet_local_mean = source_DNet_local.sum(dim=0) / source_weight_count
                 target_DNet_local_mean = (target_DNet_local * target_weight).sum(dim=0) / target_weight_count        
