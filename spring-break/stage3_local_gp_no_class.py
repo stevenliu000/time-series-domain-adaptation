@@ -124,7 +124,7 @@ device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 if args.num_per_class == -1:
     args.num_per_class = math.ceil(args.batch_size / num_class)
     
-model_sub_folder = '/stage3_local_gp/task_%s_gpweight_%f_dlocal_%f_critic_%i_sclass_%f'%(args.task, args.gpweight, args.dlocal, args.n_critic, args.sclass)
+model_sub_folder = '/stage3_local_gp_no_class/task_%s_gpweight_%f_dlocal_%f_critic_%i_sclass_%f'%(args.task, args.gpweight, args.dlocal, args.n_critic, args.sclass)
 
 if not os.path.exists(args.save_path+model_sub_folder):
     os.makedirs(args.save_path+model_sub_folder)
@@ -472,7 +472,7 @@ for epoch in range(args.epochs):
     target_acc_label_.append(target_acc)
     
     logger.info('Epoch: %i, update classifier: source acc: %f; target acc: %f'%(epoch+1, source_acc, target_acc))
-    '''
+'''
     # Assign Pesudo Label
     correct_target = 0.0
     target_pesudo_y = []
