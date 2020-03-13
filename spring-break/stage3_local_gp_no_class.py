@@ -630,7 +630,7 @@ for epoch in range(args.epochs):
             loss_G.backward()
             optimizerG.step()
             
-            if batch_id % (1/args.n_critic) == 0:
+            if batch_id % int(1/args.n_critic) == 0:
                 """Update D Net"""
                 optimizerD_local.zero_grad()
                 source_embedding = encoder_inference(encoder, source_x)
