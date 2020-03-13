@@ -315,9 +315,7 @@ def _gradient_penalty(real_data, generated_data, DNet, mask, num_class, device, 
 
     # Derivatives of the gradient close to 0 can cause problems because of
     # the square root, so manually calculate norm and add epsilon
-    gradients_norm = torch.sqrt(torch.sum(gradients ** 2, dim=1) + 1e-12)
-    print('HERE2222222222222222', gradients_norm.shape)
-    print('HERE333333333333333', torch.sqrt(torch.sum(gradients ** 2, dim=1, keepdim=True) + 1e-12).shape)
+    gradients_norm = torch.sqrt(torch.sum(gradients ** 2, dim=1, keepdim=True) + 1e-12)
 
     gradients_norm = gradients_norm * mask
     # Return gradient penalty
@@ -580,7 +578,6 @@ for epoch in range(args.epochs):
         source_DNet_local_mean = source_DNet_local.sum(dim=0) / source_weight_count
         target_DNet_local_mean = (target_DNet_local * target_weight).sum(dim=0) / target_weight_count        
         
-        print("HERE!!!!!!!!!",source_mask.shape)
         gp = _gradient_penalty(source_embedding, fake_source_embedding, DNet_local, source_mask, num_class, device, args)
 
         loss_D_local = (target_DNet_local_mean - source_DNet_local_mean + gp).sum()
