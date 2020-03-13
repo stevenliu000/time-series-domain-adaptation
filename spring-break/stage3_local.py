@@ -435,6 +435,7 @@ for epoch in range(args.epochs):
     target_acc_label_.append(target_acc)
     
     logger.info('Epoch: %i, update classifier: source acc: %f; target acc: %f'%(epoch+1, source_acc, target_acc))
+    '''
     # Assign Pesudo Label
     correct_target = 0.0
     target_pesudo_y = []
@@ -455,7 +456,7 @@ for epoch in range(args.epochs):
 
     logger.info('Epoch: %i, assigned pesudo label with accuracy %f'%(epoch+1, correct_target/(target_unlabel_x.shape[0])))
     target_acc_unlabel_.append(correct_target/(target_unlabel_x.shape[0]))
-    '''
+    
     '''
     # Update GAN
     # Update global Discriminator
