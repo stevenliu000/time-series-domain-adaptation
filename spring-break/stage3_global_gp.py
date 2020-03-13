@@ -509,7 +509,7 @@ for epoch in range(args.epochs):
         
         # adversarial loss
         loss_D_global = DNet_global(fake_source_embedding,1).mean() - DNet_global(source_embedding,1).mean()
-        gradient_penalty = _gradient_penalty(source_embedding, fake_source_embedding, DNet_global, num_class, device, args):
+        gradient_penalty = _gradient_penalty(source_embedding, fake_source_embedding, DNet_global, num_class, device, args)
     
         loss_D_global = loss_D_global + gradient_penalty
         loss_D_global = loss_D_global * args.dglobal
