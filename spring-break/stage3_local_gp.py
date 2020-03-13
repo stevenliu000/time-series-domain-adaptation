@@ -102,6 +102,7 @@ parser.add_argument('--model_save_period', type=int, default=2, help='period in 
 parser.add_argument('--gpweight', type=float, default=10, help='clip_value for WGAN')
 parser.add_argument('--sclass', type=float, default=0.7, help='source domain classification weight on loss function')
 parser.add_argument('--dlocal', type=float, default=0.01, help='local GAN weight on loss function')
+parser.add_argument('--GANweights', type=int, default=-1, help='pretrained GAN weight')
 
 
 args = parser.parse_args()
@@ -342,6 +343,11 @@ CNet.load_state_dict(torch.load(model_PATH+'/CNet_pre_trained.t7', map_location=
 encoder.load_state_dict(torch.load(model_PATH+'/encoder_pre_trained.t7', map_location=device))
 GNet.load_state_dict(torch.load(model_PATH+'/GNet_pre_trained.t7', map_location=device))
 print('Model Loaded!')
+
+if args.GANweights !='-1':
+    GAN_PATH = '../train_related/spring_break/stage3_local_gp_no_class/task_3E_gpweight_20.000000_dlocal_0.010000_critic_0.160000_sclass_0.700000/'
+    GNet.load_state_dict(torch.load(GAN_PATH+'/GNet_%i.t7'%args.GANweights, map_location=device))
+    DNet_local.load_state_dict(torch.load(GAN_PATH+'/DNet_local_%i.t7'%args.GANweights, map_location=device))
 '''
 print('Started Pre training')
 for epoch in range(30):
@@ -561,51 +567,99 @@ for epoch in range(args.epochs):
         source_mask = torch.zeros(source_x.size(0), num_class).to(device).scatter_(1, source_y.unsqueeze(-1), 1)
         target_mask = torch.zeros(target_x.size(0), num_class).to(device).scatter_(1, target_y.unsqueeze(-1), 1)
         target_weight = torch.zeros(target_x.size(0), num_class).to(device).scatter_(1, target_y.unsqueeze(-1), target_weight.unsqueeze(-1))
-    
-        """Update D Net"""
-        optimizerD_local.zero_grad()
-        source_embedding = encoder_inference(encoder, source_x)
-        target_embedding = encoder_inference(encoder, target_x)
-        fake_source_embedding = GNet(target_embedding).detach()
         
-        # adversarial loss
-        source_DNet_local = DNet_local(source_embedding, source_mask)
-        target_DNet_local = DNet_local(fake_source_embedding, target_mask)
-        
+
         source_weight_count = source_mask.sum(dim=0)
         target_weight_count = target_weight.sum(dim=0)
-        
-        source_DNet_local_mean = source_DNet_local.sum(dim=0) / source_weight_count
-        target_DNet_local_mean = (target_DNet_local * target_weight).sum(dim=0) / target_weight_count        
-        
-        gp = _gradient_penalty(source_embedding, fake_source_embedding, DNet_local, source_mask, num_class, device, args)
+    
+        if args.n_critic > 1:
+            """Update D Net"""
+            optimizerD_local.zero_grad()
+            source_embedding = encoder_inference(encoder, source_x)
+            target_embedding = encoder_inference(encoder, target_x)
+            fake_source_embedding = GNet(target_embedding).detach()
 
-        loss_D_local = (target_DNet_local_mean - source_DNet_local_mean + gp).sum()
-        loss_D_local = loss_D_local * args.dlocal
-        
-        total_error_D_local += loss_D_local.item()
-        
-        loss_D_local.backward()
-        optimizerD_local.step()
-        
-        if batch_id % args.n_critic == 0:
+            # adversarial loss
+            source_DNet_local = DNet_local(source_embedding, source_mask)
+            target_DNet_local = DNet_local(fake_source_embedding, target_mask)
+
+            source_weight_count = source_mask.sum(dim=0)
+            target_weight_count = target_weight.sum(dim=0)
+
+            source_DNet_local_mean = source_DNet_local.sum(dim=0) / source_weight_count
+            target_DNet_local_mean = (target_DNet_local * target_weight).sum(dim=0) / target_weight_count        
+
+            gp = _gradient_penalty(source_embedding, fake_source_embedding, DNet_local, source_mask, num_class, device, args)
+
+            loss_D_local = (target_DNet_local_mean - source_DNet_local_mean + gp).sum()
+            loss_D_local = loss_D_local * args.dlocal
+
+            total_error_D_local += loss_D_local.item()
+
+            loss_D_local.backward()
+            optimizerD_local.step()
+
+            if batch_id % args.n_critic == 0:
+                """Update G Network"""
+                optimizerG.zero_grad()
+                optimizerEncoder.zero_grad()
+                target_embedding = encoder_inference(encoder, target_x)
+                fake_source_embedding = GNet(target_embedding)
+
+                # adversarial loss
+                target_DNet_local = DNet_local(fake_source_embedding, target_mask)
+                target_DNet_local_mean = (target_DNet_local * target_weight).sum(dim=0) / target_weight_count        
+
+                loss_G = -target_DNet_local_mean.sum() 
+                loss_G = loss_G * args.dlocal
+
+                total_error_G += loss_G.item()
+
+                loss_G.backward()
+                optimizerG.step()
+    #             optimizerEncoder.step()
+        else:
             """Update G Network"""
             optimizerG.zero_grad()
             optimizerEncoder.zero_grad()
+            target_embedding = encoder_inference(encoder, target_x)
             fake_source_embedding = GNet(target_embedding)
-            
+
             # adversarial loss
             target_DNet_local = DNet_local(fake_source_embedding, target_mask)
             target_DNet_local_mean = (target_DNet_local * target_weight).sum(dim=0) / target_weight_count        
 
             loss_G = -target_DNet_local_mean.sum() 
             loss_G = loss_G * args.dlocal
-            
+
             total_error_G += loss_G.item()
-            
+
             loss_G.backward()
             optimizerG.step()
-#             optimizerEncoder.step()
+            
+            if batch_id % int(1/args.n_critic) == 0:
+                """Update D Net"""
+                optimizerD_local.zero_grad()
+                source_embedding = encoder_inference(encoder, source_x)
+                target_embedding = encoder_inference(encoder, target_x)
+                fake_source_embedding = GNet(target_embedding).detach()
+
+                # adversarial loss
+                source_DNet_local = DNet_local(source_embedding, source_mask)
+                target_DNet_local = DNet_local(fake_source_embedding, target_mask)
+
+                source_DNet_local_mean = source_DNet_local.sum(dim=0) / source_weight_count
+                target_DNet_local_mean = (target_DNet_local * target_weight).sum(dim=0) / target_weight_count        
+
+                gp = _gradient_penalty(source_embedding, fake_source_embedding, DNet_local, source_mask, num_class, device, args)
+
+                loss_D_local = (target_DNet_local_mean - source_DNet_local_mean + gp).sum()
+                loss_D_local = loss_D_local * args.dlocal
+
+                total_error_D_local += loss_D_local.item()
+
+                loss_D_local.backward()
+                optimizerD_local.step()
             
     logger.info('Epoch: %i, Local Discrimator Updates: Loss D_global: %f, Loss G: %f'%(epoch+1, total_error_D_local, total_error_G))
     error_D_local.append(total_error_D_local)
