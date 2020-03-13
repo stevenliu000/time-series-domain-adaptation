@@ -578,6 +578,7 @@ for epoch in range(args.epochs):
         source_DNet_local_mean = source_DNet_local.sum(dim=0) / source_weight_count
         target_DNet_local_mean = (target_DNet_local * target_weight).sum(dim=0) / target_weight_count        
         
+        print("HERE!!!!!!!!!",source_mask.shape)
         gp = _gradient_penalty(source_embedding, fake_source_embedding, DNet_local, source_mask, num_class, device, args)
 
         loss_D_local = (target_DNet_local_mean - source_DNet_local_mean + gp).sum()
