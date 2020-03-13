@@ -318,7 +318,7 @@ def _gradient_penalty(real_data, generated_data, DNet, num_class, device, args):
         gradients_norm = torch.sqrt(torch.sum(gradients ** 2, dim=1) + 1e-12)
 
         # Return gradient penalty
-        return self.gpweight * ((gradients_norm - 1) ** 2).mean()
+        return args.gpweight * ((gradients_norm - 1) ** 2).mean()
 
 
 # # Train
