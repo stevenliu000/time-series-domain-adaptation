@@ -612,7 +612,7 @@ for epoch in range(args.epochs):
                 optimizerG.step()
     #             optimizerEncoder.step()
         else:
-             """Update G Network"""
+            """Update G Network"""
             optimizerG.zero_grad()
             optimizerEncoder.zero_grad()
             target_embedding = encoder_inference(encoder, target_x)
