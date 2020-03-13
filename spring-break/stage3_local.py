@@ -383,6 +383,7 @@ logger.info('Pre-train: source acc: %f; target labled acc: %f; target unlabeled 
 '''
 logger.info('Started Training')
 for epoch in range(args.epochs):
+    '''
     # update classifier
     # on source domain
     CNet.train()
@@ -454,7 +455,7 @@ for epoch in range(args.epochs):
 
     logger.info('Epoch: %i, assigned pesudo label with accuracy %f'%(epoch+1, correct_target/(target_unlabel_x.shape[0])))
     target_acc_unlabel_.append(correct_target/(target_unlabel_x.shape[0]))
-    
+    '''
     '''
     # Update GAN
     # Update global Discriminator
