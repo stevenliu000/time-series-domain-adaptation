@@ -294,7 +294,7 @@ def _gradient_penalty(real_data, generated_data, DNet, mask, num_class, device, 
     batch_size = real_data.size()[0]
 
     # Calculate interpolation
-    alpha = torch.rand(batch_size, 1, 1, 1)
+    alpha = torch.rand(batch_size, 1)
     alpha = alpha.expand_as(real_data)
     alpha = alpha.to(device)
     interpolated = alpha * real_data.data + (1 - alpha) * generated_data.data
