@@ -565,7 +565,7 @@ for epoch in range(args.epochs):
         target_mask = torch.zeros(target_x.size(0), num_class).to(device).scatter_(1, target_y.unsqueeze(-1), 1)
         target_weight = torch.zeros(target_x.size(0), num_class).to(device).scatter_(1, target_y.unsqueeze(-1), target_weight.unsqueeze(-1))
     
-        if args.n_critic > 0:
+        if args.n_critic > 1:
             """Update D Net"""
             optimizerD_local.zero_grad()
             source_embedding = encoder_inference(encoder, source_x)
