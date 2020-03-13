@@ -418,9 +418,10 @@ torch.save(encoder.state_dict(), args.save_path+model_sub_folder+ '/encoder_pre_
 torch.save(CNet.state_dict(), args.save_path+model_sub_folder+ '/CNet_pre_trained.t7')
 logger.info('Pre-train: source acc: %f; target labled acc: %f; target unlabeled acc: %f'%(source_acc, target_acc, target_unlabel_acc))
 '''
-'''
+
 logger.info('Started Training')
 for epoch in range(args.epochs):
+    '''
     # update classifier
     # on source domain
     CNet.train()
@@ -472,7 +473,7 @@ for epoch in range(args.epochs):
     target_acc_label_.append(target_acc)
     
     logger.info('Epoch: %i, update classifier: source acc: %f; target acc: %f'%(epoch+1, source_acc, target_acc))
-'''
+    '''
     # Assign Pesudo Label
     correct_target = 0.0
     target_pesudo_y = []
