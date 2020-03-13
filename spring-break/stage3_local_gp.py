@@ -93,7 +93,7 @@ parser.add_argument('--epochs', type=int, default=50, help='number of epochs')
 parser.add_argument('--lr_gan', type=float, default=1e-3, help='learning rate for adversarial')
 parser.add_argument('--lr_FNN', type=float, default=1e-3, help='learning rate for classification')
 parser.add_argument('--lr_encoder', type=float, default=1e-3, help='learning rate for classification')
-parser.add_argument('--n_critic', type=int, default=4, help='gap: Generator train GAP times, discriminator train once')
+parser.add_argument('--n_critic', type=float, default=0.16, help='gap: Generator train GAP times, discriminator train once')
 parser.add_argument('--lbl_percentage', type=float, default=0.2, help='percentage of which target data has label')
 parser.add_argument('--num_per_class', type=int, default=-1, help='number of sample per class when training local discriminator')
 parser.add_argument('--seed', type=int, help='manual seed')
@@ -125,7 +125,7 @@ device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 if args.num_per_class == -1:
     args.num_per_class = math.ceil(args.batch_size / num_class)
     
-model_sub_folder = '/stage3_local_gp/task_%s_gpweight_%f_dlocal_%f_critic_%i_sclass_%f'%(args.task, args.gpweight, args.dlocal, args.n_critic, args.sclass)
+model_sub_folder = '/stage3_local_gp/task_%s_gpweight_%f_dlocal_%f_critic_%f_sclass_%f'%(args.task, args.gpweight, args.dlocal, args.n_critic, args.sclass)
 
 if not os.path.exists(args.save_path+model_sub_folder):
     os.makedirs(args.save_path+model_sub_folder)
