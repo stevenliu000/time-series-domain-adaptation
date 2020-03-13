@@ -316,7 +316,9 @@ def _gradient_penalty(real_data, generated_data, DNet, mask, num_class, device, 
     # Derivatives of the gradient close to 0 can cause problems because of
     # the square root, so manually calculate norm and add epsilon
     gradients_norm = torch.sqrt(torch.sum(gradients ** 2, dim=1) + 1e-12)
-    
+    print('HERE2222222222222222', gradients_norm.shape)
+    print('HERE333333333333333', torch.sqrt(torch.sum(gradients ** 2, dim=1, keepdim=True) + 1e-12).shape)
+
     gradients_norm = gradients_norm * mask
     # Return gradient penalty
     return args.gpweight * ((gradients_norm - 1) ** 2).mean(dim=0)
