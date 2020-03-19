@@ -103,7 +103,7 @@ parser.add_argument('--gpweight', type=float, default=10, help='clip_value for W
 parser.add_argument('--sclass', type=float, default=0.7, help='source domain classification weight on loss function')
 parser.add_argument('--dlocal', type=float, default=0.01, help='local GAN weight on loss function')
 parser.add_argument('--GANweights', type=int, default=-1, help='pretrained GAN weight')
-
+parser.add_argument('--update_encoder', type=bool, default=False)
 
 args = parser.parse_args()
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
@@ -125,7 +125,7 @@ device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 if args.num_per_class == -1:
     args.num_per_class = math.ceil(args.batch_size / num_class)
     
-model_sub_folder = '/stage3_local_gp_not_shared/task_%s_gpweight_%f_dlocal_%f_critic_%f_sclass_%f'%(args.task, args.gpweight, args.dlocal, args.n_critic, args.sclass)
+model_sub_folder = '/stage3_local_gp_not_shared/task_%s_gpweight_%f_dlocal_%f_critic_%f_updateT_%i_sclass_%f'%(args.task, args.gpweight, args.dlocal, args.n_critic, int(args.update_encoder), args.sclass)
 
 if not os.path.exists(args.save_path+model_sub_folder):
     os.makedirs(args.save_path+model_sub_folder)
@@ -363,6 +363,8 @@ if args.GANweights !='-1':
     GAN_PATH = '../train_related/spring_break/stage3_local_gp_no_class_not_shared/task_3E_gpweight_20.000000_dlocal_0.010000_critic_0.160000_sclass_0.700000'
     GNet.load_state_dict(torch.load(GAN_PATH+'/GNet_%i.t7'%args.GANweights, map_location=device))
     DNet_local.load_state_dict(torch.load(GAN_PATH+'/DNet_local_%i.t7'%args.GANweights, map_location=device))
+
+print("update encoder:", args.update_encoder)    
 '''
 print('Started Pre training')
 for epoch in range(30):
@@ -461,7 +463,8 @@ for epoch in range(args.epochs):
         loss = criterion_classifier(pred, source_y) * args.sclass
         loss.backward()
         optimizerFNN.step()
-#         optimizerEncoder.step()
+        if args.update_encoder:
+            optimizerEncoderSource.step()
         
     source_acc = source_acc / num_datas
     source_acc_.append(source_acc)
@@ -488,7 +491,8 @@ for epoch in range(args.epochs):
         loss.backward()
         optimizerFNN.step()
 #         optimizerG.step()
-#         optimizerEncoder.step()
+        if args.update_encoder:
+            optimizerEncoderTarget.step()
     
     target_acc = target_acc / num_datas
     target_acc_label_.append(target_acc)
@@ -637,7 +641,8 @@ for epoch in range(args.epochs):
 
                 loss_G.backward()
                 optimizerG.step()
-    #             optimizerEncoder.step()
+                if args.update_encoder:
+                    optimizerEncoderTarget.step()
         else:
             """Update G Network"""
             optimizerG.zero_grad()
@@ -657,6 +662,8 @@ for epoch in range(args.epochs):
 
             loss_G.backward()
             optimizerG.step()
+            if args.update_encoder:
+                optimizerEncoderTarget.step()
             
             if batch_id % int(1/args.n_critic) == 0:
                 """Update D Net"""
