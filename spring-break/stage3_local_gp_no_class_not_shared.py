@@ -351,10 +351,10 @@ error_G_local = []
 
 # pre-trained
 model_PATH = '../train_related/spring_break/stage2_not_shared/task_3E_SClassWeight_0.700000'
-CNet.load_state_dict(torch.load(model_PATH+'/CNet_315.t7', map_location=device))
-encoder_source.load_state_dict(torch.load(model_PATH+'/encoder__source_315.t7', map_location=device))
-encoder_target.load_state_dict(torch.load(model_PATH+'/encoder__target_315.t7', map_location=device))
-GNet.load_state_dict(torch.load(model_PATH+'/GNet_315.t7', map_location=device))
+CNet.load_state_dict(torch.load(model_PATH+'/CNet_351.t7', map_location=device))
+encoder_source.load_state_dict(torch.load(model_PATH+'/encoder__source_351.t7', map_location=device))
+encoder_target.load_state_dict(torch.load(model_PATH+'/encoder__target_351.t7', map_location=device))
+GNet.load_state_dict(torch.load(model_PATH+'/GNet_351.t7', map_location=device))
 print('Model Loaded!')
 '''
 print('Started Pre training')
