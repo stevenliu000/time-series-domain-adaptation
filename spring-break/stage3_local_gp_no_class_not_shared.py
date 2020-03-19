@@ -615,7 +615,8 @@ for epoch in range(args.epochs):
             if batch_id % args.n_critic == 0:
                 """Update G Network"""
                 optimizerG.zero_grad()
-                optimizerEncoder.zero_grad()
+                optimizerEncoderSource.zero_grad()
+                optimizerEncoderTarget.zero_grad()
                 target_embedding = encoder_inference(encoder_target, target_x)
                 fake_source_embedding = GNet(target_embedding)
 
