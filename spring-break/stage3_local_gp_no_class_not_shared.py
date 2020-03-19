@@ -564,7 +564,8 @@ for epoch in range(args.epochs):
     # Update local Discriminator
     total_error_D_local = 0
     total_error_G = 0
-    encoder.eval()
+    encoder_source.eval()
+    encoder_target.eval()
     GNet.train()
     DNet_local.train()
     for batch_id in tqdm(range(math.ceil(target_len/args.batch_size))):
@@ -587,8 +588,8 @@ for epoch in range(args.epochs):
         if args.n_critic > 1:
             """Update D Net"""
             optimizerD_local.zero_grad()
-            source_embedding = encoder_inference(encoder, source_x)
-            target_embedding = encoder_inference(encoder, target_x)
+            source_embedding = encoder_inference(encoder_source, source_x)
+            target_embedding = encoder_inference(encoder_target, target_x)
             fake_source_embedding = GNet(target_embedding).detach()
 
             # adversarial loss
@@ -615,7 +616,7 @@ for epoch in range(args.epochs):
                 """Update G Network"""
                 optimizerG.zero_grad()
                 optimizerEncoder.zero_grad()
-                target_embedding = encoder_inference(encoder, target_x)
+                target_embedding = encoder_inference(encoder_target, target_x)
                 fake_source_embedding = GNet(target_embedding)
 
                 # adversarial loss
@@ -633,8 +634,9 @@ for epoch in range(args.epochs):
         else:
             """Update G Network"""
             optimizerG.zero_grad()
-            optimizerEncoder.zero_grad()
-            target_embedding = encoder_inference(encoder, target_x)
+            optimizerEncoderSource.zero_grad()
+            optimizerEncoderTarget.zero_grad()
+            target_embedding = encoder_inference(encoder_target, target_x)
             fake_source_embedding = GNet(target_embedding)
 
             # adversarial loss
@@ -652,8 +654,8 @@ for epoch in range(args.epochs):
             if batch_id % int(1/args.n_critic) == 0:
                 """Update D Net"""
                 optimizerD_local.zero_grad()
-                source_embedding = encoder_inference(encoder, source_x)
-                target_embedding = encoder_inference(encoder, target_x)
+                source_embedding = encoder_inference(encoder_source, source_x)
+                target_embedding = encoder_inference(encoder_target, target_x)
                 fake_source_embedding = GNet(target_embedding).detach()
 
                 # adversarial loss
