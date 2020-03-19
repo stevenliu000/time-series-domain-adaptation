@@ -316,7 +316,8 @@ for epoch in range(args.epochs):
     # update classifier
     # on source domain
     CNet.train()
-    encoder.train()
+    encoder_source.train()
+    encoder_target.train()
     GNet.train()
     source_acc = 0.0
     num_datas = 0.0
@@ -342,7 +343,8 @@ for epoch in range(args.epochs):
     target_acc = 0.0
     num_datas = 0.0
     CNet.train()
-    encoder.train()
+    encoder_source.train()
+    encoder_target.train()
     GNet.train()
     for batch_id, (target_x, target_y) in tqdm(enumerate(target_dataloader), total=len(target_dataloader)):
         optimizerFNN.zero_grad()
@@ -367,7 +369,8 @@ for epoch in range(args.epochs):
     correct_target = 0.0
     num_datas = 0.0
     CNet.eval()
-    encoder.eval()
+    encoder_source.eval()
+    encoder_target.eval()
     GNet.eval()
     for batch in range(math.ceil(target_unlabel_x.shape[0]/args.batch_size)):
         target_unlabel_x_batch = torch.Tensor(target_unlabel_x[batch*args.batch_size:(batch+1)*args.batch_size]).to(device).float()
