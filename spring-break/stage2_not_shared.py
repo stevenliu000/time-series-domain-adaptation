@@ -232,7 +232,7 @@ device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
 seq_len = 10
 feature_dim = 160
-encoder = ComplexTransformer(layers=3,
+encoder_source = ComplexTransformer(layers=3,
                                time_step=seq_len,
                                input_dim=feature_dim,
                                hidden_size=64,
@@ -240,7 +240,18 @@ encoder = ComplexTransformer(layers=3,
                                num_heads=8,
                                out_dropout=0.2,
                                leaky_slope=0.2)
-encoder.to(device)
+encoder_source.to(device)
+
+
+encoder_target = ComplexTransformer(layers=3,
+                               time_step=seq_len,
+                               input_dim=feature_dim,
+                               hidden_size=64,
+                               output_dim=64,
+                               num_heads=8,
+                               out_dropout=0.2,
+                               leaky_slope=0.2)
+encoder_target.to(device)
 
 CNet = FNN(d_in=64 * 2 * 1, d_h1=500, d_h2=500, d_out=num_class, dp=0.2)
 CNet.to(device)
