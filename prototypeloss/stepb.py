@@ -290,7 +290,7 @@ for epoch in range(args.epochs):
     # update classifier
     # on source domain
     CNet.train()
-    encoder.eval()
+    encoder.train()
     source_acc = 0.0
     num_datas = 0.0
     for batch_id, (source_x, source_y) in tqdm(enumerate(source_dataloader), total=len(source_dataloader)):
@@ -316,8 +316,8 @@ for epoch in range(args.epochs):
     target_acc = 0.0
     num_datas = 0.0
     CNet.train()
-    encoder.eval()
-    GNet.eval()
+    encoder.train()
+    GNet.train()
     for batch_id, (target_x, target_y) in tqdm(enumerate(target_dataloader), total=len(target_dataloader)):
         optimizerFNN.zero_grad()
         optimizerG.zero_grad()
