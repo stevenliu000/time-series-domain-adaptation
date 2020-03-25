@@ -240,7 +240,7 @@ GNet.to(device)
 
 criterion_classifier = nn.CrossEntropyLoss()
 criterion_classifier.to(device)
-criterion_centerloss = CenterLoss(num_classes=num_class, feat_dim=64 * 2 * 1, use_gpu=torch.cuda.is_available())
+criterion_centerloss = CenterLoss(num_classes=num_class, feat_dim=64 * 2 * 1)
 criterion_centerloss.to(device)
 
 GNet.apply(weights_init)
