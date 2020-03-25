@@ -219,6 +219,7 @@ def weights_init(m):
 
 
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+print(device)
 
 seq_len = 10
 feature_dim = 160
