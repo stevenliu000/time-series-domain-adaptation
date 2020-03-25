@@ -296,6 +296,7 @@ for epoch in range(args.epochs):
     for batch_id, (source_x, source_y) in tqdm(enumerate(source_dataloader), total=len(source_dataloader)):
         optimizerFNN.zero_grad()
         optimizerEncoder.zero_grad()
+        optimizerCenterLoss.zero_grad()
         source_x = source_x.to(device).float()
         source_y = source_y.to(device)
         num_datas += source_x.size(0)
