@@ -303,11 +303,15 @@ for epoch in range(args.epochs):
         source_x_embedding = encoder_inference(encoder, source_x)
         pred = CNet(source_x_embedding)
         source_acc += (pred.argmax(-1) == source_y).sum().item()
-        loss = (criterion_classifier(pred, source_y) 
-                + criterion_centerloss(source_x_embedding, source_y) * args.scent)* args.sclass
+        if args.scent == 0:
+            loss = criterion_classifier(pred, source_y) * args.sclass
+        else:
+            loss = (criterion_classifier(pred, source_y) 
+                    + criterion_centerloss(source_x_embedding, source_y) * args.scent)* args.sclass
         loss.backward()
         optimizerFNN.step()
-        optimizerCenterLoss.step()
+        if args.scent != 0:
+            optimizerCenterLoss.step()
         optimizerEncoder.step()
         
     source_acc = source_acc / num_datas
