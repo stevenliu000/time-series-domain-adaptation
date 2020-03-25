@@ -91,17 +91,16 @@ parser.add_argument("--task", type=str, help='3A or 3E')
 parser.add_argument('--batch_size', type=int, default=256, help='batch size')
 parser.add_argument('--epochs', type=int, default=50, help='number of epochs')
 parser.add_argument('--lr_gan', type=float, default=1e-3, help='learning rate for adversarial')
+parser.add_argument('--lr_centerloss', type=float, default=0.5, help='learning rate for centerloss')
 parser.add_argument('--lr_FNN', type=float, default=1e-3, help='learning rate for classification')
 parser.add_argument('--lr_encoder', type=float, default=1e-3, help='learning rate for classification')
-parser.add_argument('--n_critic', type=int, default=4, help='gap: Generator train GAP times, discriminator train once')
 parser.add_argument('--lbl_percentage', type=float, default=0.2, help='percentage of which target data has label')
 parser.add_argument('--num_per_class', type=int, default=-1, help='number of sample per class when training local discriminator')
 parser.add_argument('--seed', type=int, help='manual seed')
 parser.add_argument('--save_path', type=str, help='where to store data')
 parser.add_argument('--model_save_period', type=int, default=2, help='period in which the model is saved')
-parser.add_argument('--clip_value', type=float, default=0.01, help='clip_value for WGAN')
 parser.add_argument('--sclass', type=float, default=0.7, help='source domain classification weight on loss function')
-parser.add_argument('--dglobal', type=float, default=0.01, help='global GAN weight on loss function')
+parser.add_argument('--scent', type=float, default=0.01, help='source domain classification weight on centerloss')
 
 args = parser.parse_args()
 
@@ -250,7 +249,7 @@ CNet.apply(weights_init)
 optimizerG = torch.optim.Adam(GNet.parameters(), lr=args.lr_gan)
 optimizerFNN = torch.optim.Adam(CNet.parameters(), lr=args.lr_FNN)
 optimizerEncoder = torch.optim.Adam(encoder.parameters(), lr=args.lr_encoder)
-optimizerCenterLoss = torch.optim.Adam(criterion_centerloss.parameters(), lr=0.5)
+optimizerCenterLoss = torch.optim.Adam(criterion_centerloss.parameters(), lr=lr_centerloss)
 
 
 # In[38]:
