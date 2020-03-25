@@ -230,18 +230,13 @@ encoder = ComplexTransformer(layers=3,
                                output_dim=64,
                                num_heads=8,
                                out_dropout=0.2,
-                               leaky_slope=0.2)
-encoder.to(device)
+                               leaky_slope=0.2).to(device)
 
-CNet = FNN(d_in=64 * 2 * 1, d_h1=500, d_h2=500, d_out=num_class, dp=0.2)
-CNet.to(device)
-GNet = Generator(dim=64*2)
-GNet.to(device)
+CNet = FNN(d_in=64 * 2 * 1, d_h1=500, d_h2=500, d_out=num_class, dp=0.2).to(device)
+GNet = Generator(dim=64*2).to(device)
 
-criterion_classifier = nn.CrossEntropyLoss()
-criterion_classifier.to(device)
-criterion_centerloss = CenterLoss(num_classes=num_class, feat_dim=64 * 2 * 1)
-criterion_centerloss.to(device)
+criterion_classifier = nn.CrossEntropyLoss().to(device)
+criterion_centerloss = CenterLoss(num_classes=num_class, feat_dim=64 * 2 * 1).to(device)
 
 GNet.apply(weights_init)
 encoder.apply(weights_init)
