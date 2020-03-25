@@ -300,7 +300,7 @@ for epoch in range(args.epochs):
         pred = CNet(source_x_embedding)
         source_acc += (pred.argmax(-1) == source_y).sum().item()
         loss = (criterion_classifier(pred, source_y) +
-                criterion_centerloss(source_x_embedding, source_y)) * args.sclass
+                criterion_centerloss(source_x_embedding, source_y) * args.scent) * args.sclass
         loss.backward()
         optimizerFNN.step()
         optimizerCenterLoss.step()
