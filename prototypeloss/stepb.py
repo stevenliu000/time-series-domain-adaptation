@@ -249,7 +249,7 @@ CNet.apply(weights_init)
 optimizerG = torch.optim.Adam(GNet.parameters(), lr=args.lr_gan)
 optimizerFNN = torch.optim.Adam(CNet.parameters(), lr=args.lr_FNN)
 optimizerEncoder = torch.optim.Adam(encoder.parameters(), lr=args.lr_encoder)
-optimizerCenterLoss = torch.optim.Adam(criterion_centerloss.parameters(), lr=lr_centerloss)
+optimizerCenterLoss = torch.optim.Adam(criterion_centerloss.parameters(), lr=args.lr_centerloss)
 
 
 # In[38]:
