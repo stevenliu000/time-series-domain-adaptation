@@ -291,6 +291,7 @@ for epoch in range(args.epochs):
     # on source domain
     CNet.train()
     encoder.train()
+    GNet.train()
     source_acc = 0.0
     num_datas = 0.0
     for batch_id, (source_x, source_y) in tqdm(enumerate(source_dataloader), total=len(source_dataloader)):
@@ -303,19 +304,16 @@ for epoch in range(args.epochs):
         source_x_embedding = encoder_inference(encoder, source_x)
         pred = CNet(source_x_embedding)
         source_acc += (pred.argmax(-1) == source_y).sum().item()
-        if args.scent == 0:
-            loss = criterion_classifier(pred, source_y) * args.sclass
-        else:
-            loss = (criterion_classifier(pred, source_y) 
-                    + criterion_centerloss(source_x_embedding, source_y) * args.scent)* args.sclass
+        loss = (criterion_classifier(pred, source_y) +
+                criterion_centerloss(source_x_embedding, source_y)) * args.sclass
         loss.backward()
         optimizerFNN.step()
-        if args.scent != 0:
-            optimizerCenterLoss.step()
+        optimizerCenterLoss.step()
         optimizerEncoder.step()
         
     source_acc = source_acc / num_datas
     source_acc_.append(source_acc)
+    
     
     # on target domain
     target_acc = 0.0
@@ -343,35 +341,32 @@ for epoch in range(args.epochs):
     target_acc = target_acc / num_datas
     target_acc_label_.append(target_acc)
     
-    logger.info('Epoch: %i, update classifier: source acc: %f; target acc: %f'%(epoch+1, source_acc, target_acc))
-    # Assign Pesudo Label
     correct_target = 0.0
-    target_pesudo_y = []
+    num_datas = 0.0
     CNet.eval()
     encoder.eval()
     GNet.eval()
     for batch in range(math.ceil(target_unlabel_x.shape[0]/args.batch_size)):
         target_unlabel_x_batch = torch.Tensor(target_unlabel_x[batch*args.batch_size:(batch+1)*args.batch_size]).to(device).float()
-        target_unlabel_y_batch = torch.Tensor(target_unlabel_y[batch*args.batch_size:(batch+1)*args.batch_size]).to(device)        
+        target_unlabel_y_batch = torch.Tensor(target_unlabel_y[batch*args.batch_size:(batch+1)*args.batch_size]).to(device)
+        num_datas += target_unlabel_x_batch.shape[0]
         target_unlabel_x_embedding = encoder_inference(encoder, target_unlabel_x_batch)
         fake_source_embedding = GNet(target_unlabel_x_embedding)
         pred = CNet(fake_source_embedding)
         correct_target += (pred.argmax(-1) == target_unlabel_y_batch).sum().item()
-        target_pesudo_y.extend(pred.argmax(-1).cpu().numpy())
         
-    target_pesudo_y = np.array(target_pesudo_y)
-    pesudo_dict = get_class_data_dict(target_unlabel_x, target_pesudo_y, num_class)
-
-    logger.info('Epoch: %i, assigned pesudo label with accuracy %f'%(epoch+1, correct_target/(target_unlabel_x.shape[0])))
-    target_acc_unlabel_.append(correct_target/(target_unlabel_x.shape[0]))
+    target_unlabel_acc = correct_target/num_datas
+    target_acc_unlabel_.append(target_unlabel_acc)
+    
+    if epoch % args.model_save_period == 0:
+        torch.save(GNet.state_dict(), args.save_path+model_sub_folder+ '/GNet_%i.t7'%(epoch+1))
+        torch.save(encoder.state_dict(), args.save_path+model_sub_folder+ '/encoder_%i.t7'%(epoch+1))
+        torch.save(CNet.state_dict(), args.save_path+model_sub_folder+ '/CNet_%i.t7'%(epoch+1))
+        torch.save(criterion_centerloss.state_dict(), args.save_path+model_sub_folder+ '/centerloss_%i.t7'%(epoch+1))
+    logger.info('Epochs %i: source acc: %f; target labled acc: %f; target unlabeled acc: %f'%(epoch+1, source_acc, target_acc, target_unlabel_acc))
     
     np.save(args.save_path+model_sub_folder+'/target_acc_label_.npy',target_acc_label_)
     np.save(args.save_path+model_sub_folder+'/source_acc_.npy',source_acc_)
     np.save(args.save_path+model_sub_folder+'/target_acc_unlabel_.npy',target_acc_unlabel_)
-            
-    if epoch % args.model_save_period == 0:
-        torch.save(CNet.state_dict(), args.save_path+model_sub_folder+ '/CNet_%i.t7'%(epoch+1))
-        torch.save(GNet.state_dict(), args.save_path+model_sub_folder+ '/GNet_%i.t7'%(epoch+1))
-        torch.save(encoder.state_dict(), args.save_path+model_sub_folder+ '/encoder_%i.t7'%(epoch+1))
-        torch.save(criterion_centerloss.state_dict(), args.save_path+model_sub_folder+ '/centerloss_%i.t7'%(epoch+1))    
+     
 
