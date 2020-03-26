@@ -381,7 +381,7 @@ for epoch in range(args.epochs):
         torch.save(GNet.state_dict(), args.save_path+model_sub_folder+ '/GNet_%i.t7'%(epoch+1))
         torch.save(encoder.state_dict(), args.save_path+model_sub_folder+ '/encoder_%i.t7'%(epoch+1))
         torch.save(CNet.state_dict(), args.save_path+model_sub_folder+ '/CNet_%i.t7'%(epoch+1))
-    logger.info('Epochs %i: source acc: %f; target labled acc: %f; target unlabeled acc: %f'%(epoch+1, source_acc, target_acc, target_unlabel_acc))
+    logger.info('Epochs %i: target labled acc: %f; target unlabeled acc: %f'%(epoch+1, target_acc, target_unlabel_acc))
     
     np.save(args.save_path+model_sub_folder+'/target_acc_label_.npy',target_acc_label_)
     np.save(args.save_path+model_sub_folder+'/target_acc_unlabel_.npy',target_acc_unlabel_)
