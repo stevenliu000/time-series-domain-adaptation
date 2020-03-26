@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[19]:
+# In[1]:
 
 
 import sys, os, inspect
@@ -11,7 +11,7 @@ sys.path.insert(0, parent_dir)
 sys.path.insert(0, os.path.join(parent_dir,'spring-break'))
 
 
-# In[20]:
+# In[2]:
 
 
 import numpy as np
@@ -38,7 +38,7 @@ from centerloss import CenterLoss
 
 # # Dataloader
 
-# In[22]:
+# In[3]:
 
 
 class JoinDataset(Dataset):
@@ -96,7 +96,7 @@ parser.add_argument('--lr_FNN', type=float, default=1e-3, help='learning rate fo
 parser.add_argument('--lr_encoder', type=float, default=1e-3, help='learning rate for classification')
 parser.add_argument('--lbl_percentage', type=float, default=0.2, help='percentage of which target data has label')
 parser.add_argument('--num_per_class', type=int, default=-1, help='number of sample per class when training local discriminator')
-parser.add_argument('--seed', type=int, help='manual seed')
+parser.add_argument('--seed', type=int, default=0, help='manual seed')
 parser.add_argument('--save_path', type=str, help='where to store data')
 parser.add_argument('--model_save_period', type=int, default=2, help='period in which the model is saved')
 parser.add_argument('--sclass', type=float, default=0.7, help='source domain classification weight on loss function')
@@ -105,7 +105,7 @@ parser.add_argument('--scent', type=float, default=0.01, help='source domain cla
 args = parser.parse_args()
 
 
-# In[45]:
+# In[8]:
 
 
 # # local only
@@ -131,18 +131,18 @@ args = parser.parse_args()
 #     'scent': 1e-2,
 #     'seed': None,
 #     'save_path': '/Users/stevenliu/time-series-adaption/time-series-domain-adaptation/train_related',
-#     'model_save_period': 1
+#     'model_save_period': 1,
+#     'lr_centerloss': 1e-3,
+#     'seed': 0
 # })
 
 
-# In[31]:
+# In[9]:
 
 
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
 # seed
-if args.seed is None:
-    args.seed = random.randint(1, 10000)
 torch.manual_seed(args.seed)
 torch.cuda.manual_seed(args.seed)
 np.random.seed(args.seed)
@@ -165,7 +165,7 @@ if not os.path.exists(args.save_path+model_sub_folder):
 
 # # Logger
 
-# In[32]:
+# In[10]:
 
 
 logger = logging.getLogger()
@@ -184,7 +184,7 @@ logger.addHandler(stdout_log_handler)
 # # Data loading
 # 
 
-# In[33]:
+# In[18]:
 
 
 raw_data = np.load(args.data_path+'/processed_file_not_one_hot_%s.pkl'%args.task, allow_pickle=True)
@@ -201,7 +201,7 @@ target_dataloader = DataLoader(target_lbl_dataset, batch_size=args.batch_size, s
 
 # # weight Initialize
 
-# In[34]:
+# In[12]:
 
 
 def weights_init(m):
@@ -215,7 +215,7 @@ def weights_init(m):
 # # model creation
 # 
 
-# In[35]:
+# In[13]:
 
 
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
@@ -236,7 +236,7 @@ CNet = FNN(d_in=64 * 2 * 1, d_h1=500, d_h2=500, d_out=num_class, dp=0.2).to(devi
 GNet = Generator(dim=64*2).to(device)
 
 criterion_classifier = nn.CrossEntropyLoss().to(device)
-criterion_centerloss = CenterLoss(num_classes=num_class, feat_dim=64 * 2 * 1).to(device)
+criterion_centerloss = CenterLoss(num_classes=num_class, feat_dim=64 * 2 * 1, use_gpu=torch.cuda.is_available()).to(device)
 
 GNet.apply(weights_init)
 encoder.apply(weights_init)
@@ -260,7 +260,7 @@ def classifier_inference(encoder, CNet, x):
     return pred
 
 
-# In[39]:
+# In[15]:
 
 
 def encoder_inference(encoder, x):
@@ -364,4 +364,36 @@ for epoch in range(args.epochs):
     np.save(args.save_path+model_sub_folder+'/source_acc_.npy',source_acc_)
     np.save(args.save_path+model_sub_folder+'/target_acc_unlabel_.npy',target_acc_unlabel_)
      
+
+
+# In[20]:
+
+
+
+model_PATH = '/Users/stevenliu/Downloads/stage2_weights'
+CNet.load_state_dict(torch.load(model_PATH+'/CNet_146.t7', map_location=device))
+encoder.load_state_dict(torch.load(model_PATH+'/encoder_146.t7', map_location=device))
+GNet.load_state_dict(torch.load(model_PATH+'/GNet_146.t7', map_location=device))
+
+target_acc_label_ = []
+source_acc_ = []
+target_acc_unlabel_ = []
+
+correct_target = 0.0
+num_datas = 0.0
+CNet.eval()
+encoder.eval()
+GNet.eval()
+for batch in range(math.ceil(target_unlabel_x.shape[0]/args.batch_size)):
+    target_unlabel_x_batch = torch.Tensor(target_unlabel_x[batch*args.batch_size:(batch+1)*args.batch_size]).to(device).float()
+    target_unlabel_y_batch = torch.Tensor(target_unlabel_y[batch*args.batch_size:(batch+1)*args.batch_size]).to(device)
+    num_datas += target_unlabel_x_batch.shape[0]
+    target_unlabel_x_embedding = encoder_inference(encoder, target_unlabel_x_batch)
+    fake_source_embedding = GNet(target_unlabel_x_embedding)
+    pred = CNet(fake_source_embedding)
+    correct_target += (pred.argmax(-1) == target_unlabel_y_batch).sum().item()
+
+target_unlabel_acc = correct_target/num_datas
+target_acc_unlabel_.append(target_unlabel_acc)
+logger.info(' target unlabeled acc: %f'%( target_unlabel_acc))
 
