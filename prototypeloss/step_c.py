@@ -11,7 +11,7 @@ sys.path.insert(0, parent_dir)
 sys.path.insert(0, os.path.join(parent_dir,'spring-break'))
 
 
-# In[63]:
+# In[87]:
 
 
 import numpy as np
@@ -36,6 +36,7 @@ import pickle
 from centerloss import CenterLoss
 from prototype_loss import PrototypeLoss
 from DataSetLoader import JoinDataset, SingleDataset
+from torch.autograd import Variable
 
 
 # # Dataloader
@@ -277,7 +278,7 @@ def encoder_inference(encoder, x):
 
 # # Train
 
-# In[85]:
+# In[109]:
 
 
 target_acc_label_ = []
@@ -310,7 +311,7 @@ for epoch in range(args.epochs):
         optimizerFNN.step()
         optimizerCenterLoss.step()
         optimizerEncoder.step()
-
+        
 
         
     source_acc = source_acc / num_datas
@@ -343,14 +344,40 @@ for epoch in range(args.epochs):
         center_batch = source_centers[target_y, ]
         dist = torch.sum(torch.pow(fake_target_embedding - center_batch, 2), axis=1)
         unique_class_y, class_count = torch.unique(target_y, return_counts=True)
-        index = torch.argsort(target_y)
-        ordered_dist = dist[index]
-        prototype_loss = 0
-        for i, class_num in enumerate(unique_class_y):
-            if i == 0: 
-                prototype_loss += torch.mean(ordered_dist[:class_count[0]])
-            else:
-                prototype_loss += torch.mean(ordered_dist[torch.sum(class_count[:i-1]):torch.sum(class_count[:i])])
+        
+        def compute_mean(samples, labels):
+            assert samples.size(0) == labels.size(0)
+            """
+            samples = torch.Tensor([
+                                 [0.1, 0.1],    #-> group / class 1
+                                 [0.2, 0.2],    #-> group / class 2
+                                 [0.4, 0.4],    #-> group / class 2
+                                 [0.0, 0.0]     #-> group / class 0
+                          ])
+            labels = torch.LongTensor([1, 2, 2, 0])
+
+            return 
+                tensor([[0.0000, 0.0000],
+                        [0.1000, 0.1000],
+                        [0.3000, 0.3000]])
+            """
+            M = torch.zeros(labels.max()+1, len(samples))
+            M[labels, torch.arange(len(samples))] = 1
+            M = torch.nn.functional.normalize(M, p=1, dim=1)
+            res = torch.mm(M, samples)
+            return res
+#         print(dist.view(-1,1).shape)
+#         print(target_y.shape)
+        prototype_loss = torch.mean(compute_mean(dist.view(-1,1), target_y))
+        
+#         index = torch.argsort(target_y)
+#         ordered_dist = dist[index]
+#         prototype_loss = 0
+#         for i, class_num in enumerate(unique_class_y):
+#             if i == 0: 
+#                 prototype_loss += torch.mean(ordered_dist[:class_count[0]])
+#             else:
+#                 prototype_loss += torch.mean(ordered_dist[torch.sum(class_count[:i-1]):torch.sum(class_count[:i])])
         # add prototype loss
         loss = criterion_classifier(pred, target_y) + args.sprototype * prototype_loss
         loss.backward()
