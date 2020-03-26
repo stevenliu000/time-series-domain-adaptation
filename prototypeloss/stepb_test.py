@@ -135,6 +135,7 @@ def weights_init(m):
     elif type(m) == nn.LayerNorm:
         torch.nn.init.normal_(m.weight, 1.0, 0.02)
         torch.nn.init.constant_(m.bias, 0)
+       
 
 
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
@@ -165,6 +166,21 @@ optimizerG = torch.optim.Adam(GNet.parameters(), lr=args.lr_gan)
 optimizerFNN = torch.optim.Adam(CNet.parameters(), lr=args.lr_FNN)
 optimizerEncoder = torch.optim.Adam(encoder.parameters(), lr=args.lr_encoder)
 optimizerCenterLoss = torch.optim.Adam(criterion_centerloss.parameters(), lr=args.lr_centerloss)
+
+def classifier_inference(encoder, CNet, x):
+    CNet.eval()
+    encoder.eval()
+    with torch.no_grad():
+        embedding = encoder_inference(encoder, x)
+        pred = CNet(embedding)
+    return pred
+
+def encoder_inference(encoder, x):
+    real = x[:,:,0].reshape(x.size(0), seq_len, feature_dim).float()
+    imag = x[:,:,1].reshape(x.size(0), seq_len, feature_dim).float()
+    real, imag = encoder(real, imag)
+    return torch.cat((real[:,-1,:], imag[:,-1,:]), -1).reshape(x.shape[0], -1)
+
 
 PATH = '/home/weixinli/time-series-domain-adaptation/train_related/stage2/task_3E_sclass_0.700000_scent_0.000100'
 CNet.load_state_dict(torch.load(PATH+'/CNet_265.t7',map_location=torch.device('cpu')))
