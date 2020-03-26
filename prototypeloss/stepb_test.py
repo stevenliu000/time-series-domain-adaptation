@@ -213,7 +213,7 @@ for epoch in range(args.epochs):
         loss.backward()
         optimizerFNN.step()
         optimizerG.step()
-        optimizerEncoder.step()
+#         optimizerEncoder.step()
 
     target_acc = target_acc / num_datas
     target_acc_label_.append(target_acc)
