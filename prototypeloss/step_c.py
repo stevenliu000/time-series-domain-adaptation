@@ -277,7 +277,7 @@ def encoder_inference(encoder, x):
 
 # # Train
 
-# In[84]:
+# In[ ]:
 
 
 target_acc_label_ = []
@@ -310,6 +310,7 @@ for epoch in range(args.epochs):
         optimizerFNN.step()
         optimizerCenterLoss.step()
         optimizerEncoder.step()
+        break
 
         
     source_acc = source_acc / num_datas
@@ -342,7 +343,7 @@ for epoch in range(args.epochs):
         center_batch = source_centers[target_y, ]
         dist = torch.sum(torch.pow(fake_target_embedding - center_batch, 2), axis=1)
         unique_class_y, class_count = torch.unique(target_y, return_counts=True)
-        index = torch.nonzero(target_y.t())[:, -1]
+        index = torch.argsort(target_y)
         ordered_dist = dist[index]
         prototype_loss = 0
         for i, class_num in enumerate(unique_class_y):
