@@ -361,7 +361,7 @@ for epoch in range(args.epochs):
                         [0.1000, 0.1000],
                         [0.3000, 0.3000]])
             """
-            M = torch.zeros(labels.max()+1, len(samples))
+            M = torch.zeros(labels.max()+1, len(samples)).to(device)
             M[labels, torch.arange(len(samples))] = 1
             M = torch.nn.functional.normalize(M, p=1, dim=1)
             res = torch.mm(M, samples)
