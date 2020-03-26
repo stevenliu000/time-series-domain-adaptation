@@ -98,7 +98,7 @@ parser.add_argument('--lr_centerloss', type=float, default=0.5, help='learning r
 parser.add_argument('--lr_prototype', type=float, default=0.5, help='learning rate for prototype')
 parser.add_argument('--lr_FNN', type=float, default=1e-3, help='learning rate for classification')
 parser.add_argument('--lr_encoder', type=float, default=1e-3, help='learning rate for classification')
-parser.add_argument('--lbl_percentage', type=float, default=0.2, help='percentage of which target data has label')
+parser.add_argument('--lbl_percentage', type=float, default=0.7, help='percentage of which target data has label')
 parser.add_argument('--num_per_class', type=int, default=-1, help='number of sample per class when training local discriminator')
 parser.add_argument('--seed', type=int, default=0, help='manual seed')
 parser.add_argument('--save_path', type=str, help='where to store data')
@@ -110,7 +110,7 @@ parser.add_argument('--sprototype', type=float, default=0.01, help='prototype we
 args = parser.parse_args()
 
 
-# In[50]:
+# In[123]:
 
 
 # # local only
@@ -125,7 +125,7 @@ args = parser.parse_args()
 #     'batch_size': 100,
 #     'num_per_class': -1,
 #     'gap': 5,
-#     'lbl_percentage':0.2,
+#     'lbl_percentage':0.7,
 #     'lr_gan': 1e-4,
 #     'lr_FNN': 1e-4,
 #     'lr_encoder': 1e-4,
@@ -303,7 +303,7 @@ def compute_mean(samples, labels):
 
 # # Train
 
-# In[121]:
+# In[124]:
 
 
 target_acc_label_ = []
@@ -311,11 +311,12 @@ source_acc_ = []
 target_acc_unlabel_ = []
 
 # pre-trained
+select_pretrain_epoch = 77
 model_PATH = '../train_related/pretrain'
-CNet.load_state_dict(torch.load(model_PATH+'/CNet_511.t7', map_location=device))
-encoder.load_state_dict(torch.load(model_PATH+'/encoder_511.t7', map_location=device))
-GNet.load_state_dict(torch.load(model_PATH+'/GNet_511.t7', map_location=device))
-criterion_centerloss.load_state_dict(torch.load(model_PATH+'/centerloss_511.t7', map_location=device))
+CNet.load_state_dict(torch.load(model_PATH+'/CNet_{}.t7'.format(select_pretrain_epoch), map_location=device))
+encoder.load_state_dict(torch.load(model_PATH+'/encoder_{}.t7'.format(select_pretrain_epoch), map_location=device))
+GNet.load_state_dict(torch.load(model_PATH+'/GNet_{}.t7'.format(select_pretrain_epoch), map_location=device))
+criterion_centerloss.load_state_dict(torch.load(model_PATH+'/centerloss_{}.t7'.format(select_pretrain_epoch), map_location=device))
 print('Model Loaded!')
 
 
