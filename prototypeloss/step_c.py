@@ -306,7 +306,7 @@ def compute_mean(samples, labels):
 
 # # Train
 
-# In[126]:
+# In[135]:
 
 
 target_acc_label_ = []
@@ -322,13 +322,59 @@ GNet.load_state_dict(torch.load(model_PATH+'/GNet_{}.t7'.format(select_pretrain_
 criterion_centerloss.load_state_dict(torch.load(model_PATH+'/centerloss_{}.t7'.format(select_pretrain_epoch), map_location=device))
 print('Model Loaded!')
 
+correct_target = 0.0
+num_datas = 0.0
+CNet.eval()
+encoder.eval()
+GNet.eval()
+for batch in range(math.ceil(target_unlabel_x.shape[0]/args.batch_size)):
+    target_unlabel_x_batch = torch.Tensor(target_unlabel_x[batch*args.batch_size:(batch+1)*args.batch_size]).to(device).float()
+    target_unlabel_y_batch = torch.Tensor(target_unlabel_y[batch*args.batch_size:(batch+1)*args.batch_size]).to(device)
+    num_datas += target_unlabel_x_batch.shape[0]
+    target_unlabel_x_embedding = encoder_inference(encoder, target_unlabel_x_batch)
+    fake_source_embedding = GNet(target_unlabel_x_embedding)
+    pred = CNet(fake_source_embedding)
+    correct_target += (pred.argmax(-1) == target_unlabel_y_batch).sum().item()
 
+target_unlabel_acc = correct_target/num_datas
+logger.info('Basedline: target unlabeled acc: %f'%(target_unlabel_acc))
+  
+# get source center 
+source_centers = criterion_centerloss.centers # (65, 128)
+print("Source Center Loaded!")
 
 logger.info('Started Training')
 for epoch in range(args.epochs):
-    # get source center 
-    source_centers = criterion_centerloss.centers # (65, 128)
- 
+    # update classifier
+#     # on source domain
+#     CNet.train()
+#     encoder.train()
+#     GNet.train()
+#     source_acc = 0.0
+#     num_datas = 0.0
+#     for batch_id, (source_x, source_y) in tqdm(enumerate(source_dataloader), total=len(source_dataloader)):
+#         optimizerFNN.zero_grad()
+#         optimizerEncoder.zero_grad()
+#         optimizerCenterLoss.zero_grad()
+#         source_x = source_x.to(device).float()
+#         source_y = source_y.to(device)
+#         num_datas += source_x.size(0)
+#         source_x_embedding = encoder_inference(encoder, source_x)
+#         pred = CNet(source_x_embedding)
+#         source_acc += (pred.argmax(-1) == source_y).sum().item()
+#         loss = (criterion_classifier(pred, source_y) +
+#                 criterion_centerloss(source_x_embedding, source_y) * args.scent) * args.sclass
+#         loss.backward()
+#         optimizerFNN.step()
+#         optimizerCenterLoss.step()
+#         # optimizerEncoder.step()
+        
+#     source_acc = source_acc / num_datas
+#     source_acc_.append(source_acc)
+#     logger.info('Epochs %i: source acc: %f;'%(epoch+1, source_acc))
+#     np.save(args.save_path+model_sub_folder+'/source_acc_.npy',source_acc_)
+    
+    
     # on target domain
     target_acc = 0.0
     num_datas = 0.0
@@ -359,7 +405,7 @@ for epoch in range(args.epochs):
         loss.backward()
         optimizerFNN.step()
         optimizerG.step()
-        optimizerEncoder.step()
+        # optimizerEncoder.step()
     
     target_acc = target_acc / num_datas
     target_acc_label_.append(target_acc)
@@ -381,6 +427,7 @@ for epoch in range(args.epochs):
     target_unlabel_acc = correct_target/num_datas
     target_acc_unlabel_.append(target_unlabel_acc)
     
+    
     if epoch % args.model_save_period == 0:
         torch.save(GNet.state_dict(), args.save_path+model_sub_folder+ '/GNet_%i.t7'%(epoch+1))
         torch.save(encoder.state_dict(), args.save_path+model_sub_folder+ '/encoder_%i.t7'%(epoch+1))
@@ -389,7 +436,60 @@ for epoch in range(args.epochs):
     
     np.save(args.save_path+model_sub_folder+'/target_acc_label_.npy',target_acc_label_)
     np.save(args.save_path+model_sub_folder+'/target_acc_unlabel_.npy',target_acc_unlabel_)
-     
+    
+
+
+# In[127]:
+
+
+raw_data = np.load(args.data_path+'/processed_file_not_one_hot_%s.pkl'%args.task, allow_pickle=True)
+target_dict, (target_unlabel_x, target_unlabel_y),(target_label_x,target_label_y), target_len  = get_target_dict(args.data_path+'/processed_file_not_one_hot_%s.pkl'%args.task, num_class, args.lbl_percentage)
+source_dict, source_len = get_source_dict(args.data_path+'/processed_file_not_one_hot_%s.pkl'%args.task, num_class, data_len=target_len)
+join_dataset = JoinDataset(raw_data['tr_data'],raw_data['tr_lbl'],raw_data['te_data'],raw_data['te_lbl'], random=True)
+join_dataloader = DataLoader(join_dataset, batch_size=args.batch_size, shuffle=True, pin_memory=True, num_workers=4)
+
+source_dataset = SingleDataset(raw_data['tr_data'], raw_data['tr_lbl'])
+source_dataloader = DataLoader(source_dataset, batch_size=args.batch_size, shuffle=True, pin_memory=True, num_workers=4)
+target_lbl_dataset = SingleDataset(target_label_x, target_label_y)
+target_dataloader = DataLoader(target_lbl_dataset, batch_size=args.batch_size, shuffle=True, pin_memory=True, num_workers=4)
+
+
+# In[128]:
+
+
+
+PATH = '../train_related/pretrain'
+CNet.load_state_dict(torch.load(PATH+'/CNet_77.t7',map_location=torch.device('cpu')))
+encoder.load_state_dict(torch.load(PATH+'/encoder_77.t7',map_location=torch.device('cpu')))
+GNet.load_state_dict(torch.load(PATH+'/GNet_77.t7',map_location=torch.device('cpu')))
+
+correct_target = 0.0
+num_datas = 0.0
+CNet.eval()
+encoder.eval()
+GNet.eval()
+for batch in range(math.ceil(target_unlabel_x.shape[0]/args.batch_size)):
+    target_unlabel_x_batch = torch.Tensor(target_unlabel_x[batch*args.batch_size:(batch+1)*args.batch_size]).to(device).float()
+    target_unlabel_y_batch = torch.Tensor(target_unlabel_y[batch*args.batch_size:(batch+1)*args.batch_size]).to(device)
+    num_datas += target_unlabel_x_batch.shape[0]
+    target_unlabel_x_embedding = encoder_inference(encoder, target_unlabel_x_batch)
+    fake_source_embedding = GNet(target_unlabel_x_embedding)
+    pred = CNet(fake_source_embedding)
+    correct_target += (pred.argmax(-1) == target_unlabel_y_batch).sum().item()
+
+target_unlabel_acc = correct_target/num_datas
+
+
+# In[129]:
+
+
+target_unlabel_acc
+
+
+# In[134]:
+
+
+target_unlabel_x.shape
 
 
 # In[ ]:
