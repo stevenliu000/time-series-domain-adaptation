@@ -166,7 +166,7 @@ optimizerFNN = torch.optim.Adam(CNet.parameters(), lr=args.lr_FNN)
 optimizerEncoder = torch.optim.Adam(encoder.parameters(), lr=args.lr_encoder)
 optimizerCenterLoss = torch.optim.Adam(criterion_centerloss.parameters(), lr=args.lr_centerloss)
 
-PATH = ''
+PATH = '/home/weixinli/time-series-domain-adaptation/train_related/stage2/task_3E_sclass_0.700000_scent_0.000100'
 CNet.load_state_dict(torch.load(PATH+'/CNet_265.t7',map_location=torch.device('cpu')))
 encoder.load_state_dict(torch.load(PATH+'/encoder_265.t7',map_location=torch.device('cpu')))
 GNet.load_state_dict(torch.load(PATH+'/GNet_265.t7',map_location=torch.device('cpu')))
