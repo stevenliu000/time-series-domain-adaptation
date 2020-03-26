@@ -106,11 +106,13 @@ parser.add_argument('--model_save_period', type=int, default=2, help='period in 
 parser.add_argument('--sclass', type=float, default=0.7, help='source domain classification weight on loss function')
 parser.add_argument('--scent', type=float, default=0.01, help='source domain classification weight on centerloss')
 parser.add_argument('--sprototype', type=float, default=0.01, help='prototype weight on target doamin loss')
+parser.add_argument('--select_pretrain_epoch', type=int, default=77, help='select epoch num for pretrained medel weight')
+
 
 args = parser.parse_args()
 
 
-# In[123]:
+# In[125]:
 
 
 # # local only
@@ -140,7 +142,8 @@ args = parser.parse_args()
 #     'lr_centerloss': 1e-3,
 #     'lr_prototype': 1e-3,
 #     'sprototype': 1e-2,
-#     'seed': 0
+#     'seed': 0,
+#     'select_pretrain_epoch': 77,
 # })
 
 
@@ -303,7 +306,7 @@ def compute_mean(samples, labels):
 
 # # Train
 
-# In[124]:
+# In[126]:
 
 
 target_acc_label_ = []
@@ -311,7 +314,7 @@ source_acc_ = []
 target_acc_unlabel_ = []
 
 # pre-trained
-select_pretrain_epoch = 77
+select_pretrain_epoch = args.select_pretrain_epoch
 model_PATH = '../train_related/pretrain'
 CNet.load_state_dict(torch.load(model_PATH+'/CNet_{}.t7'.format(select_pretrain_epoch), map_location=device))
 encoder.load_state_dict(torch.load(model_PATH+'/encoder_{}.t7'.format(select_pretrain_epoch), map_location=device))
