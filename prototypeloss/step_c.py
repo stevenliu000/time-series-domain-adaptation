@@ -277,7 +277,7 @@ def encoder_inference(encoder, x):
 
 # # Train
 
-# In[ ]:
+# In[85]:
 
 
 target_acc_label_ = []
@@ -310,7 +310,7 @@ for epoch in range(args.epochs):
         optimizerFNN.step()
         optimizerCenterLoss.step()
         optimizerEncoder.step()
-        break
+
 
         
     source_acc = source_acc / num_datas
