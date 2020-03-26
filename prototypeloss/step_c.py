@@ -276,51 +276,55 @@ def encoder_inference(encoder, x):
     return torch.cat((real[:,-1,:], imag[:,-1,:]), -1).reshape(x.shape[0], -1)
 
 
+# In[112]:
+
+
+def compute_mean(samples, labels):
+    assert samples.size(0) == labels.size(0)
+    """
+    samples = torch.Tensor([
+                         [0.1, 0.1],    #-> group / class 1
+                         [0.2, 0.2],    #-> group / class 2
+                         [0.4, 0.4],    #-> group / class 2
+                         [0.0, 0.0]     #-> group / class 0
+                  ])
+    labels = torch.LongTensor([1, 2, 2, 0])
+    return 
+        tensor([[0.0000, 0.0000],
+                [0.1000, 0.1000],
+                [0.3000, 0.3000]])
+    """
+    M = torch.zeros(labels.max()+1, len(samples)).to(device)
+    M[labels, torch.arange(len(samples))] = 1
+    M = torch.nn.functional.normalize(M, p=1, dim=1)
+    res = torch.mm(M, samples)
+    return res
+
+
 # # Train
 
-# In[109]:
+# In[121]:
 
 
 target_acc_label_ = []
 source_acc_ = []
 target_acc_unlabel_ = []
 
+# pre-trained
+model_PATH = '../train_related/pretrain'
+CNet.load_state_dict(torch.load(model_PATH+'/CNet_511.t7', map_location=device))
+encoder.load_state_dict(torch.load(model_PATH+'/encoder_511.t7', map_location=device))
+GNet.load_state_dict(torch.load(model_PATH+'/GNet_511.t7', map_location=device))
+criterion_centerloss.load_state_dict(torch.load(model_PATH+'/centerloss_511.t7', map_location=device))
+print('Model Loaded!')
+
+
 
 logger.info('Started Training')
 for epoch in range(args.epochs):
-    # update classifier
-    # on source domain
-    CNet.train()
-    encoder.train()
-    GNet.train()
-    source_acc = 0.0
-    num_datas = 0.0
-    for batch_id, (source_x, source_y) in tqdm(enumerate(source_dataloader), total=len(source_dataloader)):
-        optimizerFNN.zero_grad()
-        optimizerEncoder.zero_grad()
-        optimizerCenterLoss.zero_grad()
-        source_x = source_x.to(device).float()
-        source_y = source_y.to(device)
-        num_datas += source_x.size(0)
-        source_x_embedding = encoder_inference(encoder, source_x)
-        pred = CNet(source_x_embedding)
-        source_acc += (pred.argmax(-1) == source_y).sum().item()
-        loss = (criterion_classifier(pred, source_y) +
-                criterion_centerloss(source_x_embedding, source_y) * args.scent) * args.sclass
-        loss.backward()
-        optimizerFNN.step()
-        optimizerCenterLoss.step()
-        optimizerEncoder.step()
-        
-
-        
-    source_acc = source_acc / num_datas
-    source_acc_.append(source_acc)
-    # get source center for target prototype
-    source_centers = criterion_centerloss.centers
-    
-    
-    
+    # get source center 
+    source_centers = criterion_centerloss.centers # (65, 128)
+ 
     # on target domain
     target_acc = 0.0
     num_datas = 0.0
@@ -345,39 +349,7 @@ for epoch in range(args.epochs):
         dist = torch.sum(torch.pow(fake_target_embedding - center_batch, 2), axis=1)
         unique_class_y, class_count = torch.unique(target_y, return_counts=True)
         
-        def compute_mean(samples, labels):
-            assert samples.size(0) == labels.size(0)
-            """
-            samples = torch.Tensor([
-                                 [0.1, 0.1],    #-> group / class 1
-                                 [0.2, 0.2],    #-> group / class 2
-                                 [0.4, 0.4],    #-> group / class 2
-                                 [0.0, 0.0]     #-> group / class 0
-                          ])
-            labels = torch.LongTensor([1, 2, 2, 0])
-
-            return 
-                tensor([[0.0000, 0.0000],
-                        [0.1000, 0.1000],
-                        [0.3000, 0.3000]])
-            """
-            M = torch.zeros(labels.max()+1, len(samples)).to(device)
-            M[labels, torch.arange(len(samples))] = 1
-            M = torch.nn.functional.normalize(M, p=1, dim=1)
-            res = torch.mm(M, samples)
-            return res
-#         print(dist.view(-1,1).shape)
-#         print(target_y.shape)
         prototype_loss = torch.mean(compute_mean(dist.view(-1,1), target_y))
-        
-#         index = torch.argsort(target_y)
-#         ordered_dist = dist[index]
-#         prototype_loss = 0
-#         for i, class_num in enumerate(unique_class_y):
-#             if i == 0: 
-#                 prototype_loss += torch.mean(ordered_dist[:class_count[0]])
-#             else:
-#                 prototype_loss += torch.mean(ordered_dist[torch.sum(class_count[:i-1]):torch.sum(class_count[:i])])
         # add prototype loss
         loss = criterion_classifier(pred, target_y) + args.sprototype * prototype_loss
         loss.backward()
@@ -409,11 +381,9 @@ for epoch in range(args.epochs):
         torch.save(GNet.state_dict(), args.save_path+model_sub_folder+ '/GNet_%i.t7'%(epoch+1))
         torch.save(encoder.state_dict(), args.save_path+model_sub_folder+ '/encoder_%i.t7'%(epoch+1))
         torch.save(CNet.state_dict(), args.save_path+model_sub_folder+ '/CNet_%i.t7'%(epoch+1))
-        torch.save(criterion_centerloss.state_dict(), args.save_path+model_sub_folder+ '/centerloss_%i.t7'%(epoch+1))
     logger.info('Epochs %i: source acc: %f; target labled acc: %f; target unlabeled acc: %f'%(epoch+1, source_acc, target_acc, target_unlabel_acc))
     
     np.save(args.save_path+model_sub_folder+'/target_acc_label_.npy',target_acc_label_)
-    np.save(args.save_path+model_sub_folder+'/source_acc_.npy',source_acc_)
     np.save(args.save_path+model_sub_folder+'/target_acc_unlabel_.npy',target_acc_unlabel_)
      
 
