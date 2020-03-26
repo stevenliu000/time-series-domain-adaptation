@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[1]:
+# In[136]:
 
 
 import sys, os, inspect
@@ -11,7 +11,7 @@ sys.path.insert(0, parent_dir)
 sys.path.insert(0, os.path.join(parent_dir,'spring-break'))
 
 
-# In[87]:
+# In[137]:
 
 
 import numpy as np
@@ -41,7 +41,7 @@ from torch.autograd import Variable
 
 # # Dataloader
 
-# In[37]:
+# In[138]:
 
 
 # class JoinDataset(Dataset):
@@ -84,7 +84,7 @@ from torch.autograd import Variable
 
 # # Parser
 
-# In[48]:
+# In[139]:
 
 
 # Parameters
@@ -112,7 +112,7 @@ parser.add_argument('--select_pretrain_epoch', type=int, default=77, help='selec
 args = parser.parse_args()
 
 
-# In[125]:
+# In[144]:
 
 
 # # local only
@@ -147,7 +147,7 @@ args = parser.parse_args()
 # })
 
 
-# In[10]:
+# In[150]:
 
 
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
@@ -167,7 +167,7 @@ device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 if args.num_per_class == -1:
     args.num_per_class = math.ceil(args.batch_size / num_class)
     
-model_sub_folder = '/stepc_target_only/task_%s_sclass_%f_scent_%f'%(args.task, args.sclass, args.scent)
+model_sub_folder = '/stepc_target_only/task_%s_sprototype_%f'%(args.task, args.sprototype)
 
 if not os.path.exists(args.save_path+model_sub_folder):
     os.makedirs(args.save_path+model_sub_folder)
@@ -175,7 +175,7 @@ if not os.path.exists(args.save_path+model_sub_folder):
 
 # # Logger
 
-# In[11]:
+# In[142]:
 
 
 logger = logging.getLogger()
@@ -193,7 +193,7 @@ logger.addHandler(stdout_log_handler)
 
 # # Data Loading
 
-# In[40]:
+# In[143]:
 
 
 raw_data = np.load(args.data_path+'/processed_file_not_one_hot_%s.pkl'%args.task, allow_pickle=True)
@@ -210,7 +210,7 @@ target_dataloader = DataLoader(target_lbl_dataset, batch_size=args.batch_size, s
 
 # # Weight initialize
 
-# In[42]:
+# In[145]:
 
 
 def weights_init(m):
@@ -223,7 +223,7 @@ def weights_init(m):
 
 # # Model creation
 
-# In[43]:
+# In[146]:
 
 
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
@@ -257,7 +257,7 @@ optimizerEncoder = torch.optim.Adam(encoder.parameters(), lr=args.lr_encoder)
 optimizerCenterLoss = torch.optim.Adam(criterion_centerloss.parameters(), lr=args.lr_centerloss)
 
 
-# In[44]:
+# In[147]:
 
 
 def classifier_inference(encoder, CNet, x):
@@ -269,7 +269,7 @@ def classifier_inference(encoder, CNet, x):
     return pred
 
 
-# In[45]:
+# In[148]:
 
 
 def encoder_inference(encoder, x):
@@ -279,7 +279,7 @@ def encoder_inference(encoder, x):
     return torch.cat((real[:,-1,:], imag[:,-1,:]), -1).reshape(x.shape[0], -1)
 
 
-# In[112]:
+# In[149]:
 
 
 def compute_mean(samples, labels):
@@ -306,7 +306,7 @@ def compute_mean(samples, labels):
 
 # # Train
 
-# In[135]:
+# In[ ]:
 
 
 target_acc_label_ = []
@@ -437,4 +437,10 @@ for epoch in range(args.epochs):
     np.save(args.save_path+model_sub_folder+'/target_acc_label_.npy',target_acc_label_)
     np.save(args.save_path+model_sub_folder+'/target_acc_unlabel_.npy',target_acc_unlabel_)
     
+
+
+# In[ ]:
+
+
+
 

@@ -167,7 +167,7 @@ device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 if args.num_per_class == -1:
     args.num_per_class = math.ceil(args.batch_size / num_class)
     
-model_sub_folder = '/stepc_st_together/task_%s_sclass_%f_scent_%f'%(args.task, args.sclass, args.scent)
+model_sub_folder = '/stepc_target_only/task_%s_sprototype_%f'%(args.task, args.sprototype)
 
 if not os.path.exists(args.save_path+model_sub_folder):
     os.makedirs(args.save_path+model_sub_folder)
@@ -363,6 +363,7 @@ for epoch in range(args.epochs):
         source_x_embedding = encoder_inference(encoder, source_x)
         pred = CNet(source_x_embedding)
         source_acc += (pred.argmax(-1) == source_y).sum().item()
+        
         loss = (criterion_classifier(pred, source_y) +
                 criterion_centerloss(source_x_embedding, source_y) * args.scent) * args.sclass
         loss.backward()
