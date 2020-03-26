@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[3]:
+# In[1]:
 
 
 import sys, os, inspect
@@ -11,7 +11,7 @@ sys.path.insert(0, parent_dir)
 sys.path.insert(0, os.path.join(parent_dir,'spring-break'))
 
 
-# In[4]:
+# In[87]:
 
 
 import numpy as np
@@ -84,7 +84,7 @@ from torch.autograd import Variable
 
 # # Parser
 
-# In[5]:
+# In[48]:
 
 
 # Parameters
@@ -112,42 +112,42 @@ parser.add_argument('--select_pretrain_epoch', type=int, default=77, help='selec
 args = parser.parse_args()
 
 
-# In[6]:
+# In[125]:
 
 
-# local only
-class local_args:
-    def __init__(self, **entries):
-        self.__dict__.update(entries)
+# # local only
+# class local_args:
+#     def __init__(self, **entries):
+#         self.__dict__.update(entries)
         
-args = local_args(**{
-    'data_path': '/Users/tianqinli/Code/Russ/time-series-domain-adaptation/data_unzip',
-    'task': '3E',
-    'num_class': 50,
-    'batch_size': 100,
-    'num_per_class': -1,
-    'gap': 5,
-    'lbl_percentage':0.7,
-    'lr_gan': 1e-4,
-    'lr_FNN': 1e-4,
-    'lr_encoder': 1e-4,
-    'epochs': 2,
-    'clip_value': 0.01,
-    'n_critic': 4,
-    'sclass': 0.7,
-    'scent': 1e-2,
-    'seed': None,
-    'save_path': '/Users/tianqinli/Code/Russ/time-series-domain-adaptation/train_related',
-    'model_save_period': 1,
-    'lr_centerloss': 1e-3,
-    'lr_prototype': 1e-3,
-    'sprototype': 1e-2,
-    'seed': 0,
-    'select_pretrain_epoch': 77,
-})
+# args = local_args(**{
+#     'data_path': '/Users/tianqinli/Code/Russ/time-series-domain-adaptation/data_unzip',
+#     'task': '3E',
+#     'num_class': 50,
+#     'batch_size': 100,
+#     'num_per_class': -1,
+#     'gap': 5,
+#     'lbl_percentage':0.7,
+#     'lr_gan': 1e-4,
+#     'lr_FNN': 1e-4,
+#     'lr_encoder': 1e-4,
+#     'epochs': 2,
+#     'clip_value': 0.01,
+#     'n_critic': 4,
+#     'sclass': 0.7,
+#     'scent': 1e-2,
+#     'seed': None,
+#     'save_path': '/Users/tianqinli/Code/Russ/time-series-domain-adaptation/train_related',
+#     'model_save_period': 1,
+#     'lr_centerloss': 1e-3,
+#     'lr_prototype': 1e-3,
+#     'sprototype': 1e-2,
+#     'seed': 0,
+#     'select_pretrain_epoch': 77,
+# })
 
 
-# In[7]:
+# In[10]:
 
 
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
@@ -167,7 +167,7 @@ device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 if args.num_per_class == -1:
     args.num_per_class = math.ceil(args.batch_size / num_class)
     
-model_sub_folder = '/stepc_st_together/task_%s_sclass_%f_scent_%f'%(args.task, args.sclass, args.scent)
+model_sub_folder = '/stepc_target_only/task_%s_sclass_%f_scent_%f'%(args.task, args.sclass, args.scent)
 
 if not os.path.exists(args.save_path+model_sub_folder):
     os.makedirs(args.save_path+model_sub_folder)
@@ -175,7 +175,7 @@ if not os.path.exists(args.save_path+model_sub_folder):
 
 # # Logger
 
-# In[8]:
+# In[11]:
 
 
 logger = logging.getLogger()
@@ -193,7 +193,7 @@ logger.addHandler(stdout_log_handler)
 
 # # Data Loading
 
-# In[9]:
+# In[40]:
 
 
 raw_data = np.load(args.data_path+'/processed_file_not_one_hot_%s.pkl'%args.task, allow_pickle=True)
@@ -210,7 +210,7 @@ target_dataloader = DataLoader(target_lbl_dataset, batch_size=args.batch_size, s
 
 # # Weight initialize
 
-# In[10]:
+# In[42]:
 
 
 def weights_init(m):
@@ -223,7 +223,7 @@ def weights_init(m):
 
 # # Model creation
 
-# In[11]:
+# In[43]:
 
 
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
@@ -257,7 +257,7 @@ optimizerEncoder = torch.optim.Adam(encoder.parameters(), lr=args.lr_encoder)
 optimizerCenterLoss = torch.optim.Adam(criterion_centerloss.parameters(), lr=args.lr_centerloss)
 
 
-# In[12]:
+# In[44]:
 
 
 def classifier_inference(encoder, CNet, x):
@@ -269,7 +269,7 @@ def classifier_inference(encoder, CNet, x):
     return pred
 
 
-# In[13]:
+# In[45]:
 
 
 def encoder_inference(encoder, x):
@@ -279,7 +279,7 @@ def encoder_inference(encoder, x):
     return torch.cat((real[:,-1,:], imag[:,-1,:]), -1).reshape(x.shape[0], -1)
 
 
-# In[14]:
+# In[112]:
 
 
 def compute_mean(samples, labels):
@@ -306,7 +306,7 @@ def compute_mean(samples, labels):
 
 # # Train
 
-# In[16]:
+# In[135]:
 
 
 target_acc_label_ = []
@@ -322,7 +322,6 @@ GNet.load_state_dict(torch.load(model_PATH+'/GNet_{}.t7'.format(select_pretrain_
 criterion_centerloss.load_state_dict(torch.load(model_PATH+'/centerloss_{}.t7'.format(select_pretrain_epoch), map_location=device))
 print('Model Loaded!')
 
-# print baseline target unlabeled acc
 correct_target = 0.0
 num_datas = 0.0
 CNet.eval()
@@ -347,31 +346,33 @@ print("Source Center Loaded!")
 logger.info('Started Training')
 for epoch in range(args.epochs):
     # update classifier
-    # on source domain
-    CNet.train()
-    encoder.train()
-    GNet.train()
-    source_acc = 0.0
-    num_datas = 0.0
-    for batch_id, (source_x, source_y) in tqdm(enumerate(source_dataloader), total=len(source_dataloader)):
-        optimizerFNN.zero_grad()
-        optimizerEncoder.zero_grad()
-        optimizerCenterLoss.zero_grad()
-        source_x = source_x.to(device).float()
-        source_y = source_y.to(device)
-        num_datas += source_x.size(0)
-        source_x_embedding = encoder_inference(encoder, source_x)
-        pred = CNet(source_x_embedding)
-        source_acc += (pred.argmax(-1) == source_y).sum().item()
-        loss = (criterion_classifier(pred, source_y) +
-                criterion_centerloss(source_x_embedding, source_y) * args.scent) * args.sclass
-        loss.backward()
-        optimizerFNN.step()
-        optimizerCenterLoss.step()
-        # optimizerEncoder.step()
+#     # on source domain
+#     CNet.train()
+#     encoder.train()
+#     GNet.train()
+#     source_acc = 0.0
+#     num_datas = 0.0
+#     for batch_id, (source_x, source_y) in tqdm(enumerate(source_dataloader), total=len(source_dataloader)):
+#         optimizerFNN.zero_grad()
+#         optimizerEncoder.zero_grad()
+#         optimizerCenterLoss.zero_grad()
+#         source_x = source_x.to(device).float()
+#         source_y = source_y.to(device)
+#         num_datas += source_x.size(0)
+#         source_x_embedding = encoder_inference(encoder, source_x)
+#         pred = CNet(source_x_embedding)
+#         source_acc += (pred.argmax(-1) == source_y).sum().item()
+#         loss = (criterion_classifier(pred, source_y) +
+#                 criterion_centerloss(source_x_embedding, source_y) * args.scent) * args.sclass
+#         loss.backward()
+#         optimizerFNN.step()
+#         optimizerCenterLoss.step()
+#         # optimizerEncoder.step()
         
-    source_acc = source_acc / num_datas
-    source_acc_.append(source_acc)
+#     source_acc = source_acc / num_datas
+#     source_acc_.append(source_acc)
+#     logger.info('Epochs %i: source acc: %f;'%(epoch+1, source_acc))
+#     np.save(args.save_path+model_sub_folder+'/source_acc_.npy',source_acc_)
     
     
     # on target domain
@@ -431,10 +432,9 @@ for epoch in range(args.epochs):
         torch.save(GNet.state_dict(), args.save_path+model_sub_folder+ '/GNet_%i.t7'%(epoch+1))
         torch.save(encoder.state_dict(), args.save_path+model_sub_folder+ '/encoder_%i.t7'%(epoch+1))
         torch.save(CNet.state_dict(), args.save_path+model_sub_folder+ '/CNet_%i.t7'%(epoch+1))
-    logger.info('Epochs %i: source acc: %f; target labled acc: %f; target unlabeled acc: %f'%(epoch+1, source_acc, target_acc, target_unlabel_acc))
-  
+    logger.info('Epochs %i: target labled acc: %f; target unlabeled acc: %f'%(epoch+1, target_acc, target_unlabel_acc))
+    
     np.save(args.save_path+model_sub_folder+'/target_acc_label_.npy',target_acc_label_)
-    np.save(args.save_path+model_sub_folder+'/source_acc_.npy',source_acc_)
     np.save(args.save_path+model_sub_folder+'/target_acc_unlabel_.npy',target_acc_unlabel_)
     
 
