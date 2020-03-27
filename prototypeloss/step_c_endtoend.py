@@ -77,7 +77,7 @@ args = parser.parse_args()
 # class local_args:
 #     def __init__(self, **entries):
 #         self.__dict__.update(entries)
-        
+
 # args = local_args(**{
 #     'data_path': '/Users/tianqinli/Code/Russ/time-series-domain-adaptation/data_unzip',
 #     'task': '3E',
@@ -125,8 +125,8 @@ device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
 if args.num_per_class == -1:
     args.num_per_class = math.ceil(args.batch_size / num_class)
-    
-model_sub_folder = '/stepc_endToend/task_%s_sprototype_%f_lrFNN_%f_sclass_%f'%(args.task, args.sprototype, args.lr_FNN, args.sclass)
+
+model_sub_folder = '/stepc_endToend_test/task_%s_sprototype_%f_lrFNN_%f_sclass_%f'%(args.task, args.sprototype, args.lr_FNN, args.sclass)
 
 if not os.path.exists(args.save_path+model_sub_folder):
     os.makedirs(args.save_path+model_sub_folder)
@@ -142,7 +142,7 @@ logger.setLevel(logging.INFO)
 
 if os.path.isfile(args.save_path+model_sub_folder+ '/logfile.log'):
     os.remove(args.save_path+model_sub_folder+ '/logfile.log')
-    
+
 file_log_handler = logging.FileHandler(args.save_path+model_sub_folder+ '/logfile.log')
 logger.addHandler(file_log_handler)
 
@@ -251,7 +251,7 @@ def compute_mean(samples, labels):
                          [0.0, 0.0]     #-> group / class 0
                   ])
     labels = torch.LongTensor([1, 2, 2, 0])
-    return 
+    return
         tensor([[0.0000, 0.0000],
                 [0.1000, 0.1000],
                 [0.3000, 0.3000]])
@@ -284,12 +284,12 @@ for epoch in range(args.epochs):
     GNet.train()
     source_acc = 0.0
     num_datas = 0.0
-    
-    
+
+
     source_x_embeddings = torch.empty(0)
     source_ys = torch.empty(0, dtype=torch.long)
-    
-    
+
+
     for batch_id, (source_x, source_y) in tqdm(enumerate(source_dataloader), total=len(source_dataloader)):
         optimizerFNN.zero_grad()
         optimizerEncoder.zero_grad()
@@ -308,32 +308,32 @@ for epoch in range(args.epochs):
         optimizerFNN.step()
         optimizerCenterLoss.step()
         optimizerEncoder.step()
-        
-    
-    
+
+
+
     source_acc = source_acc / num_datas
     source_acc_.append(source_acc)
-    
+
     # get center
-    
+
 
     print(source_x_embeddings.shape)
     print(source_y.sahpe)
     print("hi")
     source_centers = compute_mean(source_x_embeddings, source_ys) # (65, 128)
-    
+
     print(source_centers.shape)
-    
+
     # on target domain
     target_acc = 0.0
     num_datas = 0.0
     CNet.train()
     encoder.train()
     GNet.train()
-    
+
     for batch_id, (target_x, target_y) in tqdm(enumerate(target_dataloader), total=len(target_dataloader)):
-        
-    
+
+
         optimizerFNN.zero_grad()
         optimizerG.zero_grad()
         optimizerEncoder.zero_grad()
@@ -344,8 +344,8 @@ for epoch in range(args.epochs):
         fake_target_embedding = GNet(target_x_embedding)
         pred = CNet(fake_target_embedding)
         target_acc += (pred.argmax(-1) == target_y).sum().item()
-        
-        if epoch >= args.epoch_begin_prototype: 
+
+        if epoch >= args.epoch_begin_prototype:
             # prototype loss calculate
             center_batch = source_centers[target_y, ]
             dist = torch.sum(torch.pow(fake_target_embedding - center_batch, 2), axis=1)
@@ -355,7 +355,7 @@ for epoch in range(args.epochs):
             loss = criterion_classifier(pred, target_y) + args.sprototype * prototype_loss
         else:
             loss = criterion_classifier(pred, target_y)
-            
+
         loss.backward()
         optimizerFNN.step()
         optimizerG.step()
@@ -363,7 +363,7 @@ for epoch in range(args.epochs):
 
     target_acc = target_acc / num_datas
     target_acc_label_.append(target_acc)
-        
+
     correct_target = 0.0
     num_datas = 0.0
     CNet.eval()
@@ -377,11 +377,11 @@ for epoch in range(args.epochs):
         fake_source_embedding = GNet(target_unlabel_x_embedding)
         pred = CNet(fake_source_embedding)
         correct_target += (pred.argmax(-1) == target_unlabel_y_batch).sum().item()
-        
+
     target_unlabel_acc = correct_target/num_datas
     target_acc_unlabel_.append(target_unlabel_acc)
-    
-    
+
+
     if epoch % args.model_save_period == 0:
         torch.save(GNet.state_dict(), args.save_path+model_sub_folder+ '/GNet_%i.t7'%(epoch+1))
         torch.save(encoder.state_dict(), args.save_path+model_sub_folder+ '/encoder_%i.t7'%(epoch+1))
@@ -390,10 +390,10 @@ for epoch in range(args.epochs):
             logger.info('Epochs %i: Pass naive: source acc: %f; target labled acc: %f; target unlabeled acc: %f'%(epoch+1, source_acc, target_acc, target_unlabel_acc))
     logger.info('Epochs %i: source acc: %f; target labled acc: %f; target unlabeled acc: %f'%(epoch+1, source_acc, target_acc, target_unlabel_acc))
     np.save(args.save_path+model_sub_folder+'/source_acc_.npy',source_acc_)
-    
+
     np.save(args.save_path+model_sub_folder+'/target_acc_label_.npy',target_acc_label_)
     np.save(args.save_path+model_sub_folder+'/target_acc_unlabel_.npy',target_acc_unlabel_)
-    
+
 
 
 # In[28]:
