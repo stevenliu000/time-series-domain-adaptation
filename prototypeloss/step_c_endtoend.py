@@ -320,7 +320,6 @@ for epoch in range(args.epochs):
     print(source_x_embeddings.shape)
     print(source_y.shape)
     print("hi")
-    source_x_embeddings.
     source_centers = compute_mean(source_x_embeddings, source_ys) # (65, 128)
     
     print(source_centers.shape)
