@@ -321,8 +321,10 @@ for epoch in range(args.epochs):
         fake_target_embedding = GNet(target_x_embedding)
         pred = CNet(fake_target_embedding)
         target_acc += (pred.argmax(-1) == target_y).sum().item()
-
-        if epoch > args.epoch_begin_prototype: 
+        
+        if epoch = args.epoch_begin_prototype:
+            logger.info("Epoch {}: Pass naive!".format(epoch))
+        if epoch >= args.epoch_begin_prototype: 
             # prototype loss calculate
             center_batch = source_centers[target_y, ]
             dist = torch.sum(torch.pow(fake_target_embedding - center_batch, 2), axis=1)
