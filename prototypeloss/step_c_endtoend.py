@@ -265,7 +265,7 @@ def compute_mean(samples, labels):
 
 # # Train
 
-# In[18]:
+# In[19]:
 
 
 target_acc_label_ = []
@@ -308,10 +308,7 @@ for epoch in range(args.epochs):
         optimizerFNN.step()
         optimizerCenterLoss.step()
         optimizerEncoder.step()
-        
-        if batch_id > 1:
-            break
-        
+
     
     
     source_acc = source_acc / num_datas
@@ -360,9 +357,7 @@ for epoch in range(args.epochs):
         optimizerG.step()
         optimizerEncoder.step()
         
-        if batch_id > 1:
-            break
-    
+
     target_acc = target_acc / num_datas
     target_acc_label_.append(target_acc)
         
@@ -389,7 +384,7 @@ for epoch in range(args.epochs):
         torch.save(encoder.state_dict(), args.save_path+model_sub_folder+ '/encoder_%i.t7'%(epoch+1))
         torch.save(CNet.state_dict(), args.save_path+model_sub_folder+ '/CNet_%i.t7'%(epoch+1))
     if epoch == args.epoch_begin_prototype:
-            logger.info('Epochs %i: Pass naive: source acc: %f; target labled acc: %f; target unlabeled acc: %f'%(epoch+1, source_acc, target_acc, target_unlabel_acc))
+        logger.info('Epochs %i: Pass naive: source acc: %f; target labled acc: %f; target unlabeled acc: %f'%(epoch+1, source_acc, target_acc, target_unlabel_acc))
     else:
         logger.info('Epochs %i: source acc: %f; target labled acc: %f; target unlabeled acc: %f'%(epoch+1, source_acc, target_acc, target_unlabel_acc))
     np.save(args.save_path+model_sub_folder+'/source_acc_.npy',source_acc_)
