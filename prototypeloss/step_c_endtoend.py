@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[2]:
+# In[1]:
 
 
 import sys, os, inspect
@@ -11,7 +11,7 @@ sys.path.insert(0, parent_dir)
 sys.path.insert(0, os.path.join(parent_dir,'spring-break'))
 
 
-# In[3]:
+# In[2]:
 
 
 import numpy as np
@@ -41,7 +41,7 @@ from torch.autograd import Variable
 
 # # Parser
 
-# In[4]:
+# In[3]:
 
 
 # Parameters
@@ -70,7 +70,7 @@ parser.add_argument('--epoch_begin_prototype', type=int, default=10, help='start
 args = parser.parse_args()
 
 
-# In[16]:
+# In[6]:
 
 
 # # local only
@@ -265,12 +265,14 @@ def compute_mean(samples, labels):
 
 # # Train
 
-# In[15]:
+# In[29]:
 
 
 target_acc_label_ = []
 source_acc_ = []
 target_acc_unlabel_ = []
+
+
 
 
 logger.info('Started Training')
@@ -282,6 +284,12 @@ for epoch in range(args.epochs):
     GNet.train()
     source_acc = 0.0
     num_datas = 0.0
+    
+    
+    source_x_embeddings = torch.empty(0)
+    source_ys = torch.empty(0, dtype=torch.long)
+    
+    
     for batch_id, (source_x, source_y) in tqdm(enumerate(source_dataloader), total=len(source_dataloader)):
         optimizerFNN.zero_grad()
         optimizerEncoder.zero_grad()
@@ -290,6 +298,8 @@ for epoch in range(args.epochs):
         source_y = source_y.to(device)
         num_datas += source_x.size(0)
         source_x_embedding = encoder_inference(encoder, source_x)
+        source_x_embeddings = torch.cat([source_x_embeddings, source_x_embedding])
+        source_ys = torch.cat([source_ys, source_y])
         pred = CNet(source_x_embedding)
         source_acc += (pred.argmax(-1) == source_y).sum().item()
         loss = (criterion_classifier(pred, source_y) +
@@ -298,10 +308,21 @@ for epoch in range(args.epochs):
         optimizerFNN.step()
         optimizerCenterLoss.step()
         optimizerEncoder.step()
+        
+    
     
     source_acc = source_acc / num_datas
     source_acc_.append(source_acc)
-    source_centers = criterion_centerloss.centers # (65, 128)
+    
+    # get center
+    
+
+    print(source_x_embeddings.shape)
+    print(source_y.sahpe)
+    print("hi")
+    source_centers = compute_mean(source_x_embeddings, source_ys) # (65, 128)
+    
+    print(source_centers.shape)
     
     # on target domain
     target_acc = 0.0
@@ -311,6 +332,8 @@ for epoch in range(args.epochs):
     GNet.train()
     
     for batch_id, (target_x, target_y) in tqdm(enumerate(target_dataloader), total=len(target_dataloader)):
+        
+    
         optimizerFNN.zero_grad()
         optimizerG.zero_grad()
         optimizerEncoder.zero_grad()
@@ -322,8 +345,6 @@ for epoch in range(args.epochs):
         pred = CNet(fake_target_embedding)
         target_acc += (pred.argmax(-1) == target_y).sum().item()
         
-        if epoch == args.epoch_begin_prototype:
-            logger.info("Epoch {}: Pass naive!".format(epoch))
         if epoch >= args.epoch_begin_prototype: 
             # prototype loss calculate
             center_batch = source_centers[target_y, ]
@@ -343,8 +364,6 @@ for epoch in range(args.epochs):
     target_acc = target_acc / num_datas
     target_acc_label_.append(target_acc)
         
-    
-    
     correct_target = 0.0
     num_datas = 0.0
     CNet.eval()
@@ -367,12 +386,24 @@ for epoch in range(args.epochs):
         torch.save(GNet.state_dict(), args.save_path+model_sub_folder+ '/GNet_%i.t7'%(epoch+1))
         torch.save(encoder.state_dict(), args.save_path+model_sub_folder+ '/encoder_%i.t7'%(epoch+1))
         torch.save(CNet.state_dict(), args.save_path+model_sub_folder+ '/CNet_%i.t7'%(epoch+1))
+    if epoch == args.epoch_begin_prototype:
+            logger.info('Epochs %i: Pass naive: source acc: %f; target labled acc: %f; target unlabeled acc: %f'%(epoch+1, source_acc, target_acc, target_unlabel_acc))
     logger.info('Epochs %i: source acc: %f; target labled acc: %f; target unlabeled acc: %f'%(epoch+1, source_acc, target_acc, target_unlabel_acc))
     np.save(args.save_path+model_sub_folder+'/source_acc_.npy',source_acc_)
     
     np.save(args.save_path+model_sub_folder+'/target_acc_label_.npy',target_acc_label_)
     np.save(args.save_path+model_sub_folder+'/target_acc_unlabel_.npy',target_acc_unlabel_)
     
+
+
+# In[28]:
+
+
+a = torch.empty(0, dtype=torch.long)
+b = torch.LongTensor([2,3])
+print(b)
+m = [a,b]
+torch.cat(m, dim=0)
 
 
 # In[ ]:
