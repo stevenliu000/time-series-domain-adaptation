@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[16]:
+# In[1]:
 
 
 import sys, os, inspect
@@ -10,7 +10,7 @@ parent_dir = os.path.dirname(current_dir)
 sys.path.insert(0, parent_dir)
 
 
-# In[17]:
+# In[2]:
 
 
 import numpy as np
@@ -32,6 +32,7 @@ import argparse
 import logging
 import logging.handlers
 import pickle
+from torch.utils.tensorboard import SummaryWriter
 
 
 # # DataLoader
@@ -98,7 +99,6 @@ parser.add_argument('--seed', type=int, help='manual seed')
 parser.add_argument('--save_path', type=str, help='where to store data')
 parser.add_argument('--model_save_period', type=int, default=2, help='period in which the model is saved')
 parser.add_argument('--clip_value', type=float, default=0.01, help='clip_value for WGAN')
-parser.add_argument('--sclass', type=float, default=0.3, help='source domain classification weight on loss function')
 
 args = parser.parse_args()
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
@@ -120,50 +120,10 @@ device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 if args.num_per_class == -1:
     args.num_per_class = math.ceil(args.batch_size / num_class)
 
-model_sub_folder = '/stage2/task_%s_SClassWeight_%f'%(args.task, args.sclass)
+model_sub_folder = '/stage1/task_%s_clip_%.4f_lblPer_%i_numPerClass_%i'%(args.task, args.clip_value, args.lbl_percentage, args.num_per_class)
 
 if not os.path.exists(args.save_path+model_sub_folder):
     os.makedirs(args.save_path+model_sub_folder)
-
-
-# In[4]:
-
-
-# # local only
-# class local_args:
-#     def __init__(self, **entries):
-#         self.__dict__.update(entries)
-
-# args = local_args(**{
-#     'data_path': '/Users/stevenliu/time-series-adaption/time-series-domain-adaptation/data_unzip',
-#     'task': '3E',
-#     'num_class': 50,
-#     'batch_size': 100,
-#     'num_per_class': -1,
-#     'gap': 5,
-#     'lbl_percentage':0.2,
-#     'lr_gan': 1e-4,
-#     'lr_FNN': 1e-4,
-#     'lr_encoder': 1e-4,
-#     'epochs': 2,
-#     'clip_value': 0.01,
-#     'n_critic': 4
-# })
-
-
-# In[5]:
-
-
-# args.task = '3Av2' if args.task == '3A' else '3E'
-# num_class = 50 if args.task == "3Av2" else 65
-# device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-
-# if args.num_per_class == -1:
-#     args.num_per_class = math.ceil(args.batch_size / num_class)
-
-# model_sub_folder = '/task_%s_gap_%s_lblPer_%i_numPerClass_%i'%(args.task, args.gap, args.lbl_percentage, args.num_per_class)
-
-
 
 # # Logger
 
@@ -173,15 +133,20 @@ if not os.path.exists(args.save_path+model_sub_folder):
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
+loggerfile = args.save_path+model_sub_folder+ '/logfile.log'
 if os.path.isfile(args.save_path+model_sub_folder+ '/logfile.log'):
     os.remove(args.save_path+model_sub_folder+ '/logfile.log')
-
 file_log_handler = logging.FileHandler(args.save_path+model_sub_folder+ '/logfile.log')
+
 logger.addHandler(file_log_handler)
 
 stdout_log_handler = logging.StreamHandler(sys.stdout)
 logger.addHandler(stdout_log_handler)
 
+
+
+### TensorBoard
+writer = SummaryWriter(args.save_path+model_sub_folder+ '/tensorboard.log')
 
 # # Data loading
 
@@ -201,7 +166,7 @@ source_dict, source_len = get_source_dict(args.data_path+'/processed_file_not_on
 # In[9]:
 
 
-join_dataset = JoinDataset(raw_data['tr_data'],raw_data['tr_lbl'],raw_data['te_data'],raw_data['te_lbl'], random=True)
+join_dataset = JoinDataset(raw_data['tr_data'],raw_data['tr_lbl'],raw_data['te_data'],raw_data['te_lbl'])
 join_dataloader = DataLoader(join_dataset, batch_size=args.batch_size, shuffle=True, pin_memory=True, num_workers=4)
 
 source_dataset = SingleDataset(raw_data['tr_data'], raw_data['tr_lbl'])
@@ -242,11 +207,11 @@ encoder = ComplexTransformer(layers=3,
                                leaky_slope=0.2)
 encoder.to(device)
 
-CNet = FNN(d_in=64 * 2 * 1, d_h1=500, d_h2=500, d_out=num_class, dp=0.2)
+CNet = FNN(d_in=64 * 2 , d_h1=500, d_h2=500, d_out=num_class, dp=0.2)
 CNet.to(device)
 
-DNet_global = Discriminator(feature_dim=64*2, d_out=1).to(device)
-DNet_local = Discriminator(feature_dim=64*2, d_out=num_class).to(device)
+DNet_global = Discriminator(feature_dim=64*20, d_out=1).to(device)
+DNet_local = Discriminator(feature_dim=64*20, d_out=num_class).to(device)
 GNet = Generator(dim=64*2).to(device)
 DNet_global.apply(weights_init)
 DNet_local.apply(weights_init)
@@ -298,39 +263,19 @@ error_G_local = []
 
 
 # pre-trained
-print('Started Stage2 training')
+print('Started Stage 1')
 for epoch in range(args.epochs):
     # update classifier
-    # on source domain
-    CNet.train()
-    encoder.train()
-    GNet.train()
-    source_acc = 0.0
-    num_datas = 0.0
-    for batch_id, (source_x, source_y) in tqdm(enumerate(source_dataloader), total=len(source_dataloader)):
-        optimizerFNN.zero_grad()
-        optimizerEncoder.zero_grad()
-        source_x = source_x.to(device).float()
-        source_y = source_y.to(device)
-        num_datas += source_x.size(0)
-        source_x_embedding = encoder_inference(encoder, source_x)
-        pred = CNet(source_x_embedding)
-        source_acc += (pred.argmax(-1) == source_y).sum().item()
-        loss = criterion_classifier(pred, source_y) * args.sclass
-        loss.backward()
-        optimizerFNN.step()
-        optimizerEncoder.step()
-
-    source_acc = source_acc / num_datas
-    source_acc_.append(source_acc)
 
 
     # on target domain
     target_acc = 0.0
     num_datas = 0.0
+    
     CNet.train()
-    encoder.train()
     GNet.train()
+    encoder.train()
+    grads = []
     for batch_id, (target_x, target_y) in tqdm(enumerate(target_dataloader), total=len(target_dataloader)):
         optimizerFNN.zero_grad()
         optimizerG.zero_grad()
@@ -343,7 +288,11 @@ for epoch in range(args.epochs):
         pred = CNet(fake_source_embedding)
         target_acc += (pred.argmax(-1) == target_y).sum().item()
         loss = criterion_classifier(pred, target_y)
+        loss.retain_grad()
         loss.backward()
+        grad = loss.grad
+        print(grad)
+        grads.append(grad)
         optimizerFNN.step()
         optimizerG.step()
         optimizerEncoder.step()
@@ -354,8 +303,8 @@ for epoch in range(args.epochs):
     correct_target = 0.0
     num_datas = 0.0
     CNet.eval()
-    encoder.eval()
     GNet.eval()
+    encoder.eval()
     for batch in range(math.ceil(target_unlabel_x.shape[0]/args.batch_size)):
         target_unlabel_x_batch = torch.Tensor(target_unlabel_x[batch*args.batch_size:(batch+1)*args.batch_size]).to(device).float()
         target_unlabel_y_batch = torch.Tensor(target_unlabel_y[batch*args.batch_size:(batch+1)*args.batch_size]).to(device)
@@ -364,18 +313,16 @@ for epoch in range(args.epochs):
         fake_source_embedding = GNet(target_unlabel_x_embedding)
         pred = CNet(fake_source_embedding)
         correct_target += (pred.argmax(-1) == target_unlabel_y_batch).sum().item()
-
+        
     target_unlabel_acc = correct_target/num_datas
     target_acc_unlabel_.append(target_unlabel_acc)
+    # logger.info('Stage1: Epoch: %i, update classifier: target labled acc: %f; target unlabeled acc: %f'%(epoch+1, target_acc, target_unlabel_acc))
+    writer.add_histogram("Gradients", np.array(grads), epoch)
+    writer.add_scalar("target_labeled_acc", target_acc, epoch)
+    writer.add_scalar("target_unlabel_acc", target_unlabel_acc, epoch)
+    np.save(args.save_path+model_sub_folder+'/target_acc_label_e{}.npy'.format(args.epochs),target_acc_label_)
+    np.save(args.save_path+model_sub_folder+'/target_acc_unlabel_e{}.npy'.format(args.epochs),target_acc_unlabel_)
 
-    if epoch % args.model_save_period == 0:
-        torch.save(GNet.state_dict(), args.save_path+model_sub_folder+ '/GNet_%i.t7'%(epoch+1))
-        torch.save(encoder.state_dict(), args.save_path+model_sub_folder+ '/encoder_%i.t7'%(epoch+1))
-        torch.save(CNet.state_dict(), args.save_path+model_sub_folder+ '/CNet_%i.t7'%(epoch+1))
-    logger.info('Epochs %i: source acc: %f; target labled acc: %f; target unlabeled acc: %f'%(epoch+1, source_acc, target_acc, target_unlabel_acc))
-
-    np.save(args.save_path+model_sub_folder+'/target_acc_label_.npy',target_acc_label_)
-    np.save(args.save_path+model_sub_folder+'/source_acc_.npy',source_acc_)
-    np.save(args.save_path+model_sub_folder+'/target_acc_unlabel_.npy',target_acc_unlabel_)
-
-
+    torch.save(GNet.state_dict(), args.save_path+model_sub_folder+ '/GNet_pre_trained-e{}.t7'.format(args.epochs))
+    torch.save(encoder.state_dict(), args.save_path+model_sub_folder+ '/encoder_pre_trained-e{}.t7'.format(args.epochs))
+    torch.save(CNet.state_dict(), args.save_path+model_sub_folder+ '/CNet_pre_trained-e{}.t7'.format(args.epochs))

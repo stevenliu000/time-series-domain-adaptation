@@ -5,6 +5,7 @@ import random
 from tqdm import tqdm
 import datetime
 import time
+from GAN import Generator
 
 
 import torch
@@ -21,6 +22,7 @@ parser = argparse.ArgumentParser(description='Time series adaptation')
 parser.add_argument("--data_path", type=str, default="/Users/tianqinli/Code/Working-on/Russ/time-series-domain-adaptation/data_unzip/", help="dataset folder path")
 parser.add_argument('--train_file', type=str, default="train_{}.pkl", help='which training file to perform')
 parser.add_argument('--vali_file', type=str, default="validation_{}.pkl", help='which validation file to perform')
+parser.add_argument('--test_file', type=str, default="target-without-label-0.7-{}.pkl", help="test file, target without label")
 parser.add_argument("--task", type=str, default="3Av2", help='3Av2 or 3E')
 parser.add_argument('--batch_size', type=int, default=256, help='batch size')
 parser.add_argument('--lr_clf', type=float, default=1e-4, help='learning rate for classification')
@@ -43,7 +45,7 @@ device = torch.device("cuda:0")
 
 training_set = TimeSeriesDataset(root_dir=args.data_path, file_name=args.train_file.format(args.task), train=True)
 vali_set = TimeSeriesDataset(root_dir=args.data_path, file_name=args.vali_file.format(args.task), train=True)
-# test_set = TimeSeriesDataset(root_dir=args.data_path, file_name=args.file.format(args.task), train=False)
+test_set = TimeSeriesDataset(root_dir=args.data_path, file_name=args.test_file.format(args.task), train=False)
 
 
 
@@ -52,7 +54,7 @@ vali_set = TimeSeriesDataset(root_dir=args.data_path, file_name=args.vali_file.f
 
 train_loader = DataLoader(training_set, batch_size=args.batch_size, shuffle=True)
 vali_loader = DataLoader(vali_set, batch_size=args.batch_size, shuffle=True)
-# test_loader = DataLoader(test_set, batch_size=args.batch_size, shuffle=True)
+test_loader = DataLoader(test_set, batch_size=args.batch_size, shuffle=True)
 
 
 
@@ -103,7 +105,7 @@ os.makedirs(folder_path, exist_ok=True)
 
 logfile_full_path = folder_path + args.log + unique_id
 with open(logfile_full_path, 'w') as f:
-    f.write("Epoch\tTime\ttrain_acc\ttrain_loss\tvalidation_acc")
+    f.write("Epoch\tTime\ttrain_acc\ttrain_loss\tvalidation_acc\ttest_acc")
     f.write("\n")
 
 #### train
@@ -127,7 +129,7 @@ for epoch in range(args.epochs):
             imag.to(device)
         real, imag = encoder(real, imag)
         # print(real.shape)
-        pred = CNet(torch.cat((real, imag), -1).reshape(x.shape[0], -1))
+        pred = CNet(torch.cat((real[:,-1,:], imag[:,-1,:]), -1).reshape(x.shape[0], -1))
         loss = criterion(pred, y.argmax(-1))
         #print(pred.argmax(-1), y.argmax(-1))
         correct_train += (pred.argmax(-1) == y.argmax(-1)).sum().item()
@@ -157,7 +159,7 @@ for epoch in range(args.epochs):
         f.write(str(epoch) + "\t" + str(train_epoch_time) + "\t" + str(train_acc) + "\t" + str(train_loss) + "\t")
 
 
-    """Testing"""
+    """Validation"""
     correct_vali = 0
     total_bs_vali = 0
     vali_loss = 0
@@ -178,7 +180,7 @@ for epoch in range(args.epochs):
                 real.to(device)
                 imag.to(device)
             real, imag = encoder(real, imag)
-            pred = CNet(torch.cat((real, imag), -1).reshape(x.shape[0], -1))
+            pred = CNet(torch.cat((real[:,-1,:], imag[:,-1,:]), -1).reshape(x.shape[0], -1))
             loss = criterion(pred, y.argmax(-1))
             #print(pred.argmax(-1), y.argmax(-1))
             correct_vali += (pred.argmax(-1) == y.argmax(-1)).sum().item()
@@ -188,5 +190,44 @@ for epoch in range(args.epochs):
 
     with open(logfile_full_path, 'a') as f:
         f.write(str(vali_acc))
-        f.write("\n")
+        f.write("\t")
     print(logstr + vali_log_str)
+    
+    
+    """testting"""
+    correct_test = 0
+    total_bs_test = 0
+    test_loss = 0
+    for batch_id, (x, y) in enumerate(test_loader):
+        if torch.cuda.is_available():
+            x, y = x.to(device), y.to(device)
+        batch_size = x.shape[0]
+        CNet.eval()
+        encoder.eval()
+
+        with torch.no_grad():
+            #normalize data
+            x = (x - x_mean_tr) / x_std_tr
+            # take the real and imaginary part out
+            real = x[:,:,0].reshape(batch_size, seq_len, feature_dim).float()
+            imag = x[:,:,1].reshape(batch_size, seq_len, feature_dim).float()
+            if torch.cuda.is_available():
+                real.to(device)
+                imag.to(device)
+            real, imag = encoder(real, imag)
+            pred = CNet(torch.cat((real[:,-1,:], imag[:,-1,:]), -1).reshape(x.shape[0], -1))
+            loss = criterion(pred, y.argmax(-1))
+            #print(pred.argmax(-1), y.argmax(-1))
+            correct_test += (pred.argmax(-1) == y.argmax(-1)).sum().item()
+            total_bs_test += y.shape[0]
+    test_acc = float(correct_test) / total_bs_test
+    test_log_str = " test_acc: "+ str(test_acc)
+
+    with open(logfile_full_path, 'a') as f:
+        f.write(str(test_acc))
+        f.write("\n")
+    print(logstr + test_log_str)
+
+    
+    
+    

@@ -45,14 +45,14 @@ class JoinDataset(Dataset):
         self.source_y = source_y
         self.target_x = target_x
         self.target_y = target_y
-        
+
         self.source_len = self.source_y.shape[0]
         self.target_len = self.target_y.shape[0]
-    
+
         self.random = random
     def __len__(self):
         return self.target_len
-    
+
     def __getitem__(self, index):
         if self.random:
             index_source = random.randrange(source_len)
@@ -62,17 +62,17 @@ class JoinDataset(Dataset):
             index_target = index
 
         return (self.source_x[index_source], self.source_y[index_source]), (self.target_x[index_target], self.target_y[index_target])
-    
-    
+
+
 class SingleDataset(Dataset):
     def __init__(self, x, y):
             self.x = x
             self.y = y
             self.len = self.y.shape[0]
-    
+
     def __len__(self):
         return self.len
-    
+
     def __getitem__(self, index):
         return self.x[index], self.y[index]
 
@@ -101,7 +101,7 @@ parser.add_argument('--clip_value', type=float, default=0.01, help='clip_value f
 
 args = parser.parse_args()
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-
+print(device)
 # seed
 if args.seed is None:
     args.seed = random.randint(1, 10000)
@@ -118,7 +118,7 @@ device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
 if args.num_per_class == -1:
     args.num_per_class = math.ceil(args.batch_size / num_class)
-    
+
 model_sub_folder = '/task_%s_clip_%.4f_lblPer_%i_numPerClass_%i'%(args.task, args.clip_value, args.lbl_percentage, args.num_per_class)
 
 if not os.path.exists(args.save_path+model_sub_folder):
@@ -132,7 +132,7 @@ if not os.path.exists(args.save_path+model_sub_folder):
 # class local_args:
 #     def __init__(self, **entries):
 #         self.__dict__.update(entries)
-        
+
 # args = local_args(**{
 #     'data_path': '/Users/stevenliu/time-series-adaption/time-series-domain-adaptation/data_unzip',
 #     'task': '3E',
@@ -159,9 +159,9 @@ if not os.path.exists(args.save_path+model_sub_folder):
 
 # if args.num_per_class == -1:
 #     args.num_per_class = math.ceil(args.batch_size / num_class)
-    
+
 # model_sub_folder = '/task_%s_gap_%s_lblPer_%i_numPerClass_%i'%(args.task, args.gap, args.lbl_percentage, args.num_per_class)
-    
+
 
 
 # # Logger
@@ -316,11 +316,11 @@ for epoch in range(30):
         loss.backward()
         optimizerFNN.step()
         optimizerEncoder.step()
-        
+
     source_acc = source_acc / num_datas
     source_acc_.append(source_acc)
-    
-    
+
+
     # on target domain
     target_acc = 0.0
     num_datas = 0.0
@@ -340,10 +340,10 @@ for epoch in range(30):
         optimizerFNN.step()
         optimizerG.step()
         optimizerEncoder.step()
-    
+
     target_acc = target_acc / num_datas
     target_acc_label_.append(target_acc)
-    
+
     correct_target = 0.0
     num_datas = 0.0
     for batch in range(math.ceil(target_unlabel_x.shape[0]/args.batch_size)):
@@ -352,10 +352,10 @@ for epoch in range(30):
         num_datas += target_unlabel_x_batch.shape[0]
         pred = classifier_inference(encoder, CNet, target_unlabel_x_batch)
         correct_target += (pred.argmax(-1) == target_unlabel_y_batch).sum().item()
-        
+
     target_unlabel_acc = correct_target/num_datas
     print('Epoch: %i, update classifier: source acc: %f; target labled acc: %f; target unlabeled acc: %f'%(epoch+1, source_acc, target_acc, target_unlabel_acc))
-    
+
 torch.save(GNet.state_dict(), args.save_path+model_sub_folder+ '/GNet_pre_trained.t7')
 torch.save(encoder.state_dict(), args.save_path+model_sub_folder+ '/encoder_pre_trained.t7')
 torch.save(CNet.state_dict(), args.save_path+model_sub_folder+ '/CNet_pre_trained.t7')
@@ -383,10 +383,10 @@ for epoch in range(args.epochs):
         loss.backward()
         optimizerFNN.step()
         optimizerEncoder.step()
-        
+
     source_acc = source_acc / num_datas
     source_acc_.append(source_acc)
-    
+
     # on target domain
     target_acc = 0.0
     num_datas = 0.0
@@ -406,10 +406,10 @@ for epoch in range(args.epochs):
         optimizerFNN.step()
 #         optimizerG.step()
         optimizerEncoder.step()
-    
+
     target_acc = target_acc / num_datas
     target_acc_label_.append(target_acc)
-    
+
     logger.info('Epoch: %i, update classifier: source acc: %f; target acc: %f'%(epoch+1, source_acc, target_acc))
     # Assign Pesudo Label
     correct_target = 0.0
@@ -420,13 +420,13 @@ for epoch in range(args.epochs):
         pred = classifier_inference(encoder, CNet, target_unlabel_x_batch)
         correct_target += (pred.argmax(-1) == target_unlabel_y_batch).sum().item()
         target_pesudo_y.extend(pred.argmax(-1).cpu().numpy())
-        
+
     target_pesudo_y = np.array(target_pesudo_y)
     pesudo_dict = get_class_data_dict(target_unlabel_x, target_pesudo_y, num_class)
 
     logger.info('Epoch: %i, assigned pesudo label with accuracy %f'%(epoch+1, correct_target/(target_unlabel_x.shape[0])))
     target_acc_unlabel_.append(correct_target/(target_unlabel_x.shape[0]))
-    
+
 
     # Update GAN
     # Update global Discriminator
@@ -445,45 +445,45 @@ for epoch in range(args.epochs):
         target_data = target_x.to(device).float()
         target_embedding = encoder_inference(encoder, target_data)
         fake_source_embedding = GNet(target_embedding).detach()
-        
+
         # adversarial loss
         loss_D_global = DNet_global(fake_source_embedding,1).mean() - DNet_global(source_embedding,1).mean()
-        
+
         total_error_D_global += loss_D_global.item()
-        
+
         loss_D_global.backward()
         optimizerD_global.step()
-        
+
         # Clip weights of discriminator
         for p in DNet_global.parameters():
             p.data.clamp_(-args.clip_value, args.clip_value)
-        
+
         if batch_id % args.n_critic == 0:
             """Update G Network"""
             optimizerG.zero_grad()
             optimizerEncoder.zero_grad()
             fake_source_embedding = GNet(target_embedding)
-            
+
             # adversarial loss
             loss_G = -DNet_global(fake_source_embedding,1).mean()
-            
+
             total_error_G += loss_G.item()
-            
+
             loss_G.backward()
             optimizerG.step()
 #             optimizerEncoder.step()
-            
+
     logger.info('Epoch: %i, Global Discrimator Updates: Loss D_global: %f, Loss G: %f'%(epoch+1, total_error_D_global, total_error_G))
     error_D_global.append(total_error_D_global)
     error_G_global.append(total_error_G)
-    
+
     # Update local Discriminator
     total_error_D_local = 0
     total_error_G = 0
     for batch_id in tqdm(range(math.ceil(target_len/args.batch_size))):
         target_x, target_y, target_weight = get_batch_target_data_on_class(target_dict, pesudo_dict, target_unlabel_x, args.num_per_class)
         source_x, source_y = get_batch_source_data_on_class(source_dict, args.num_per_class)
-        
+
         source_x = torch.Tensor(source_x).to(device).float()
         target_x = torch.Tensor(target_x).to(device).float()
         source_y = torch.LongTensor(target_y).to(device)
@@ -492,56 +492,56 @@ for epoch in range(args.epochs):
         source_mask = torch.zeros(source_x.size(0), num_class).to(device).scatter_(1, source_y.unsqueeze(-1), 1)
         target_mask = torch.zeros(target_x.size(0), num_class).to(device).scatter_(1, target_y.unsqueeze(-1), 1)
         target_weight = torch.zeros(target_x.size(0), num_class).to(device).scatter_(1, target_y.unsqueeze(-1), target_weight.unsqueeze(-1))
-    
+
         """Update D Net"""
         optimizerD_local.zero_grad()
         source_embedding = encoder_inference(encoder, source_x)
         target_embedding = encoder_inference(encoder, target_x)
         fake_source_embedding = GNet(target_embedding).detach()
-        
+
         # adversarial loss
         source_DNet_local = DNet_local(source_embedding, source_mask)
         target_DNet_local = DNet_local(fake_source_embedding, target_mask)
-        
+
         source_weight_count = source_mask.sum(dim=0)
         target_weight_count = target_weight.sum(dim=0)
-        
+
         source_DNet_local_mean = source_DNet_local.sum(dim=0) / source_weight_count
-        target_DNet_local_mean = (target_DNet_local * target_weight).sum(dim=0) / target_weight_count        
-        
+        target_DNet_local_mean = (target_DNet_local * target_weight).sum(dim=0) / target_weight_count
+
         loss_D_local = (target_DNet_local_mean - source_DNet_local_mean).sum()
-        
+
         total_error_D_local += loss_D_local.item()
-        
+
         loss_D_local.backward()
         optimizerD_local.step()
-        
+
         # Clip weights of discriminator
         for p in DNet_local.parameters():
             p.data.clamp_(-args.clip_value, args.clip_value)
-        
+
         if batch_id % args.n_critic == 0:
             """Update G Network"""
             optimizerG.zero_grad()
             optimizerEncoder.zero_grad()
             fake_source_embedding = GNet(target_embedding)
-            
+
             # adversarial loss
             target_DNet_local = DNet_local(fake_source_embedding, target_mask)
-            target_DNet_local_mean = (target_DNet_local * target_weight).sum(dim=0) / target_weight_count        
+            target_DNet_local_mean = (target_DNet_local * target_weight).sum(dim=0) / target_weight_count
 
             loss_G = -target_DNet_local_mean.sum()
-            
+
             total_error_G += loss_G.item()
-            
+
             loss_G.backward()
             optimizerG.step()
 #             optimizerEncoder.step()
-            
+
     logger.info('Epoch: %i, Local Discrimator Updates: Loss D_global: %f, Loss G: %f'%(epoch+1, total_error_D_local, total_error_G))
     error_D_local.append(total_error_D_local)
     error_G_global.append(total_error_G)
-    
+
     np.save(args.save_path+model_sub_folder+'/target_acc_label_.npy',target_acc_label_)
     np.save(args.save_path+model_sub_folder+'/source_acc_.npy',source_acc_)
     np.save(args.save_path+model_sub_folder+'/target_acc_unlabel_.npy',target_acc_unlabel_)
