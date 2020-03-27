@@ -70,7 +70,7 @@ parser.add_argument('--epoch_begin_prototype', type=int, default=10, help='start
 args = parser.parse_args()
 
 
-# In[6]:
+# In[16]:
 
 
 # # local only
@@ -102,11 +102,11 @@ args = parser.parse_args()
 #     'sprototype': 1e-2,
 #     'seed': 0,
 #     'select_pretrain_epoch': 77,
-#     'epoch_begin_prototype': 20
+#     'epoch_begin_prototype': 0
 # })
 
 
-# In[7]:
+# In[6]:
 
 
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
@@ -134,7 +134,7 @@ if not os.path.exists(args.save_path+model_sub_folder):
 
 # # Logger
 
-# In[8]:
+# In[7]:
 
 
 logger = logging.getLogger()
@@ -152,7 +152,7 @@ logger.addHandler(stdout_log_handler)
 
 # # Data Loading
 
-# In[9]:
+# In[8]:
 
 
 raw_data = np.load(args.data_path+'/processed_file_not_one_hot_%s.pkl'%args.task, allow_pickle=True)
@@ -169,7 +169,7 @@ target_dataloader = DataLoader(target_lbl_dataset, batch_size=args.batch_size, s
 
 # # Weight initialize
 
-# In[10]:
+# In[9]:
 
 
 def weights_init(m):
@@ -182,7 +182,7 @@ def weights_init(m):
 
 # # Model creation
 
-# In[11]:
+# In[10]:
 
 
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
@@ -216,7 +216,7 @@ optimizerEncoder = torch.optim.Adam(encoder.parameters(), lr=args.lr_encoder)
 optimizerCenterLoss = torch.optim.Adam(criterion_centerloss.parameters(), lr=args.lr_centerloss)
 
 
-# In[12]:
+# In[11]:
 
 
 def classifier_inference(encoder, CNet, x):
@@ -228,7 +228,7 @@ def classifier_inference(encoder, CNet, x):
     return pred
 
 
-# In[13]:
+# In[12]:
 
 
 def encoder_inference(encoder, x):
@@ -238,7 +238,7 @@ def encoder_inference(encoder, x):
     return torch.cat((real[:,-1,:], imag[:,-1,:]), -1).reshape(x.shape[0], -1)
 
 
-# In[14]:
+# In[13]:
 
 
 def compute_mean(samples, labels):
@@ -265,7 +265,7 @@ def compute_mean(samples, labels):
 
 # # Train
 
-# In[30]:
+# In[18]:
 
 
 target_acc_label_ = []
@@ -309,6 +309,9 @@ for epoch in range(args.epochs):
         optimizerCenterLoss.step()
         optimizerEncoder.step()
         
+        if batch_id > 1:
+            break
+        
     
     
     source_acc = source_acc / num_datas
@@ -316,13 +319,8 @@ for epoch in range(args.epochs):
     
     # get center
     
-
-    print(source_x_embeddings.shape)
-    print(source_y.shape)
-    print("hi")
     source_centers = compute_mean(source_x_embeddings, source_ys) # (65, 128)
-    
-    print(source_centers.shape)
+    source_centers = source_centers.detach()
     
     # on target domain
     target_acc = 0.0
@@ -356,10 +354,14 @@ for epoch in range(args.epochs):
         else:
             loss = criterion_classifier(pred, target_y)
             
+            
         loss.backward()
         optimizerFNN.step()
         optimizerG.step()
         optimizerEncoder.step()
+        
+        if batch_id > 1:
+            break
     
     target_acc = target_acc / num_datas
     target_acc_label_.append(target_acc)
@@ -388,7 +390,8 @@ for epoch in range(args.epochs):
         torch.save(CNet.state_dict(), args.save_path+model_sub_folder+ '/CNet_%i.t7'%(epoch+1))
     if epoch == args.epoch_begin_prototype:
             logger.info('Epochs %i: Pass naive: source acc: %f; target labled acc: %f; target unlabeled acc: %f'%(epoch+1, source_acc, target_acc, target_unlabel_acc))
-    logger.info('Epochs %i: source acc: %f; target labled acc: %f; target unlabeled acc: %f'%(epoch+1, source_acc, target_acc, target_unlabel_acc))
+    else:
+        logger.info('Epochs %i: source acc: %f; target labled acc: %f; target unlabeled acc: %f'%(epoch+1, source_acc, target_acc, target_unlabel_acc))
     np.save(args.save_path+model_sub_folder+'/source_acc_.npy',source_acc_)
     
     np.save(args.save_path+model_sub_folder+'/target_acc_label_.npy',target_acc_label_)
