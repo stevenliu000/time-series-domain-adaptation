@@ -322,7 +322,7 @@ for epoch in range(args.epochs):
         pred = CNet(fake_target_embedding)
         target_acc += (pred.argmax(-1) == target_y).sum().item()
         
-        if epoch = args.epoch_begin_prototype:
+        if epoch == args.epoch_begin_prototype:
             logger.info("Epoch {}: Pass naive!".format(epoch))
         if epoch >= args.epoch_begin_prototype: 
             # prototype loss calculate
