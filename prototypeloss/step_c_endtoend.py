@@ -126,7 +126,7 @@ device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 if args.num_per_class == -1:
     args.num_per_class = math.ceil(args.batch_size / num_class)
     
-model_sub_folder = '/stepc_endToend/task_%s_sprototype_%f_lrFNN_%f_sclass_%f'%(args.task, args.sprototype, args.lr_FNN, args.sclass)
+model_sub_folder = '/stepc_endToend_comput_center/task_%s_sprototype_%f_lrFNN_%f_sclass_%f'%(args.task, args.sprototype, args.lr_FNN, args.sclass)
 
 if not os.path.exists(args.save_path+model_sub_folder):
     os.makedirs(args.save_path+model_sub_folder)
