@@ -265,7 +265,7 @@ def compute_mean(samples, labels):
 
 # # Train
 
-# In[29]:
+# In[30]:
 
 
 target_acc_label_ = []
@@ -318,8 +318,9 @@ for epoch in range(args.epochs):
     
 
     print(source_x_embeddings.shape)
-    print(source_y.sahpe)
+    print(source_y.shape)
     print("hi")
+    source_x_embeddings.
     source_centers = compute_mean(source_x_embeddings, source_ys) # (65, 128)
     
     print(source_centers.shape)
@@ -360,7 +361,7 @@ for epoch in range(args.epochs):
         optimizerFNN.step()
         optimizerG.step()
         optimizerEncoder.step()
-
+    
     target_acc = target_acc / num_datas
     target_acc_label_.append(target_acc)
         
