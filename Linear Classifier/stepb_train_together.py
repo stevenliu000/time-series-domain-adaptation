@@ -290,7 +290,7 @@ for epoch in range(args.epochs):
     source_acc = 0.0
     target_acc = 0.0
     num_datas = 0.0
-    for batch_id, ((source_x, source_y), (target_x, target_y) in tqdm(enumerate(join_dataloader), total=len(join_dataloader)):
+    for batch_id, ((source_x, source_y), (target_x, target_y)) in tqdm(enumerate(join_dataloader), total=len(join_dataloader)):
         optimizerCNet.zero_grad()
         optimizerG.zero_grad()
         optimizerEncoder.zero_grad()
