@@ -158,7 +158,7 @@ device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 if args.num_per_class == -1:
     args.num_per_class = math.ceil(args.batch_size / num_class)
     
-model_sub_folder = '/stage2_train_together/task_%s_sclass_%f_scent_%f'%(args.task, args.sclass, args.scent)
+model_sub_folder = '/stage2_train_together128/task_%s_sclass_%f_scent_%f'%(args.task, args.sclass, args.scent)
 
 if not os.path.exists(args.save_path+model_sub_folder):
     os.makedirs(args.save_path+model_sub_folder)
@@ -232,12 +232,12 @@ encoder = ComplexTransformer(layers=3,
                                num_heads=8,
                                out_dropout=0.2,
                                leaky_slope=0.2).to(device)
-encoder_MLP = FNNSeparated(d_in=64 * 2 * 1, d_h1=500, d_h2=500, dp=0.2).to(device)
-CNet = FNNLinear(d_h2=500, d_out=num_class).to(device)
-GNet = Generator(dim=500).to(device)
+encoder_MLP = FNNSeparated(d_in=64 * 2 * 1, d_h1=500, d_h2=128, dp=0.2).to(device)
+CNet = FNNLinear(d_h2=128, d_out=num_class).to(device)
+GNet = Generator(dim=128).to(device)
 
 criterion_classifier = nn.CrossEntropyLoss().to(device)
-criterion_centerloss = CenterLoss(num_classes=num_class, feat_dim=500, use_gpu=torch.cuda.is_available()).to(device)
+criterion_centerloss = CenterLoss(num_classes=num_class, feat_dim=128, use_gpu=torch.cuda.is_available()).to(device)
 
 GNet.apply(weights_init)
 encoder.apply(weights_init)
