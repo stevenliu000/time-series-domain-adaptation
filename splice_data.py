@@ -32,7 +32,7 @@ train_lbl = data_['tr_lbl']
 print(vali_num)
 
 index = np.random.permutation(train_data.shape[0])
-
+print(index.shape, train_lbl.shape)
 train_data = train_data[index, :]
 train_lbl = train_lbl[index, :]
 lbl = np.argmax(train_lbl, axis = 1)
