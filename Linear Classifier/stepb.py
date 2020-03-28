@@ -109,33 +109,33 @@ args = parser.parse_args()
 # In[7]:
 
 
-# local only
-class local_args:
-    def __init__(self, **entries):
-        self.__dict__.update(entries)
+# # local only
+# class local_args:
+#     def __init__(self, **entries):
+#         self.__dict__.update(entries)
         
-args = local_args(**{
-    'data_path': '/Users/stevenliu/time-series-adaption/time-series-domain-adaptation/data_unzip',
-    'task': '3E',
-    'num_class': 50,
-    'batch_size': 100,
-    'num_per_class': -1,
-    'gap': 5,
-    'lbl_percentage':0.7,
-    'lr_gan': 1e-4,
-    'lr_FNN': 1e-4,
-    'lr_encoder': 1e-4,
-    'epochs': 2,
-    'clip_value': 0.01,
-    'n_critic': 4,
-    'sclass': 0.7,
-    'scent': 1e-2,
-    'seed': None,
-    'save_path': '/Users/stevenliu/time-series-adaption/time-series-domain-adaptation/train_related',
-    'model_save_period': 1,
-    'lr_centerloss': 1e-3,
-    'seed': 0
-})
+# args = local_args(**{
+#     'data_path': '/Users/stevenliu/time-series-adaption/time-series-domain-adaptation/data_unzip',
+#     'task': '3E',
+#     'num_class': 50,
+#     'batch_size': 100,
+#     'num_per_class': -1,
+#     'gap': 5,
+#     'lbl_percentage':0.7,
+#     'lr_gan': 1e-4,
+#     'lr_FNN': 1e-4,
+#     'lr_encoder': 1e-4,
+#     'epochs': 2,
+#     'clip_value': 0.01,
+#     'n_critic': 4,
+#     'sclass': 0.7,
+#     'scent': 1e-2,
+#     'seed': None,
+#     'save_path': '/Users/stevenliu/time-series-adaption/time-series-domain-adaptation/train_related',
+#     'model_save_period': 1,
+#     'lr_centerloss': 1e-3,
+#     'seed': 0
+# })
 
 
 # In[8]:
@@ -277,7 +277,7 @@ def encoder_inference(encoder, encoder_MLP, x):
 
 # # Train
 
-# In[ ]:
+# In[34]:
 
 
 target_acc_label_ = []
