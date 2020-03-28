@@ -158,7 +158,7 @@ device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 if args.num_per_class == -1:
     args.num_per_class = math.ceil(args.batch_size / num_class)
     
-model_sub_folder = '/stage2/task_%s_sclass_%f_scent_%f'%(args.task, args.sclass, args.scent)
+model_sub_folder = '/stage2_train_together/task_%s_sclass_%f_scent_%f'%(args.task, args.sclass, args.scent)
 
 if not os.path.exists(args.save_path+model_sub_folder):
     os.makedirs(args.save_path+model_sub_folder)
