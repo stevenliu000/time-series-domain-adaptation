@@ -67,12 +67,13 @@ parser.add_argument('--scent', type=float, default=0.01, help='source domain cla
 parser.add_argument('--sprototype', type=float, default=0.01, help='prototype weight on target doamin loss')
 parser.add_argument('--select_pretrain_epoch', type=int, default=77, help='select epoch num for pretrained medel weight')
 parser.add_argument('--sbinary_loss', type=float, default=1.0, help='weight for binary loss')
+parser.add_argument('--epoch_begin_prototype', type=int, default=20, help='starting point to train on prototype loss.')
 
 
 args = parser.parse_args()
 
 
-# In[6]:
+# In[22]:
 
 
 # # local only
@@ -104,7 +105,7 @@ args = parser.parse_args()
 #     'sprototype': 1e-2,
 #     'seed': 0,
 #     'select_pretrain_epoch': 77,
-#     'epoch_begin_prototype': 0,
+#     'epoch_begin_prototype': 10,
 #     'sbinary_loss': 1,
 # })
 
@@ -348,31 +349,32 @@ for epoch in range(args.epochs):
     
     
     # with binary to train Generator 
-    encoder.train()
-    encoder_MLP.train()
-    GNet.train()
-    
-    for batch_id, ((source_x, source_y), (target_x, target_y)) in tqdm(enumerate(join_dataloader), total=len(join_dataloader)):
-        
-        optimizerG.zero_grad()
-        optimizerEncoder.zero_grad()
-        optimizerEncoderMLP.zero_grad()
-        
-        target_x = target_x.to(device).float()
-        target_y = target_y.to(device)
-        source_x = source_x.to(device).float()
-        source_y = source_y.to(device)
+    if epoch >= args.epoch_begin_prototype:
+        encoder.train()
+        encoder_MLP.train()
+        GNet.train()
 
-        source_x_embedding = encoder_inference(encoder, encoder_MLP, source_x)
-        target_x_embedding = encoder_inference(encoder, encoder_MLP, target_x)
-        fake_source_embedding = GNet(target_x_embedding)
-   
-        loss = args.sbinary_loss * criterion_probloss(fake_source_embedding, target_y, source_x_embedding, source_y)
-        loss.backward()
-        optimizerG.step()
-        optimizerEncoderMLP.step()
-        optimizerEncoder.step()
-        
+        for batch_id, ((source_x, source_y), (target_x, target_y)) in tqdm(enumerate(join_dataloader), total=len(join_dataloader)):
+
+            optimizerG.zero_grad()
+            optimizerEncoder.zero_grad()
+            optimizerEncoderMLP.zero_grad()
+
+            target_x = target_x.to(device).float()
+            target_y = target_y.to(device)
+            source_x = source_x.to(device).float()
+            source_y = source_y.to(device)
+
+            source_x_embedding = encoder_inference(encoder, encoder_MLP, source_x)
+            target_x_embedding = encoder_inference(encoder, encoder_MLP, target_x)
+            fake_source_embedding = GNet(target_x_embedding)
+
+            loss = args.sbinary_loss * criterion_probloss(fake_source_embedding, target_y, source_x_embedding, source_y)
+            loss.backward()
+            optimizerG.step()
+            optimizerEncoderMLP.step()
+            optimizerEncoder.step()
+
         
     
     # eval    
@@ -399,7 +401,9 @@ for epoch in range(args.epochs):
         torch.save(GNet.state_dict(), args.save_path+model_sub_folder+ '/GNet_%i.t7'%(epoch+1))
         torch.save(encoder.state_dict(), args.save_path+model_sub_folder+ '/encoder_%i.t7'%(epoch+1))
         torch.save(CNet.state_dict(), args.save_path+model_sub_folder+ '/CNet_%i.t7'%(epoch+1))
-
+    if epoch == args.epoch_begin_prototype:
+        logger.info('Epochs %i (pass naive): source acc: %f; target labled acc: %f; target unlabeled acc: %f'%(epoch+1, source_acc, target_acc, target_unlabel_acc))
+ 
     logger.info('Epochs %i: source acc: %f; target labled acc: %f; target unlabeled acc: %f'%(epoch+1, source_acc, target_acc, target_unlabel_acc))
     np.save(args.save_path+model_sub_folder+'/source_acc_.npy',source_acc_)
     np.save(args.save_path+model_sub_folder+'/target_acc_label_.npy',target_acc_label_)
