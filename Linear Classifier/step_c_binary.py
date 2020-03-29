@@ -208,7 +208,7 @@ GNet = Generator(dim=500).to(device)
 
 criterion_classifier = nn.CrossEntropyLoss().to(device)
 criterion_centerloss = CenterLoss(num_classes=num_class, feat_dim=500, use_gpu=torch.cuda.is_available()).to(device)
-criterion_probloss = BinaryLoss().to(device)
+criterion_probloss = BinaryLoss(device).to(device)
 
 GNet.apply(weights_init)
 encoder.apply(weights_init)
