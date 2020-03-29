@@ -10,8 +10,9 @@ from torch.autograd import Variable
 
 
 class BinaryLoss(torch.nn.Module):
-    def __init__(self):
+    def __init__(self, device):
         super().__init__()
+        self.device = device
     
 
     def forward(self, target_x_embedding, target_y, source_x_embedding, source_y):
@@ -38,7 +39,7 @@ class BinaryLoss(torch.nn.Module):
         
         # same class label 1, else 0
         class_same = (target_y_rand == source_y_rand).long().view(-1,1)
-        class_same_one_hot = torch.FloatTensor(target_x_embedding.size(0), 2).to(device)
+        class_same_one_hot = torch.FloatTensor(target_x_embedding.size(0), 2).to(self.device)
         class_same_one_hot.zero_()
         class_same_one_hot.scatter_(1, class_same, 1)
 
