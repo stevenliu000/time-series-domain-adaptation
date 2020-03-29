@@ -128,7 +128,7 @@ device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 if args.num_per_class == -1:
     args.num_per_class = math.ceil(args.batch_size / num_class)
     
-model_sub_folder = '/stepc_binary/task_%s_lrFNN_%f_sbinary_loss_%f'%(args.task, args.lr_FNN, args.sbinary_loss)
+model_sub_folder = '/stepc_binary_origin/task_%s_lrFNN_%f_sbinary_loss_%f'%(args.task, args.lr_FNN, args.sbinary_loss)
 
 if not os.path.exists(args.save_path+model_sub_folder):
     os.makedirs(args.save_path+model_sub_folder)
@@ -347,7 +347,6 @@ for epoch in range(args.epochs):
     
     
     # with binary to train Generator 
-#     CNet.train()
 #     encoder.train()
 #     encoder_MLP.train()
 #     GNet.train()
