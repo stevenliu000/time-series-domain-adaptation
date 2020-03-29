@@ -272,7 +272,7 @@ def compute_mean(samples, labels):
 
 # # Train
 
-# In[17]:
+# In[18]:
 
 
 target_acc_label_ = []
@@ -347,31 +347,31 @@ for epoch in range(args.epochs):
     
     
     # with binary to train Generator 
-    CNet.train()
-    encoder.train()
-    encoder_MLP.train()
-    GNet.train()
+#     CNet.train()
+#     encoder.train()
+#     encoder_MLP.train()
+#     GNet.train()
     
-    for batch_id, ((source_x, source_y), (target_x, target_y)) in tqdm(enumerate(join_dataloader), total=len(join_dataloader)):
+#     for batch_id, ((source_x, source_y), (target_x, target_y)) in tqdm(enumerate(join_dataloader), total=len(join_dataloader)):
         
-        optimizerG.zero_grad()
-        optimizerEncoder.zero_grad()
-        optimizerEncoderMLP.zero_grad()
+#         optimizerG.zero_grad()
+#         optimizerEncoder.zero_grad()
+#         optimizerEncoderMLP.zero_grad()
         
-        target_x = target_x.to(device).float()
-        target_y = target_y.to(device)
-        source_x = source_x.to(device).float()
-        source_y = source_y.to(device)
+#         target_x = target_x.to(device).float()
+#         target_y = target_y.to(device)
+#         source_x = source_x.to(device).float()
+#         source_y = source_y.to(device)
 
-        source_x_embedding = encoder_inference(encoder, encoder_MLP, source_x)
-        target_x_embedding = encoder_inference(encoder, encoder_MLP, target_x)
-        fake_source_embedding = GNet(target_x_embedding)
+#         source_x_embedding = encoder_inference(encoder, encoder_MLP, source_x)
+#         target_x_embedding = encoder_inference(encoder, encoder_MLP, target_x)
+#         fake_source_embedding = GNet(target_x_embedding)
    
-        loss = args.sbinary_loss * criterion_probloss(fake_source_embedding, target_y, source_x_embedding, source_y)
-        loss.backward()
-        optimizerG.step()
-        optimizerEncoderMLP.step()
-        optimizerEncoder.step()
+#         loss = args.sbinary_loss * criterion_probloss(fake_source_embedding, target_y, source_x_embedding, source_y)
+#         loss.backward()
+#         optimizerG.step()
+#         optimizerEncoderMLP.step()
+#         optimizerEncoder.step()
         
         
     
@@ -405,4 +405,10 @@ for epoch in range(args.epochs):
     np.save(args.save_path+model_sub_folder+'/target_acc_label_.npy',target_acc_label_)
     np.save(args.save_path+model_sub_folder+'/target_acc_unlabel_.npy',target_acc_unlabel_)
     
+
+
+# In[ ]:
+
+
+
 
