@@ -1,5 +1,5 @@
 from torch.utils.data import Dataset, DataLoader
-
+import random
 
 class JoinDataset(Dataset):
     def __init__(self, source_x, source_y, target_x, target_y, random=False):
@@ -17,8 +17,8 @@ class JoinDataset(Dataset):
     
     def __getitem__(self, index):
         if self.random:
-            index_source = random.randrange(source_len)
-            index_target = random.randrange(target_len)
+            index_source = random.randrange(self.source_len)
+            index_target = random.randrange(self.target_len)
         else:
             index_source = index
             index_target = index
