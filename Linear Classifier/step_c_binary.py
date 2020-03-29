@@ -112,7 +112,7 @@ args = parser.parse_args()
 # In[7]:
 
 
-device = torch.device('cuda:{}'.format(args.gpu_num) if torch.cuda.is_available() else 'cpu')
+device = torch.device('cuda:{}'.format(gpu_num) if torch.cuda.is_available() else 'cpu')
 
 # seed
 torch.manual_seed(args.seed)
@@ -124,7 +124,7 @@ torch.backends.cudnn.deterministic = True
 
 args.task = '3Av2' if args.task == '3A' else '3E'
 num_class = 50 if args.task == "3Av2" else 65
-device = torch.device('cuda:{}'.format(args.gpu_num) if torch.cuda.is_available() else 'cpu')
+device = torch.device('cuda:{}'.format(gpu_num) if torch.cuda.is_available() else 'cpu')
 
 if args.num_per_class == -1:
     args.num_per_class = math.ceil(args.batch_size / num_class)
@@ -189,7 +189,7 @@ def weights_init(m):
 # In[11]:
 
 
-device = torch.device('cuda:{}'.format(args.gpu_num) if torch.cuda.is_available() else 'cpu')
+device = torch.device('cuda:{}'.format(gpu_num) if torch.cuda.is_available() else 'cpu')
 print(device)
 
 seq_len = 10
@@ -348,30 +348,30 @@ for epoch in range(args.epochs):
     
     
     # with binary to train Generator 
-#     encoder.train()
-#     encoder_MLP.train()
-#     GNet.train()
+    encoder.train()
+    encoder_MLP.train()
+    GNet.train()
     
-#     for batch_id, ((source_x, source_y), (target_x, target_y)) in tqdm(enumerate(join_dataloader), total=len(join_dataloader)):
+    for batch_id, ((source_x, source_y), (target_x, target_y)) in tqdm(enumerate(join_dataloader), total=len(join_dataloader)):
         
-#         optimizerG.zero_grad()
-#         optimizerEncoder.zero_grad()
-#         optimizerEncoderMLP.zero_grad()
+        optimizerG.zero_grad()
+        optimizerEncoder.zero_grad()
+        optimizerEncoderMLP.zero_grad()
         
-#         target_x = target_x.to(device).float()
-#         target_y = target_y.to(device)
-#         source_x = source_x.to(device).float()
-#         source_y = source_y.to(device)
+        target_x = target_x.to(device).float()
+        target_y = target_y.to(device)
+        source_x = source_x.to(device).float()
+        source_y = source_y.to(device)
 
-#         source_x_embedding = encoder_inference(encoder, encoder_MLP, source_x)
-#         target_x_embedding = encoder_inference(encoder, encoder_MLP, target_x)
-#         fake_source_embedding = GNet(target_x_embedding)
+        source_x_embedding = encoder_inference(encoder, encoder_MLP, source_x)
+        target_x_embedding = encoder_inference(encoder, encoder_MLP, target_x)
+        fake_source_embedding = GNet(target_x_embedding)
    
-#         loss = args.sbinary_loss * criterion_probloss(fake_source_embedding, target_y, source_x_embedding, source_y)
-#         loss.backward()
-#         optimizerG.step()
-#         optimizerEncoderMLP.step()
-#         optimizerEncoder.step()
+        loss = args.sbinary_loss * criterion_probloss(fake_source_embedding, target_y, source_x_embedding, source_y)
+        loss.backward()
+        optimizerG.step()
+        optimizerEncoderMLP.step()
+        optimizerEncoder.step()
         
         
     
