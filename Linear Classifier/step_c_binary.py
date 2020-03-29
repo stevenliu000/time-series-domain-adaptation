@@ -112,7 +112,7 @@ args = parser.parse_args()
 # In[7]:
 
 
-device = torch.device('cuda:{}'.format(gpu_num) if torch.cuda.is_available() else 'cpu')
+device = torch.device('cuda:{}'.format(args.gpu_num) if torch.cuda.is_available() else 'cpu')
 
 # seed
 torch.manual_seed(args.seed)
@@ -124,7 +124,7 @@ torch.backends.cudnn.deterministic = True
 
 args.task = '3Av2' if args.task == '3A' else '3E'
 num_class = 50 if args.task == "3Av2" else 65
-device = torch.device('cuda:{}'.format(gpu_num) if torch.cuda.is_available() else 'cpu')
+device = torch.device('cuda:{}'.format(args.gpu_num) if torch.cuda.is_available() else 'cpu')
 
 if args.num_per_class == -1:
     args.num_per_class = math.ceil(args.batch_size / num_class)
@@ -189,7 +189,7 @@ def weights_init(m):
 # In[11]:
 
 
-device = torch.device('cuda:{}'.format(gpu_num) if torch.cuda.is_available() else 'cpu')
+device = torch.device('cuda:{}'.format(args.gpu_num) if torch.cuda.is_available() else 'cpu')
 print(device)
 
 seq_len = 10
