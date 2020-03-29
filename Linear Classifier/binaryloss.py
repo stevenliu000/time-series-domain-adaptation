@@ -33,7 +33,7 @@ class BinaryLoss(torch.nn.Module):
         source_y_rand = source_y[source_index]
         
         # logit as vector innner product
-        logit_all = F.sigmoid(torch.sum(target_x_embedding_rand * sourece_x_embedding_rand, axis=1)).view(-1,1)
+        logit_all = torch.sigmoid(torch.sum(target_x_embedding_rand * sourece_x_embedding_rand, axis=1)).view(-1,1)
         
         input_ = torch.cat((1 - logit_all, logit_all), axis=1)
         
