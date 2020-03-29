@@ -1,7 +1,7 @@
 #!/bin/bash
 
 echo $1
-python step_c_prototype.py \
+python step_c_binary.py \
     --data_path /home/tianqinl/time-series-domain-adaptation/data_unzip \
     --save_path /home/tianqinl/time-series-domain-adaptation/train_related \
     --epochs 500\
