@@ -11,7 +11,7 @@ sys.path.insert(0, parent_dir)
 sys.path.insert(0, os.path.join(parent_dir,'spring-break'))
 
 
-# In[2]:
+# In[20]:
 
 
 import numpy as np
@@ -129,7 +129,7 @@ device = torch.device('cuda:{}'.format(args.gpu_num) if torch.cuda.is_available(
 if args.num_per_class == -1:
     args.num_per_class = math.ceil(args.batch_size / num_class)
     
-model_sub_folder = '/stepc_binary_origin/task_%s_lrFNN_%f_sbinary_loss_%f'%(args.task, args.lr_FNN, args.sbinary_loss)
+model_sub_folder = '/stepc_binary/task_%s_lrFNN_%f_sbinary_loss_%f'%(args.task, args.lr_FNN, args.sbinary_loss)
 
 if not os.path.exists(args.save_path+model_sub_folder):
     os.makedirs(args.save_path+model_sub_folder)
@@ -273,7 +273,7 @@ def compute_mean(samples, labels):
 
 # # Train
 
-# In[18]:
+# In[21]:
 
 
 target_acc_label_ = []
