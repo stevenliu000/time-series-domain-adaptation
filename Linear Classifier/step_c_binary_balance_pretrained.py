@@ -274,7 +274,7 @@ def compute_mean(samples, labels):
 
 # # Train
 
-# In[39]:
+# In[41]:
 
 
 target_acc_label_ = []
@@ -319,70 +319,69 @@ logger.info('Model Loaded! Epoch: %i; Basedline: target unlabeled acc: %f'%(args
 logger.info('Started Training')
 for epoch in range(args.epochs):
     # update classifier
-#     # on source domain
-#     CNet.train()
-#     encoder.train()
-#     encoder_MLP.train()
-#     source_acc = 0.0
-#     num_datas = 0.0
-#     for batch_id, (source_x, source_y) in tqdm(enumerate(source_dataloader), total=len(source_dataloader)):
-#         optimizerCNet.zero_grad()
-#         optimizerEncoder.zero_grad()
-#         optimizerEncoderMLP.zero_grad()
-#         optimizerCenterLoss.zero_grad()
-#         source_x = source_x.to(device).float()
-#         source_y = source_y.to(device)
-#         num_datas += source_x.size(0)
-#         source_x_embedding = encoder_inference(encoder, encoder_MLP, source_x)
-#         pred = CNet(source_x_embedding)
-#         source_acc += (pred.argmax(-1) == source_y).sum().item()
-#         loss = (criterion_classifier(pred, source_y) +
-#                 criterion_centerloss(source_x_embedding, source_y) * args.scent) * args.sclass
-#         loss.backward()
-#         optimizerCNet.step()
-#         optimizerCenterLoss.step()
-#         optimizerEncoderMLP.step()
-#         optimizerEncoder.step()
+    # on source domain
+    CNet.train()
+    encoder.train()
+    encoder_MLP.train()
+    source_acc = 0.0
+    num_datas = 0.0
+    for batch_id, (source_x, source_y) in tqdm(enumerate(source_dataloader), total=len(source_dataloader)):
+        optimizerCNet.zero_grad()
+        optimizerEncoder.zero_grad()
+        optimizerEncoderMLP.zero_grad()
+        optimizerCenterLoss.zero_grad()
+        source_x = source_x.to(device).float()
+        source_y = source_y.to(device)
+        num_datas += source_x.size(0)
+        source_x_embedding = encoder_inference(encoder, encoder_MLP, source_x)
+        pred = CNet(source_x_embedding)
+        source_acc += (pred.argmax(-1) == source_y).sum().item()
+        loss = (criterion_classifier(pred, source_y) +
+                criterion_centerloss(source_x_embedding, source_y) * args.scent) * args.sclass
+        loss.backward()
+        optimizerCNet.step()
+        optimizerCenterLoss.step()
+        optimizerEncoderMLP.step()
+        optimizerEncoder.step()
         
-#     source_acc = source_acc / num_datas
-#     source_acc_.append(source_acc)
+    source_acc = source_acc / num_datas
+    source_acc_.append(source_acc)
  
        
 #     # on target domain
-#     target_acc = 0.0
-#     num_datas = 0.0
-#     CNet.train()
-#     encoder.train()
-#     encoder_MLP.train()
-#     GNet.train()
+    target_acc = 0.0
+    num_datas = 0.0
+    CNet.train()
+    encoder.train()
+    encoder_MLP.train()
+    GNet.train()
     
-#     for batch_id, (target_x, target_y) in tqdm(enumerate(target_dataloader), total=len(target_dataloader)):
+    for batch_id, (target_x, target_y) in tqdm(enumerate(target_dataloader), total=len(target_dataloader)):
         
-#         optimizerCNet.zero_grad()
-#         optimizerG.zero_grad()
-#         optimizerEncoder.zero_grad()
-#         optimizerEncoderMLP.zero_grad()
-#         target_x = target_x.to(device).float()
-#         target_y = target_y.to(device)
-#         num_datas += target_x.size(0)
-#         target_x_embedding = encoder_inference(encoder, encoder_MLP, target_x)
-#         fake_target_embedding = GNet(target_x_embedding)
-#         pred = CNet(fake_target_embedding)
-#         target_acc += (pred.argmax(-1) == target_y).sum().item()
-#         loss = criterion_classifier(pred, target_y)
-#         loss.backward()
-#         optimizerCNet.step()
-#         optimizerG.step()
-#         optimizerEncoder.step()
-#         optimizerEncoderMLP.step()
+        optimizerCNet.zero_grad()
+        optimizerG.zero_grad()
+        optimizerEncoder.zero_grad()
+        optimizerEncoderMLP.zero_grad()
+        target_x = target_x.to(device).float()
+        target_y = target_y.to(device)
+        num_datas += target_x.size(0)
+        target_x_embedding = encoder_inference(encoder, encoder_MLP, target_x)
+        fake_target_embedding = GNet(target_x_embedding)
+        pred = CNet(fake_target_embedding)
+        target_acc += (pred.argmax(-1) == target_y).sum().item()
+        loss = criterion_classifier(pred, target_y)
+        loss.backward()
+        optimizerCNet.step()
+        optimizerG.step()
+        optimizerEncoder.step()
+        optimizerEncoderMLP.step()
     
-#     target_acc = target_acc / num_datas
-#     target_acc_label_.append(target_acc)
+    target_acc = target_acc / num_datas
+    target_acc_label_.append(target_acc)
     
     
     # with binary to train Generator 
     # if epoch >= args.epoch_begin_prototype:
-    # CNet.train()
     encoder.train()
     encoder_MLP.train()
     GNet.train()
@@ -435,9 +434,6 @@ for epoch in range(args.epochs):
         optimizerEncoder.step()
         
         
-
-            
-    
     # eval    
     correct_target = 0.0
     num_datas = 0.0
@@ -465,7 +461,7 @@ for epoch in range(args.epochs):
 #     if epoch == args.epoch_begin_prototype:
 #         logger.info('Epochs %i (pass naive): source acc: %f; target labled acc: %f; target unlabeled acc: %f'%(epoch+1, source_acc, target_acc, target_unlabel_acc))
  
-    logger.info('Epochs %i: target unlabeled acc: %f'%(epoch+1, target_unlabel_acc))
+    logger.info('Epochs %i: source acc: %f; target labled acc: %f; target unlabeled acc: %f'%(epoch+1, source_acc, target_acc, target_unlabel_acc))
     np.save(args.save_path+model_sub_folder+'/source_acc_.npy',source_acc_)
     np.save(args.save_path+model_sub_folder+'/target_acc_label_.npy',target_acc_label_)
     np.save(args.save_path+model_sub_folder+'/target_acc_unlabel_.npy',target_acc_unlabel_)
