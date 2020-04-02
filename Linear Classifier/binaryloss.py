@@ -4,9 +4,9 @@
 # In[26]:
 
 
-import torch.nn.functional as F
+import torch.nn as nn
 import torch
-from torch.autograd import Variable
+
 
 
 class BinaryLoss(torch.nn.Module):
@@ -36,8 +36,6 @@ class BinaryLoss(torch.nn.Module):
         logit_all = torch.sum(target_x_embedding_rand * sourece_x_embedding_rand, axis=1)
         # same class label 1, else 0
         class_same = (target_y_rand == source_y_rand).float()
-        print(logit_all)
-        print(class_same)
         m = nn.Sigmoid()
         loss = nn.BCELoss()
         output = loss(m(logit_all), class_same)
