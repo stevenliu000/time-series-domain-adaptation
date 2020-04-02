@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[173]:
+# In[26]:
 
 
 import torch.nn.functional as F
@@ -33,53 +33,30 @@ class BinaryLoss(torch.nn.Module):
         source_y_rand = source_y[source_index]
         
         # logit as vector innner product
-        logit_all = torch.sigmoid(torch.sum(target_x_embedding_rand * sourece_x_embedding_rand, axis=1)).view(-1,1)
-
-        input_ = torch.cat((1 - logit_all, logit_all), axis=1)
-
+        logit_all = torch.sum(target_x_embedding_rand * sourece_x_embedding_rand, axis=1)
         # same class label 1, else 0
-        class_same = (target_y_rand == source_y_rand).long().view(-1,1)
-        #print(torch.sum(class_same), class_same.shape)
-
-        class_same_one_hot = torch.FloatTensor(target_x_embedding.size(0), 2).to(self.device)
-        class_same_one_hot.zero_()
-        class_same_one_hot.scatter_(1, class_same, 1)
-
-        loss = F.binary_cross_entropy(input_, class_same_one_hot)
-
-        return loss
+        class_same = (target_y_rand == source_y_rand).float()
+        print(logit_all)
+        print(class_same)
+        m = nn.Sigmoid()
+        loss = nn.BCELoss()
+        output = loss(m(logit_all), class_same)
+        return output
 
 
-# In[175]:
+# In[27]:
 
 
-# a = torch.ones((2,3), requires_grad=True)
-# b = torch.ones((2,3), requires_grad=True)
+# target_x_embedding = torch.randn((100,500), requires_grad=True)
+# source_x_embedding = torch.randn((100,500), requires_grad=True)
 
-# a_lbl = torch.ones(2,)
-# b_lbl = torch.ones(2,)
+# target_y = torch.ones(100,)
+# source_y = torch.ones(100,)
 
 
 # device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 # m = BinaryLoss(device).to(device)
-# loss = m(a, a_lbl, b, b_lbl)
+# loss = m(target_x_embedding, target_y, source_x_embedding, source_y)
 # loss.backward()
 # loss
-
-
-# In[176]:
-
-
-# a = torch.LongTensor([0,1,0]).view(-1,1)
-# print(a)
-# class_same_one_hot = torch.FloatTensor(a.size(0), 2)
-# class_same_one_hot.zero_()
-# class_same_one_hot.scatter_(1, a, 1)
-# class_same_one_hot
-
-
-# In[ ]:
-
-
-
 
