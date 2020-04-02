@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[1]:
+# In[26]:
 
 
 import sys, os, inspect
@@ -11,7 +11,7 @@ sys.path.insert(0, parent_dir)
 sys.path.insert(0, os.path.join(parent_dir,'spring-break'))
 
 
-# In[2]:
+# In[40]:
 
 
 import numpy as np
@@ -42,7 +42,7 @@ from binaryloss import BinaryLoss
 
 # # Parser
 
-# In[3]:
+# In[28]:
 
 
 # Parameters
@@ -73,7 +73,7 @@ parser.add_argument('--epoch_begin_prototype', type=int, default=20, help='start
 args = parser.parse_args()
 
 
-# In[9]:
+# In[29]:
 
 
 # # local only
@@ -110,7 +110,7 @@ args = parser.parse_args()
 # })
 
 
-# In[11]:
+# In[30]:
 
 
 device = torch.device('cuda:{}'.format(args.gpu_num) if torch.cuda.is_available() else 'cpu')
@@ -138,7 +138,7 @@ if not os.path.exists(args.save_path+model_sub_folder):
 
 # # Logger
 
-# In[12]:
+# In[31]:
 
 
 logger = logging.getLogger()
@@ -156,7 +156,7 @@ logger.addHandler(stdout_log_handler)
 
 # # Data Loading
 
-# In[13]:
+# In[32]:
 
 
 raw_data = np.load(args.data_path+'/processed_file_not_one_hot_%s.pkl'%args.task, allow_pickle=True)
@@ -174,7 +174,7 @@ target_dataloader = DataLoader(target_lbl_dataset, batch_size=args.batch_size, s
 
 # # Weight initialize
 
-# In[14]:
+# In[33]:
 
 
 def weights_init(m):
@@ -187,7 +187,7 @@ def weights_init(m):
 
 # # Model creation
 
-# In[15]:
+# In[34]:
 
 
 device = torch.device('cuda:{}'.format(args.gpu_num) if torch.cuda.is_available() else 'cpu')
@@ -223,7 +223,7 @@ optimizerEncoder = torch.optim.Adam(encoder.parameters(), lr=args.lr_encoder)
 optimizerCenterLoss = torch.optim.Adam(criterion_centerloss.parameters(), lr=args.lr_centerloss)
 
 
-# In[16]:
+# In[35]:
 
 
 def classifier_inference(encoder, CNet, x):
@@ -235,7 +235,7 @@ def classifier_inference(encoder, CNet, x):
     return pred
 
 
-# In[17]:
+# In[36]:
 
 
 def encoder_inference(encoder, encoder_MLP, x):
@@ -247,7 +247,7 @@ def encoder_inference(encoder, encoder_MLP, x):
     return cat_embedding
 
 
-# In[18]:
+# In[37]:
 
 
 def compute_mean(samples, labels):
@@ -272,23 +272,9 @@ def compute_mean(samples, labels):
     return res
 
 
-# In[20]:
-
-
-# pre-trained
-select_pretrain_epoch = args.select_pretrain_epoch
-model_PATH = '../train_related/pretrain'
-CNet.load_state_dict(torch.load(model_PATH+'/CNet_{}.t7'.format(select_pretrain_epoch), map_location=device))
-encoder.load_state_dict(torch.load(model_PATH+'/encoder_{}.t7'.format(select_pretrain_epoch), map_location=device))
-encoder_MLP.load_state_dict(torch.load(model_PATH+'/encoder_MLP_{}.t7'.format(select_pretrain_epoch), map_location=device))
-GNet.load_state_dict(torch.load(model_PATH+'/GNet_{}.t7'.format(select_pretrain_epoch), map_location=device))
-criterion_centerloss.load_state_dict(torch.load(model_PATH+'/centerloss_{}.t7'.format(select_pretrain_epoch), map_location=device))
-print('Model Loaded!')
-
-
 # # Train
 
-# In[24]:
+# In[39]:
 
 
 target_acc_label_ = []
@@ -307,7 +293,7 @@ encoder.load_state_dict(torch.load(model_PATH+'/encoder_{}.t7'.format(select_pre
 encoder_MLP.load_state_dict(torch.load(model_PATH+'/encoder_MLP_{}.t7'.format(select_pretrain_epoch), map_location=device))
 GNet.load_state_dict(torch.load(model_PATH+'/GNet_{}.t7'.format(select_pretrain_epoch), map_location=device))
 criterion_centerloss.load_state_dict(torch.load(model_PATH+'/centerloss_{}.t7'.format(select_pretrain_epoch), map_location=device))
-print('Model Loaded!')
+
 
 correct_target = 0.0
 num_datas = 0.0
@@ -325,7 +311,7 @@ for batch in range(math.ceil(target_unlabel_x.shape[0]/args.batch_size)):
     correct_target += (pred.argmax(-1) == target_unlabel_y_batch).sum().item()
 
 target_unlabel_acc = correct_target/num_datas
-logger.info('Basedline: target unlabeled acc: %f'%(target_unlabel_acc))
+logger.info('Model Loaded! Epoch: %i; Basedline: target unlabeled acc: %f'%(args.select_pretrain_epoch, target_unlabel_acc))
   
 
 
@@ -415,13 +401,14 @@ for epoch in range(args.epochs):
         source_x_embedding = encoder_inference(encoder, encoder_MLP, source_x)
         target_x_embedding = encoder_inference(encoder, encoder_MLP, target_x)
         fake_source_embedding = GNet(target_x_embedding)
-
         loss = args.sbinary_loss * criterion_probloss(fake_source_embedding, target_y, source_x_embedding, source_y)
         loss.backward()
         optimizerG.step()
         optimizerEncoderMLP.step()
         optimizerEncoder.step()
-        break
+        
+        
+        
 
     for batch_id in tqdm(range(len(join_dataloader))):
         optimizerG.zero_grad()
@@ -446,7 +433,8 @@ for epoch in range(args.epochs):
         optimizerG.step()
         optimizerEncoderMLP.step()
         optimizerEncoder.step()
-        break
+        
+        
 
             
     
@@ -482,6 +470,12 @@ for epoch in range(args.epochs):
     np.save(args.save_path+model_sub_folder+'/target_acc_label_.npy',target_acc_label_)
     np.save(args.save_path+model_sub_folder+'/target_acc_unlabel_.npy',target_acc_unlabel_)
     
+
+
+# In[ ]:
+
+
+
 
 
 # In[ ]:

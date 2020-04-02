@@ -39,7 +39,7 @@ class BinaryLoss(torch.nn.Module):
 
         # same class label 1, else 0
         class_same = (target_y_rand == source_y_rand).long().view(-1,1)
-        print(torch.sum(class_same), class_same.shape)
+        #print(torch.sum(class_same), class_same.shape)
 
         class_same_one_hot = torch.FloatTensor(target_x_embedding.size(0), 2).to(self.device)
         class_same_one_hot.zero_()
