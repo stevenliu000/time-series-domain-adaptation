@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[26]:
+# In[2]:
 
 
 import sys, os, inspect
@@ -11,7 +11,7 @@ sys.path.insert(0, parent_dir)
 sys.path.insert(0, os.path.join(parent_dir,'spring-break'))
 
 
-# In[40]:
+# In[3]:
 
 
 import numpy as np
@@ -42,7 +42,7 @@ from binaryloss import BinaryLoss
 
 # # Parser
 
-# In[28]:
+# In[4]:
 
 
 # Parameters
@@ -61,7 +61,7 @@ parser.add_argument('--lbl_percentage', type=float, default=0.7, help='percentag
 parser.add_argument('--num_per_class', type=int, default=-1, help='number of sample per class when training local discriminator')
 parser.add_argument('--seed', type=int, default=0, help='manual seed')
 parser.add_argument('--save_path', type=str, help='where to store data')
-parser.add_argument('--model_save_period', type=int, default=2, help='period in which the model is saved')
+parser.add_argument('--model_save_period', type=int, default=1, help='period in which the model is saved')
 parser.add_argument('--sclass', type=float, default=0.7, help='source domain classification weight on loss function')
 parser.add_argument('--scent', type=float, default=0.01, help='source domain classification weight on centerloss')
 parser.add_argument('--sprototype', type=float, default=0.01, help='prototype weight on target doamin loss')
@@ -73,7 +73,7 @@ parser.add_argument('--epoch_begin_prototype', type=int, default=20, help='start
 args = parser.parse_args()
 
 
-# In[29]:
+# In[7]:
 
 
 # # local only
@@ -110,7 +110,7 @@ args = parser.parse_args()
 # })
 
 
-# In[30]:
+# In[8]:
 
 
 device = torch.device('cuda:{}'.format(args.gpu_num) if torch.cuda.is_available() else 'cpu')
@@ -130,7 +130,7 @@ device = torch.device('cuda:{}'.format(args.gpu_num) if torch.cuda.is_available(
 if args.num_per_class == -1:
     args.num_per_class = math.ceil(args.batch_size / num_class)
     
-model_sub_folder = '/stepc_binary_balance_pretrained/task_%s_pre_%i_lrFNN_%f_sbinary_loss_%f'%(args.task, args.select_pretrain_epoch, args.lr_FNN, args.sbinary_loss)
+model_sub_folder = '/stepc_binary_balance_pretrained_beforemet/task_%s_pre_%i_lrFNN_%f_sbinary_loss_%f'%(args.task, args.select_pretrain_epoch, args.lr_FNN, args.sbinary_loss)
 
 if not os.path.exists(args.save_path+model_sub_folder):
     os.makedirs(args.save_path+model_sub_folder)
@@ -138,7 +138,7 @@ if not os.path.exists(args.save_path+model_sub_folder):
 
 # # Logger
 
-# In[31]:
+# In[9]:
 
 
 logger = logging.getLogger()
@@ -156,7 +156,7 @@ logger.addHandler(stdout_log_handler)
 
 # # Data Loading
 
-# In[32]:
+# In[10]:
 
 
 raw_data = np.load(args.data_path+'/processed_file_not_one_hot_%s.pkl'%args.task, allow_pickle=True)
@@ -174,7 +174,7 @@ target_dataloader = DataLoader(target_lbl_dataset, batch_size=args.batch_size, s
 
 # # Weight initialize
 
-# In[33]:
+# In[11]:
 
 
 def weights_init(m):
@@ -187,7 +187,7 @@ def weights_init(m):
 
 # # Model creation
 
-# In[34]:
+# In[12]:
 
 
 device = torch.device('cuda:{}'.format(args.gpu_num) if torch.cuda.is_available() else 'cpu')
@@ -223,7 +223,7 @@ optimizerEncoder = torch.optim.Adam(encoder.parameters(), lr=args.lr_encoder)
 optimizerCenterLoss = torch.optim.Adam(criterion_centerloss.parameters(), lr=args.lr_centerloss)
 
 
-# In[35]:
+# In[13]:
 
 
 def classifier_inference(encoder, CNet, x):
@@ -235,7 +235,7 @@ def classifier_inference(encoder, CNet, x):
     return pred
 
 
-# In[36]:
+# In[14]:
 
 
 def encoder_inference(encoder, encoder_MLP, x):
@@ -247,7 +247,7 @@ def encoder_inference(encoder, encoder_MLP, x):
     return cat_embedding
 
 
-# In[37]:
+# In[15]:
 
 
 def compute_mean(samples, labels):
@@ -274,7 +274,7 @@ def compute_mean(samples, labels):
 
 # # Train
 
-# In[41]:
+# In[16]:
 
 
 target_acc_label_ = []
@@ -457,6 +457,7 @@ for epoch in range(args.epochs):
     if epoch % args.model_save_period == 0:
         torch.save(GNet.state_dict(), args.save_path+model_sub_folder+ '/GNet_%i.t7'%(epoch+1))
         torch.save(encoder.state_dict(), args.save_path+model_sub_folder+ '/encoder_%i.t7'%(epoch+1))
+        torch.save(encoder_MLP.state_dict(), args.save_path+model_sub_folder+ '/encoder_MLP_%i.t7'%(epoch+1))
         torch.save(CNet.state_dict(), args.save_path+model_sub_folder+ '/CNet_%i.t7'%(epoch+1))
 #     if epoch == args.epoch_begin_prototype:
 #         logger.info('Epochs %i (pass naive): source acc: %f; target labled acc: %f; target unlabeled acc: %f'%(epoch+1, source_acc, target_acc, target_unlabel_acc))
@@ -466,6 +467,12 @@ for epoch in range(args.epochs):
     np.save(args.save_path+model_sub_folder+'/target_acc_label_.npy',target_acc_label_)
     np.save(args.save_path+model_sub_folder+'/target_acc_unlabel_.npy',target_acc_unlabel_)
     
+
+
+# In[ ]:
+
+
+
 
 
 # In[ ]:
