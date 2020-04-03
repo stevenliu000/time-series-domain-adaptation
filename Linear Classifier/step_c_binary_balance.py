@@ -76,69 +76,6 @@ args = parser.parse_args()
 # In[8]:
 
 
-# local only
-class local_args:
-    def __init__(self, **entries):
-        self.__dict__.update(entries)
-        
-args = local_args(**{
-    'data_path': '../data_unzip',
-    'task': '3E',
-    'num_class': 50,
-    'batch_size': 100,
-    'num_per_class': -1,
-    'gap': 5,
-    'lbl_percentage':0.7,
-    'lr_gan': 1e-4,
-    'lr_FNN': 1e-4,
-    'lr_encoder': 1e-4,
-    'epochs': 2,
-    'clip_value': 0.01,
-    'n_critic': 4,
-    'sclass': 0.7,
-    'scent': 1e-2,
-    'seed': None,
-    'save_path': '../train_related',
-    'model_save_period': 1,
-    'lr_centerloss': 1e-3,
-    'lr_prototype': 1e-3,
-    'sprototype': 1e-2,
-    'seed': 0,
-    'select_pretrain_epoch': 77,
-    'epoch_begin_prototype': 10,
-    'sbinary_loss': 1,
-})
-
-
-# In[9]:
-
-
-device = torch.device('cuda:{}'.format(args.gpu_num) if torch.cuda.is_available() else 'cpu')
-
-# seed
-torch.manual_seed(args.seed)
-torch.cuda.manual_seed(args.seed)
-np.random.seed(args.seed)
-cudnn.deterministic = True
-torch.backends.cudnn.deterministic = True
-
-
-args.task = '3Av2' if args.task == '3A' else '3E'
-num_class = 50 if args.task == "3Av2" else 65
-device = torch.device('cuda:{}'.format(args.gpu_num) if torch.cuda.is_available() else 'cpu')
-
-if args.num_per_class == -1:
-    args.num_per_class = math.ceil(args.batch_size / num_class)
-    
-model_sub_folder = '/stepc_binary_balance/task_%s_lrFNN_%f_sbinary_loss_%f'%(args.task, args.lr_FNN, args.sbinary_loss)
-
-if not os.path.exists(args.save_path+model_sub_folder):
-    os.makedirs(args.save_path+model_sub_folder)
-
-
-# In[16]:
-
-
 # # local only
 # class local_args:
 #     def __init__(self, **entries):
@@ -171,6 +108,32 @@ if not os.path.exists(args.save_path+model_sub_folder):
 #     'epoch_begin_prototype': 10,
 #     'sbinary_loss': 1,
 # })
+
+
+# In[9]:
+
+
+device = torch.device('cuda:{}'.format(args.gpu_num) if torch.cuda.is_available() else 'cpu')
+
+# seed
+torch.manual_seed(args.seed)
+torch.cuda.manual_seed(args.seed)
+np.random.seed(args.seed)
+cudnn.deterministic = True
+torch.backends.cudnn.deterministic = True
+
+
+args.task = '3Av2' if args.task == '3A' else '3E'
+num_class = 50 if args.task == "3Av2" else 65
+device = torch.device('cuda:{}'.format(args.gpu_num) if torch.cuda.is_available() else 'cpu')
+
+if args.num_per_class == -1:
+    args.num_per_class = math.ceil(args.batch_size / num_class)
+    
+model_sub_folder = '/stepc_binary_balance/task_%s_lrFNN_%f_sbinary_loss_%f'%(args.task, args.lr_FNN, args.sbinary_loss)
+
+if not os.path.exists(args.save_path+model_sub_folder):
+    os.makedirs(args.save_path+model_sub_folder)
 
 
 # # Logger
