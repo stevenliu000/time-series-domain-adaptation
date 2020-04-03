@@ -11,7 +11,7 @@ sys.path.insert(0, parent_dir)
 sys.path.insert(0, os.path.join(parent_dir,'spring-break'))
 
 
-# In[20]:
+# In[2]:
 
 
 import numpy as np
@@ -73,44 +73,44 @@ parser.add_argument('--epoch_begin_prototype', type=int, default=20, help='start
 args = parser.parse_args()
 
 
-# In[22]:
+# In[8]:
 
 
-# # local only
-# class local_args:
-#     def __init__(self, **entries):
-#         self.__dict__.update(entries)
+# local only
+class local_args:
+    def __init__(self, **entries):
+        self.__dict__.update(entries)
         
-# args = local_args(**{
-#     'data_path': '/Users/tianqinli/Code/Russ/time-series-domain-adaptation/data_unzip',
-#     'task': '3E',
-#     'num_class': 50,
-#     'batch_size': 100,
-#     'num_per_class': -1,
-#     'gap': 5,
-#     'lbl_percentage':0.7,
-#     'lr_gan': 1e-4,
-#     'lr_FNN': 1e-4,
-#     'lr_encoder': 1e-4,
-#     'epochs': 2,
-#     'clip_value': 0.01,
-#     'n_critic': 4,
-#     'sclass': 0.7,
-#     'scent': 1e-2,
-#     'seed': None,
-#     'save_path': '/Users/tianqinli/Code/Russ/time-series-domain-adaptation/train_related',
-#     'model_save_period': 1,
-#     'lr_centerloss': 1e-3,
-#     'lr_prototype': 1e-3,
-#     'sprototype': 1e-2,
-#     'seed': 0,
-#     'select_pretrain_epoch': 77,
-#     'epoch_begin_prototype': 10,
-#     'sbinary_loss': 1,
-# })
+args = local_args(**{
+    'data_path': '../data_unzip',
+    'task': '3E',
+    'num_class': 50,
+    'batch_size': 100,
+    'num_per_class': -1,
+    'gap': 5,
+    'lbl_percentage':0.7,
+    'lr_gan': 1e-4,
+    'lr_FNN': 1e-4,
+    'lr_encoder': 1e-4,
+    'epochs': 2,
+    'clip_value': 0.01,
+    'n_critic': 4,
+    'sclass': 0.7,
+    'scent': 1e-2,
+    'seed': None,
+    'save_path': '../train_related',
+    'model_save_period': 1,
+    'lr_centerloss': 1e-3,
+    'lr_prototype': 1e-3,
+    'sprototype': 1e-2,
+    'seed': 0,
+    'select_pretrain_epoch': 77,
+    'epoch_begin_prototype': 10,
+    'sbinary_loss': 1,
+})
 
 
-# In[7]:
+# In[9]:
 
 
 device = torch.device('cuda:{}'.format(args.gpu_num) if torch.cuda.is_available() else 'cpu')
@@ -136,9 +136,46 @@ if not os.path.exists(args.save_path+model_sub_folder):
     os.makedirs(args.save_path+model_sub_folder)
 
 
+# In[16]:
+
+
+# # local only
+# class local_args:
+#     def __init__(self, **entries):
+#         self.__dict__.update(entries)
+        
+# args = local_args(**{
+#     'data_path': '../data_unzip',
+#     'task': '3E',
+#     'num_class': 50,
+#     'batch_size': 100,
+#     'num_per_class': -1,
+#     'gap': 5,
+#     'lbl_percentage':0.7,
+#     'lr_gan': 1e-4,
+#     'lr_FNN': 1e-4,
+#     'lr_encoder': 1e-4,
+#     'epochs': 2,
+#     'clip_value': 0.01,
+#     'n_critic': 4,
+#     'sclass': 0.7,
+#     'scent': 1e-2,
+#     'seed': None,
+#     'save_path': '../train_related',
+#     'model_save_period': 1,
+#     'lr_centerloss': 1e-3,
+#     'lr_prototype': 1e-3,
+#     'sprototype': 1e-2,
+#     'seed': 0,
+#     'select_pretrain_epoch': 77,
+#     'epoch_begin_prototype': 10,
+#     'sbinary_loss': 1,
+# })
+
+
 # # Logger
 
-# In[8]:
+# In[10]:
 
 
 logger = logging.getLogger()
@@ -153,10 +190,14 @@ logger.addHandler(file_log_handler)
 stdout_log_handler = logging.StreamHandler(sys.stdout)
 logger.addHandler(stdout_log_handler)
 
+attrs = vars(args)
+for item in attrs.items():
+    logger.info("%s: %s"%item)
+
 
 # # Data Loading
 
-# In[9]:
+# In[11]:
 
 
 raw_data = np.load(args.data_path+'/processed_file_not_one_hot_%s.pkl'%args.task, allow_pickle=True)
@@ -424,6 +465,7 @@ for epoch in range(args.epochs):
     if epoch % args.model_save_period == 0:
         torch.save(GNet.state_dict(), args.save_path+model_sub_folder+ '/GNet_%i.t7'%(epoch+1))
         torch.save(encoder.state_dict(), args.save_path+model_sub_folder+ '/encoder_%i.t7'%(epoch+1))
+        torch.save(encoder.state_dict(), args.save_path+model_sub_folder+ '/encoder_MLP%i.t7'%(epoch+1))
         torch.save(CNet.state_dict(), args.save_path+model_sub_folder+ '/CNet_%i.t7'%(epoch+1))
     if epoch == args.epoch_begin_prototype:
         logger.info('Epochs %i (pass naive): source acc: %f; target labled acc: %f; target unlabeled acc: %f'%(epoch+1, source_acc, target_acc, target_unlabel_acc))
@@ -435,8 +477,27 @@ for epoch in range(args.epochs):
     
 
 
-# In[ ]:
+# In[12]:
 
 
+pesudo_dict = {i:[] for i in range(num_class)}
 
+
+# In[13]:
+
+
+target_x, target_y, target_weight = get_batch_target_data_on_class(target_dict, pesudo_dict, target_unlabel_x, args.num_per_class, no_pesudo=True)
+source_x, source_y = get_batch_source_data_on_class(source_dict, args.num_per_class)
+
+
+# In[14]:
+
+
+target_y
+
+
+# In[15]:
+
+
+source_y
 
