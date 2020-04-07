@@ -57,7 +57,7 @@ parser.add_argument('--lr_FNN', type=float, default=1e-3, help='learning rate fo
 parser.add_argument('--lr_encoder', type=float, default=1e-3, help='learning rate for classification')
 parser.add_argument('--lr_centerloss', type=float, default=0.005, help='learning rate for centerloss')
 parser.add_argument('--lr_gan', type=float, default=1e-3, help='learning rate for adversarial')
-parser.add_argument('--lbl_percentage', type=float, default=0.7, help='percentage of which source data has label')
+parser.add_argument('--lbl_percentage', type=float, default=0.7, help='percentage of which target data has label')
 parser.add_argument('--num_per_class', type=int, default=-1, help='number of sample per class when training local discriminator')
 parser.add_argument('--seed', type=int, default=0, help='manual seed')
 parser.add_argument('--save_path', type=str, help='where to store data')
@@ -253,7 +253,7 @@ target_acc_unlabel_ = []
 logger.info('Started Training')
 for epoch in range(args.epochs):
     # update classifier
-    # on source domain
+    # on target domain
     CNet.train()
     encoder.train()
     encoder_MLP.train()
@@ -270,7 +270,7 @@ for epoch in range(args.epochs):
         target_x_embedding = encoder_inference(encoder, encoder_MLP, target_x)
         fake_x_embedding = GNet(target_x_embedding)
         pred = CNet(fake_x_embedding)
-        target_acc_label += (pred.argmax(-1) == source_y).sum().item()
+        target_acc_label += (pred.argmax(-1) == target_y).sum().item()
         loss = criterion_classifier(pred, target_y) 
         loss.backward()
         optimizerCNet.step()
@@ -291,10 +291,10 @@ for epoch in range(args.epochs):
         target_x = target_x.to(device).float()
         target_y = target_y.to(device)
         num_datas += target_x.shape[0]
-        source_x_embedding = encoder_inference(encoder, encoder_MLP, target_x)
+        target_x_embedding = encoder_inference(encoder, encoder_MLP, target_x)
         fake_x_embedding = GNet(target_x_embedding)
         pred = CNet(fake_x_embedding)
-        target_acc_unlabel += (pred.argmax(-1) == source_y).sum().item()
+        target_acc_unlabel += (pred.argmax(-1) == target_y).sum().item()
         
     target_acc_unlabel = target_acc_unlabel/num_datas
     target_acc_unlabel_.append(target_acc_unlabel)
@@ -305,7 +305,7 @@ for epoch in range(args.epochs):
         torch.save(CNet.state_dict(), args.save_path+model_sub_folder+ '/CNet_%i.t7'%(epoch+1))
         torch.save(GNet.state_dict(), args.save_path+model_sub_folder+ '/GNet_%i.t7'%(epoch+1))
 
-    logger.info('Epochs %i: source labeled acc: %f; source unlabeled acc: %f'%(epoch+1, source_acc_label, source_acc_unlabel))
+    logger.info('Epochs %i: target labeled acc: %f; target unlabeled acc: %f'%(epoch+1, target_acc_label, target_acc_unlabel))
     np.save(args.save_path+model_sub_folder+'/target_acc_label_.npy', target_acc_label_)
     np.save(args.save_path+model_sub_folder+'/target_acc_unlabel_.npy', target_acc_unlabel_)
     
