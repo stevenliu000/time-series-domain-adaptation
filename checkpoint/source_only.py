@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[ ]:
+# In[2]:
 
 
 import sys, os, inspect
@@ -12,7 +12,7 @@ sys.path.insert(0, os.path.join(parent_dir,'spring-break'))
 sys.path.insert(0, os.path.join(parent_dir,'Linear Classifier'))
 
 
-# In[ ]:
+# In[3]:
 
 
 import numpy as np
@@ -160,8 +160,12 @@ labeled_source_x_filename = '/processed_file_not_one_hot_%s_%1.1f_source_known_l
 labeled_source_y_filename = '/processed_file_not_one_hot_%s_%1.1f_source_known_label_y.npy'%(args.task, args.lbl_percentage)
 unlabeled_source_x_filename = '/processed_file_not_one_hot_%s_%1.1f_source_unknown_label_x.npy'%(args.task, args.lbl_percentage)
 unlabeled_source_y_filename = '/processed_file_not_one_hot_%s_%1.1f_source_unknown_label_y.npy'%(args.task, args.lbl_percentage)
-labeled_source_dataset = SingleDataset(args.data_path+labeled_source_x_filename, args.data_path+labeled_source_y_filename)
-unlabled_source_dataset = SingleDataset(args.data_path+unlabeled_source_x_filename, args.data_path+unlabeled_source_y_filename)
+labeled_source_x = np.load(args.data_path+labeled_source_x_filename)
+labeled_source_y = np.load(args.data_path+labeled_source_y_filename)
+unlabeled_source_x = np.load(args.data_path+unlabeled_source_x_filename)
+unlabeled_source_y = np.load(args.data_path+unlabeled_source_y_filename)
+labeled_source_dataset = SingleDataset(labeled_source_x, labeled_source_y)
+unlabled_source_dataset = SingleDataset(unlabeled_source_x, unlabeled_source_y)
 labeled_source_dataloader = DataLoader(labeled_source_dataset, batch_size=args.batch_size, shuffle=True, pin_memory=True, num_workers=4)
 unlabeled_source_dataloader = DataLoader(unlabled_source_dataset, batch_size=args.batch_size, shuffle=False, pin_memory=True, num_workers=4)
 
