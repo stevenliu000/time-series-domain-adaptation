@@ -57,6 +57,7 @@ parser.add_argument('--lr_FNN', type=float, default=1e-3, help='learning rate fo
 parser.add_argument('--lr_encoder', type=float, default=1e-3, help='learning rate for classification')
 parser.add_argument('--lr_centerloss', type=float, default=0.005, help='learning rate for centerloss')
 parser.add_argument('--sclass', type=float, default=0.7, help='target classifier loss weight')
+parser.add_argument('--scent', type=float, default=0.0001, help='source domain classification weight on centerloss')
 parser.add_argument('--lr_gan', type=float, default=1e-3, help='learning rate for adversarial')
 parser.add_argument('--target_lbl_percentage', type=float, default=0.7, help='percentage of which target data has label')
 parser.add_argument('--source_lbl_percentage', type=float, default=0.7, help='percentage of which source data has label')
@@ -125,7 +126,7 @@ device = torch.device('cuda:{}'.format(args.gpu_num) if torch.cuda.is_available(
 if args.num_per_class == -1:
     args.num_per_class = math.ceil(args.batch_size / num_class)
     
-model_sub_folder = '/naive_adaption/task_%s_slp_%f_tlp_%f_sclass_%f'%(args.task, args.source_lbl_percentage, args.target_lbl_percentage, args.sclass)
+model_sub_folder = '/naive_adaption/task_%s_slp_%f_tlp_%f_sclass_%f_scent_%f'%(args.task, args.source_lbl_percentage, args.target_lbl_percentage, args.sclass, args.scent)
 
 if not os.path.exists(args.save_path+model_sub_folder):
     os.makedirs(args.save_path+model_sub_folder)
