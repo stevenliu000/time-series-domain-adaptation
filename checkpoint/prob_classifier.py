@@ -375,7 +375,7 @@ for epoch in range(args.epochs):
             optimizerEncoder.zero_grad()
             optimizerEncoderMLP.zero_grad()
             
-            target_x, target_y, target_weight = get_batch_target_data_on_class(target_labeled_dict, args.num_per_class, no_pesudo=True)
+            target_x, target_y, target_weight = get_batch_target_data_on_class(target_labeled_dict, args.num_per_class, pesudo_dict, no_pesudo=True)
             source_x, source_y = get_batch_source_data_on_class(source_labeled_dict, args.num_per_class)
     
             source_x = torch.Tensor(source_x).to(device).float()
