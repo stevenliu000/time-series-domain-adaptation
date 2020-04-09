@@ -43,7 +43,7 @@ from binaryloss import BinaryLoss
 
 # # Parser
 
-# In[3]:
+# In[17]:
 
 
 # Parameters
@@ -67,49 +67,53 @@ parser.add_argument('--save_path', type=str, help='where to store data')
 parser.add_argument('--model_save_period', type=int, default=2, help='period in which the model is saved')
 parser.add_argument('--sbinary_loss', type=float, default=1.0, help='weight for binary loss')
 parser.add_argument('--epoch_begin_prototype', type=int, default=10, help='starting point to train on prob classifier.')
+parser.add_argument('--spseudo', type=float, default=0.8, help='weight for pseudo label.')
+
+
 args = parser.parse_args()
 
 
 # In[4]:
 
 
-# # local only
-# class local_args:
-#     def __init__(self, **entries):
-#         self.__dict__.update(entries)
+# local only
+class local_args:
+    def __init__(self, **entries):
+        self.__dict__.update(entries)
         
-# args = local_args(**{
-#     'data_path': '../data_unzip',
-#     'task': '3E',
-#     'num_class': 50,
-#     'batch_size': 100,
-#     'num_per_class': -1,
-#     'gap': 5,
-#     'lbl_percentage':0.7,
-#     'source_lbl_percentage': 0.7,
-#     'target_lbl_percentage': 0.7,
-#     'lr_gan': 1e-4,
-#     'lr_FNN': 1e-4,
-#     'lr_encoder': 1e-4,
-#     'epochs': 2,
-#     'clip_value': 0.01,
-#     'n_critic': 4,
-#     'sclass': 0.7,
-#     'scent': 1e-2,
-#     'seed': None,
-#     'save_path': '../train_related',
-#     'model_save_period': 1,
-#     'lr_centerloss': 1e-3,
-#     'lr_prototype': 1e-3,
-#     'sprototype': 1e-2,
-#     'seed': 0,
-#     'select_pretrain_epoch': 77,
-#     'epoch_begin_prototype': 0,
-#     'sbinary_loss': 1,
-# })
+args = local_args(**{
+    'data_path': '../data_unzip',
+    'task': '3E',
+    'num_class': 50,
+    'batch_size': 100,
+    'num_per_class': -1,
+    'gap': 5,
+    'lbl_percentage':0.7,
+    'source_lbl_percentage': 0.7,
+    'target_lbl_percentage': 0.7,
+    'lr_gan': 1e-4,
+    'lr_FNN': 1e-4,
+    'lr_encoder': 1e-4,
+    'epochs': 2,
+    'clip_value': 0.01,
+    'n_critic': 4,
+    'sclass': 0.7,
+    'scent': 1e-2,
+    'seed': None,
+    'save_path': '../train_related',
+    'model_save_period': 1,
+    'lr_centerloss': 1e-3,
+    'lr_prototype': 1e-3,
+    'sprototype': 1e-2,
+    'seed': 0,
+    'select_pretrain_epoch': 77,
+    'epoch_begin_prototype': 0,
+    'sbinary_loss': 1,
+    'spseudo': 0.8,
+})
 
 
-# In[5]:
+# In[18]:
 
 
 device = torch.device('cuda:{}'.format(args.gpu_num) if torch.cuda.is_available() else 'cpu')
@@ -129,7 +133,7 @@ device = torch.device('cuda:{}'.format(args.gpu_num) if torch.cuda.is_available(
 if args.num_per_class == -1:
     args.num_per_class = math.ceil(args.batch_size / num_class)
     
-model_sub_folder = '/prob_classifier_pseudo/task_%s_slp_%f_tlp_%f_sclass_%f_scent_%f_sbinary_loss_%f'%(args.task, args.source_lbl_percentage, args.target_lbl_percentage, args.sclass, args.scent, args.sbinary_loss)
+model_sub_folder = '/prob_classifier_pseudo_weight/task_%s_slp_%f_tlp_%f_sclass_%f_scent_%f_sbinary_loss_%f'%(args.task, args.source_lbl_percentage, args.target_lbl_percentage, args.sclass, args.scent, args.sbinary_loss)
 
 if not os.path.exists(args.save_path+model_sub_folder):
     os.makedirs(args.save_path+model_sub_folder)
@@ -139,7 +143,7 @@ pesudo_dict = {i:[] for i in range(num_class)}
 
 # # Logger
 
-# In[6]:
+# In[19]:
 
 
 logger = logging.getLogger()
@@ -449,7 +453,6 @@ for epoch in range(args.epochs):
         
         # pseudo random sampling
         if pseudo_initial_finished:
-            print("pseudo train")
             for batch_id, ((source_x, source_y), (target_x, target_y)) in tqdm(enumerate(join_pseudo_dataloader), total=len(join_pseudo_dataloader)):
                 optimizerGNet.zero_grad()
                 optimizerEncoder.zero_grad()
@@ -464,7 +467,7 @@ for epoch in range(args.epochs):
                 target_x_embedding = encoder_inference(encoder, encoder_MLP, target_x)
                 fake_source_embedding = GNet(target_x_embedding)
 
-                loss = args.sbinary_loss * criterion_probloss(fake_source_embedding, target_y, source_x_embedding, source_y)
+                loss = args.sbinary_loss * args.spseudo * criterion_probloss(fake_source_embedding, target_y, source_x_embedding, source_y)
                 loss.backward()
                 optimizerGNet.step()
                 optimizerEncoderMLP.step()
