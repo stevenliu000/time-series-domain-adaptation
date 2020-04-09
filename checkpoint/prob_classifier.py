@@ -350,7 +350,7 @@ for epoch in range(args.epochs):
 
         # random sampling
         for batch_id, ((source_x, source_y), (target_x, target_y)) in tqdm(enumerate(join_dataloader), total=len(join_dataloader)):
-            optimizerG.zero_grad()
+            optimizerGNet.zero_grad()
             optimizerEncoder.zero_grad()
             optimizerEncoderMLP.zero_grad()
             
@@ -365,13 +365,13 @@ for epoch in range(args.epochs):
             
             loss = args.sbinary_loss * criterion_probloss(fake_source_embedding, target_y, source_x_embedding, source_y)
             loss.backward()
-            optimizerG.step()
+            optimizerGNet.step()
             optimizerEncoderMLP.step()
             optimizerEncoder.step()
             
         # sampling same class    
         for batch_id in tqdm(range(len(join_dataloader))):
-            optimizerG.zero_grad()
+            optimizerGNet.zero_grad()
             optimizerEncoder.zero_grad()
             optimizerEncoderMLP.zero_grad()
             
@@ -389,7 +389,7 @@ for epoch in range(args.epochs):
             
             loss = args.sbinary_loss * criterion_probloss(fake_source_embedding, target_y, source_x_embedding, source_y)
             loss.backward()
-            optimizerG.step()
+            optimizerGNet.step()
             optimizerEncoderMLP.step()
             optimizerEncoder.step()
             
