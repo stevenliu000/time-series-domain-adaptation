@@ -257,7 +257,7 @@ optimizerCenterLoss = torch.optim.Adam(criterion_centerloss.parameters(), lr=arg
 
 if args.pre_trained_path != '':
     encoder.load_state_dict(torch.load(args.pre_trained_path+'/encoder_%i.t7'%args.pre_trained_epoch))
-    encoder_MLP.load_state_dict(torch.load(args.pre_trained_path+'/encoder_MLP_%i.t7'%args.pre_trained_epoch))
+    encoder_MLP.load_state_dict(torch.load(args.pre_trained_path+'/encoder_MLP%i.t7'%args.pre_trained_epoch))
     CNet.load_state_dict(torch.load(args.pre_trained_path+'/CNet_%i.t7'%args.pre_trained_epoch))
     GNet.load_state_dict(torch.load(args.pre_trained_path+'/GNet_%i.t7'%args.pre_trained_epoch))
     logger.info("Model loaded at epoch %i"%args.pre_trained_epoch)
