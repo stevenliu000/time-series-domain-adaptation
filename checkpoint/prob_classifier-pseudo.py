@@ -9,6 +9,7 @@ current_dir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentfra
 parent_dir = os.path.dirname(current_dir)
 sys.path.insert(0, parent_dir)
 sys.path.insert(0, os.path.join(parent_dir,'spring-break'))
+sys.path.insert(0, os.path.join(parent_dir,'Linear Classifier'))
 
 
 # In[2]:
@@ -52,28 +53,24 @@ parser.add_argument("--task", type=str, help='3A or 3E')
 parser.add_argument('--gpu_num', type=int, default=0, help='gpu number')
 parser.add_argument('--batch_size', type=int, default=256, help='batch size')
 parser.add_argument('--epochs', type=int, default=50, help='number of epochs')
-parser.add_argument('--lr_gan', type=float, default=1e-3, help='learning rate for adversarial')
-parser.add_argument('--lr_centerloss', type=float, default=0.5, help='learning rate for centerloss')
-parser.add_argument('--lr_prototype', type=float, default=0.5, help='learning rate for prototype')
 parser.add_argument('--lr_FNN', type=float, default=1e-3, help='learning rate for classification')
 parser.add_argument('--lr_encoder', type=float, default=1e-3, help='learning rate for classification')
-parser.add_argument('--lbl_percentage', type=float, default=0.7, help='percentage of which target data has label')
+parser.add_argument('--lr_centerloss', type=float, default=0.005, help='learning rate for centerloss')
+parser.add_argument('--sclass', type=float, default=0.7, help='target classifier loss weight')
+parser.add_argument('--scent', type=float, default=0.0001, help='source domain classification weight on centerloss')
+parser.add_argument('--lr_gan', type=float, default=1e-3, help='learning rate for adversarial')
+parser.add_argument('--target_lbl_percentage', type=float, default=0.7, help='percentage of which target data has label')
+parser.add_argument('--source_lbl_percentage', type=float, default=0.7, help='percentage of which source data has label')
 parser.add_argument('--num_per_class', type=int, default=-1, help='number of sample per class when training local discriminator')
 parser.add_argument('--seed', type=int, default=0, help='manual seed')
 parser.add_argument('--save_path', type=str, help='where to store data')
 parser.add_argument('--model_save_period', type=int, default=2, help='period in which the model is saved')
-parser.add_argument('--sclass', type=float, default=0.7, help='source domain classification weight on loss function')
-parser.add_argument('--scent', type=float, default=0.01, help='source domain classification weight on centerloss')
-parser.add_argument('--sprototype', type=float, default=0.01, help='prototype weight on target doamin loss')
-parser.add_argument('--select_pretrain_epoch', type=int, default=77, help='select epoch num for pretrained medel weight')
 parser.add_argument('--sbinary_loss', type=float, default=1.0, help='weight for binary loss')
-parser.add_argument('--epoch_begin_prototype', type=int, default=20, help='starting point to train on prototype loss.')
-
-
+parser.add_argument('--epoch_begin_prototype', type=int, default=10, help='starting point to train on prob classifier.')
 args = parser.parse_args()
 
 
-# In[8]:
+# In[4]:
 
 
 # # local only
@@ -89,6 +86,8 @@ args = parser.parse_args()
 #     'num_per_class': -1,
 #     'gap': 5,
 #     'lbl_percentage':0.7,
+#     'source_lbl_percentage': 0.7,
+#     'target_lbl_percentage': 0.7,
 #     'lr_gan': 1e-4,
 #     'lr_FNN': 1e-4,
 #     'lr_encoder': 1e-4,
@@ -105,12 +104,12 @@ args = parser.parse_args()
 #     'sprototype': 1e-2,
 #     'seed': 0,
 #     'select_pretrain_epoch': 77,
-#     'epoch_begin_prototype': 10,
+#     'epoch_begin_prototype': 0,
 #     'sbinary_loss': 1,
 # })
 
 
-# In[9]:
+# In[5]:
 
 
 device = torch.device('cuda:{}'.format(args.gpu_num) if torch.cuda.is_available() else 'cpu')
@@ -130,15 +129,17 @@ device = torch.device('cuda:{}'.format(args.gpu_num) if torch.cuda.is_available(
 if args.num_per_class == -1:
     args.num_per_class = math.ceil(args.batch_size / num_class)
 
-model_sub_folder = '/stepc_binary_balance_randomed/task_%s_lrFNN_%f_sbinary_loss_%f'%(args.task, args.lr_FNN, args.sbinary_loss)
+model_sub_folder = '/prob_classifier_pseudo/task_%s_slp_%f_tlp_%f_sclass_%f_scent_%f_sbinary_loss_%f'%(args.task, args.source_lbl_percentage, args.target_lbl_percentage, args.sclass, args.scent, args.sbinary_loss)
 
 if not os.path.exists(args.save_path+model_sub_folder):
     os.makedirs(args.save_path+model_sub_folder)
 
+pesudo_dict = {i:[] for i in range(num_class)}
+
 
 # # Logger
 
-# In[10]:
+# In[6]:
 
 
 logger = logging.getLogger()
@@ -159,26 +160,47 @@ for item in attrs.items():
 
 
 # # Data Loading
+#
 
-# In[11]:
+# In[7]:
 
 
-raw_data = np.load(args.data_path+'/processed_file_not_one_hot_%s.pkl'%args.task, allow_pickle=True)
-target_dict, (target_unlabel_x, target_unlabel_y),(target_label_x,target_label_y), target_len  = get_target_dict(args.data_path+'/processed_file_not_one_hot_%s.pkl'%args.task, num_class, args.lbl_percentage)
-source_dict, source_len = get_source_dict(args.data_path+'/processed_file_not_one_hot_%s.pkl'%args.task, num_class, data_len=target_len)
+labeled_target_x_filename = '/processed_file_not_one_hot_%s_%1.1f_target_known_label_x.npy'%(args.task, args.target_lbl_percentage)
+labeled_target_y_filename = '/processed_file_not_one_hot_%s_%1.1f_target_known_label_y.npy'%(args.task, args.target_lbl_percentage)
+unlabeled_target_x_filename = '/processed_file_not_one_hot_%s_%1.1f_target_unknown_label_x.npy'%(args.task, args.target_lbl_percentage)
+unlabeled_target_y_filename = '/processed_file_not_one_hot_%s_%1.1f_target_unknown_label_y.npy'%(args.task, args.target_lbl_percentage)
+labeled_target_x = np.load(args.data_path+labeled_target_x_filename)
+labeled_target_y = np.load(args.data_path+labeled_target_y_filename)
+unlabeled_target_x = np.load(args.data_path+unlabeled_target_x_filename)
+unlabeled_target_y = np.load(args.data_path+unlabeled_target_y_filename)
+labeled_target_dataset = SingleDataset(labeled_target_x, labeled_target_y)
+unlabled_target_dataset = SingleDataset(unlabeled_target_x, unlabeled_target_y)
+labeled_target_dataloader = DataLoader(labeled_target_dataset, batch_size=args.batch_size, shuffle=True, pin_memory=True, num_workers=4)
+unlabeled_target_dataloader = DataLoader(unlabled_target_dataset, batch_size=args.batch_size, shuffle=False, pin_memory=True, num_workers=4)
 
-join_dataset = JoinDataset(raw_data['tr_data'],raw_data['tr_lbl'],raw_data['te_data'],raw_data['te_lbl'], random=True)
+labeled_source_x_filename = '/processed_file_not_one_hot_%s_%1.1f_source_known_label_x.npy'%(args.task, args.source_lbl_percentage)
+labeled_source_y_filename = '/processed_file_not_one_hot_%s_%1.1f_source_known_label_y.npy'%(args.task, args.source_lbl_percentage)
+unlabeled_source_x_filename = '/processed_file_not_one_hot_%s_%1.1f_source_unknown_label_x.npy'%(args.task, args.source_lbl_percentage)
+unlabeled_source_y_filename = '/processed_file_not_one_hot_%s_%1.1f_source_unknown_label_y.npy'%(args.task, args.source_lbl_percentage)
+labeled_source_x = np.load(args.data_path+labeled_source_x_filename)
+labeled_source_y = np.load(args.data_path+labeled_source_y_filename)
+unlabeled_source_x = np.load(args.data_path+unlabeled_source_x_filename)
+unlabeled_source_y = np.load(args.data_path+unlabeled_source_y_filename)
+labeled_source_dataset = SingleDataset(labeled_source_x, labeled_source_y)
+unlabled_source_dataset = SingleDataset(unlabeled_source_x, unlabeled_source_y)
+labeled_source_dataloader = DataLoader(labeled_source_dataset, batch_size=args.batch_size, shuffle=True, pin_memory=True, num_workers=4)
+unlabeled_source_dataloader = DataLoader(unlabled_source_dataset, batch_size=args.batch_size, shuffle=False, pin_memory=True, num_workers=4)
+
+join_dataset = JoinDataset(labeled_source_x, labeled_source_y, labeled_target_x, labeled_target_y, random=True)
 join_dataloader = DataLoader(join_dataset, batch_size=args.batch_size, shuffle=True, pin_memory=True, num_workers=4)
 
-source_dataset = SingleDataset(raw_data['tr_data'], raw_data['tr_lbl'])
-source_dataloader = DataLoader(source_dataset, batch_size=args.batch_size, shuffle=True, pin_memory=True, num_workers=4)
-target_lbl_dataset = SingleDataset(target_label_x, target_label_y)
-target_dataloader = DataLoader(target_lbl_dataset, batch_size=args.batch_size, shuffle=True, pin_memory=True, num_workers=4)
+source_labeled_dict = get_class_data_dict(labeled_source_x, labeled_source_y, num_class)
+target_labeled_dict = get_class_data_dict(labeled_target_x, labeled_target_y, num_class)
 
 
 # # Weight initialize
 
-# In[10]:
+# In[8]:
 
 
 def weights_init(m):
@@ -191,7 +213,7 @@ def weights_init(m):
 
 # # Model creation
 
-# In[11]:
+# In[9]:
 
 
 device = torch.device('cuda:{}'.format(args.gpu_num) if torch.cuda.is_available() else 'cpu')
@@ -211,23 +233,23 @@ encoder_MLP = FNNSeparated(d_in=64 * 2 * 1, d_h1=500, d_h2=500, dp=0.2).to(devic
 CNet = FNNLinear(d_h2=500, d_out=num_class).to(device)
 GNet = Generator(dim=500).to(device)
 
-criterion_classifier = nn.CrossEntropyLoss().to(device)
 criterion_centerloss = CenterLoss(num_classes=num_class, feat_dim=500, use_gpu=torch.cuda.is_available()).to(device)
+criterion_classifier = nn.CrossEntropyLoss().to(device)
 criterion_probloss = BinaryLoss(device).to(device)
 
-GNet.apply(weights_init)
 encoder.apply(weights_init)
 encoder_MLP.apply(weights_init)
 CNet.apply(weights_init)
+GNet.apply(weights_init)
 
-optimizerG = torch.optim.Adam(GNet.parameters(), lr=args.lr_gan)
 optimizerCNet = torch.optim.Adam(CNet.parameters(), lr=args.lr_FNN)
 optimizerEncoderMLP = torch.optim.Adam(encoder_MLP.parameters(), lr=args.lr_encoder)
 optimizerEncoder = torch.optim.Adam(encoder.parameters(), lr=args.lr_encoder)
+optimizerGNet = torch.optim.Adam(GNet.parameters(), lr=args.lr_gan)
 optimizerCenterLoss = torch.optim.Adam(criterion_centerloss.parameters(), lr=args.lr_centerloss)
 
 
-# In[12]:
+# In[10]:
 
 
 def classifier_inference(encoder, CNet, x):
@@ -239,7 +261,7 @@ def classifier_inference(encoder, CNet, x):
     return pred
 
 
-# In[13]:
+# In[11]:
 
 
 def encoder_inference(encoder, encoder_MLP, x):
@@ -251,42 +273,29 @@ def encoder_inference(encoder, encoder_MLP, x):
     return cat_embedding
 
 
-# In[14]:
+# In[ ]:
 
 
-def compute_mean(samples, labels):
-    assert samples.size(0) == labels.size(0)
-    """
-    samples = torch.Tensor([
-                         [0.1, 0.1],    #-> group / class 1
-                         [0.2, 0.2],    #-> group / class 2
-                         [0.4, 0.4],    #-> group / class 2
-                         [0.0, 0.0]     #-> group / class 0
-                  ])
-    labels = torch.LongTensor([1, 2, 2, 0])
-    return
-        tensor([[0.0000, 0.0000],
-                [0.1000, 0.1000],
-                [0.3000, 0.3000]])
-    """
-    M = torch.zeros(labels.max()+1, len(samples)).to(device)
-    M[labels, torch.arange(len(samples))] = 1
-    M = torch.nn.functional.normalize(M, p=1, dim=1)
-    res = torch.mm(M, samples)
-    return res
+
+
+
+# In[ ]:
+
+
+
 
 
 # # Train
 
-# In[21]:
+# In[16]:
 
 
+source_acc_label_ = []
+source_acc_unlabel_ = []
 target_acc_label_ = []
-source_acc_ = []
 target_acc_unlabel_ = []
-pesudo_dict = {i:[] for i in range(num_class)}
 
-
+pseudo_initial_finished = False
 
 logger.info('Started Training')
 for epoch in range(args.epochs):
@@ -295,9 +304,9 @@ for epoch in range(args.epochs):
     CNet.train()
     encoder.train()
     encoder_MLP.train()
-    source_acc = 0.0
+    source_acc_label = 0.0
     num_datas = 0.0
-    for batch_id, (source_x, source_y) in tqdm(enumerate(source_dataloader), total=len(source_dataloader)):
+    for batch_id, (source_x, source_y) in tqdm(enumerate(labeled_source_dataloader), total=len(labeled_source_dataloader)):
         optimizerCNet.zero_grad()
         optimizerEncoder.zero_grad()
         optimizerEncoderMLP.zero_grad()
@@ -307,7 +316,7 @@ for epoch in range(args.epochs):
         num_datas += source_x.size(0)
         source_x_embedding = encoder_inference(encoder, encoder_MLP, source_x)
         pred = CNet(source_x_embedding)
-        source_acc += (pred.argmax(-1) == source_y).sum().item()
+        source_acc_label += (pred.argmax(-1) == source_y).sum().item()
         loss = (criterion_classifier(pred, source_y) +
                 criterion_centerloss(source_x_embedding, source_y) * args.scent) * args.sclass
         loss.backward()
@@ -315,52 +324,45 @@ for epoch in range(args.epochs):
         optimizerCenterLoss.step()
         optimizerEncoderMLP.step()
         optimizerEncoder.step()
-
-    source_acc = source_acc / num_datas
-    source_acc_.append(source_acc)
-
+    source_acc_label = source_acc_label / num_datas
+    source_acc_label_.append(source_acc_label)
 
     # on target domain
-    target_acc = 0.0
-    num_datas = 0.0
     CNet.train()
     encoder.train()
     encoder_MLP.train()
-    GNet.train()
-
-    for batch_id, (target_x, target_y) in tqdm(enumerate(target_dataloader), total=len(target_dataloader)):
-
+    target_acc_label = 0.0
+    num_datas = 0.0
+    for batch_id, (target_x, target_y) in tqdm(enumerate(labeled_target_dataloader), total=len(labeled_target_dataloader)):
         optimizerCNet.zero_grad()
-        optimizerG.zero_grad()
         optimizerEncoder.zero_grad()
         optimizerEncoderMLP.zero_grad()
+        optimizerGNet.zero_grad()
         target_x = target_x.to(device).float()
         target_y = target_y.to(device)
         num_datas += target_x.size(0)
         target_x_embedding = encoder_inference(encoder, encoder_MLP, target_x)
-        fake_target_embedding = GNet(target_x_embedding)
-        pred = CNet(fake_target_embedding)
-        target_acc += (pred.argmax(-1) == target_y).sum().item()
+        fake_x_embedding = GNet(target_x_embedding)
+        pred = CNet(fake_x_embedding)
+        target_acc_label += (pred.argmax(-1) == target_y).sum().item()
         loss = criterion_classifier(pred, target_y)
         loss.backward()
         optimizerCNet.step()
-        optimizerG.step()
-        optimizerEncoder.step()
+        optimizerGNet.step()
         optimizerEncoderMLP.step()
+        optimizerEncoder.step()
+    target_acc_label = target_acc_label / num_datas
+    target_acc_label_.append(target_acc_label)
 
-    target_acc = target_acc / num_datas
-    target_acc_label_.append(target_acc)
-
-
-    # with binary to train Generator
+    # prob. classifier
     if epoch >= args.epoch_begin_prototype:
         encoder.train()
         encoder_MLP.train()
         GNet.train()
 
+        # random sampling
         for batch_id, ((source_x, source_y), (target_x, target_y)) in tqdm(enumerate(join_dataloader), total=len(join_dataloader)):
-
-            optimizerG.zero_grad()
+            optimizerGNet.zero_grad()
             optimizerEncoder.zero_grad()
             optimizerEncoderMLP.zero_grad()
 
@@ -375,23 +377,47 @@ for epoch in range(args.epochs):
 
             loss = args.sbinary_loss * criterion_probloss(fake_source_embedding, target_y, source_x_embedding, source_y)
             loss.backward()
-            optimizerG.step()
+            optimizerGNet.step()
             optimizerEncoderMLP.step()
             optimizerEncoder.step()
 
+
+        # pseudo random sampling
+        if pseudo_initial_finished:
+            for batch_id, ((source_x, source_y), (target_x, target_y)) in tqdm(enumerate(join_pseudo_dataloader), total=len(join_pseudo_dataloader)):
+                optimizerGNet.zero_grad()
+                optimizerEncoder.zero_grad()
+                optimizerEncoderMLP.zero_grad()
+
+                target_x = target_x.to(device).float()
+                target_y = target_y.to(device)
+                source_x = source_x.to(device).float()
+                source_y = source_y.to(device)
+
+                source_x_embedding = encoder_inference(encoder, encoder_MLP, source_x)
+                target_x_embedding = encoder_inference(encoder, encoder_MLP, target_x)
+                fake_source_embedding = GNet(target_x_embedding)
+
+                loss = args.sbinary_loss * criterion_probloss(fake_source_embedding, target_y, source_x_embedding, source_y)
+                loss.backward()
+                optimizerGNet.step()
+                optimizerEncoderMLP.step()
+                optimizerEncoder.step()
+
+
+        # sampling same class
         for batch_id in tqdm(range(len(join_dataloader))):
-            optimizerG.zero_grad()
+            optimizerGNet.zero_grad()
             optimizerEncoder.zero_grad()
             optimizerEncoderMLP.zero_grad()
 
-            target_x, target_y, target_weight = get_batch_target_data_on_class(target_dict, pesudo_dict, target_unlabel_x, args.num_per_class, no_pesudo=True)
-            source_x, source_y = get_batch_source_data_on_class(source_dict, args.num_per_class)
+            target_x, target_y, target_weight = get_batch_target_data_on_class(target_labeled_dict, args.num_per_class, pesudo_dict, no_pesudo=True)
+            source_x, source_y = get_batch_source_data_on_class(source_labeled_dict, args.num_per_class)
 
             source_x = torch.Tensor(source_x).to(device).float()
             target_x = torch.Tensor(target_x).to(device).float()
             source_y = torch.LongTensor(target_y).to(device)
             target_y = torch.LongTensor(target_y).to(device)
-#             target_weight = torch.Tensor(target_weight).to(device)
 
             source_x_embedding = encoder_inference(encoder, encoder_MLP, source_x)
             target_x_embedding = encoder_inference(encoder, encoder_MLP, target_x)
@@ -399,68 +425,76 @@ for epoch in range(args.epochs):
 
             loss = args.sbinary_loss * criterion_probloss(fake_source_embedding, target_y, source_x_embedding, source_y)
             loss.backward()
-            optimizerG.step()
+            optimizerGNet.step()
             optimizerEncoderMLP.step()
             optimizerEncoder.step()
 
 
-
     # eval
-    correct_target = 0.0
+    # source_domain
+    source_acc_unlabel = 0.0
     num_datas = 0.0
     CNet.eval()
     encoder.eval()
     encoder_MLP.eval()
-    GNet.eval()
-    for batch in range(math.ceil(target_unlabel_x.shape[0]/args.batch_size)):
-        target_unlabel_x_batch = torch.Tensor(target_unlabel_x[batch*args.batch_size:(batch+1)*args.batch_size]).to(device).float()
-        target_unlabel_y_batch = torch.Tensor(target_unlabel_y[batch*args.batch_size:(batch+1)*args.batch_size]).to(device)
-        num_datas += target_unlabel_x_batch.shape[0]
-        target_unlabel_x_embedding = encoder_inference(encoder, encoder_MLP, target_unlabel_x_batch)
-        fake_source_embedding = GNet(target_unlabel_x_embedding)
-        pred = CNet(fake_source_embedding)
-        correct_target += (pred.argmax(-1) == target_unlabel_y_batch).sum().item()
+    for batch_id, (source_x, source_y) in tqdm(enumerate(unlabeled_source_dataloader), total=len(unlabeled_source_dataloader)):
+        source_x = source_x.to(device).float()
+        source_y = source_y.to(device)
+        num_datas += source_x.shape[0]
+        source_x_embedding = encoder_inference(encoder, encoder_MLP, source_x)
+        pred = CNet(source_x_embedding)
+        source_acc_unlabel += (pred.argmax(-1) == source_y).sum().item()
 
-    target_unlabel_acc = correct_target/num_datas
-    target_acc_unlabel_.append(target_unlabel_acc)
+    source_acc_unlabel = source_acc_unlabel/num_datas
+    source_acc_unlabel_.append(source_acc_unlabel)
 
+    # target_domain
+    target_acc_unlabel = 0.0
+    num_datas = 0.0
+    CNet.eval()
+    encoder.eval()
+    encoder_MLP.eval()
+
+    target_pseudo_x = torch.empty(0).to(device)
+    target_pseudo_y = torch.empty(0).long().to(device)
+
+    for batch_id, (target_x, target_y) in tqdm(enumerate(unlabeled_target_dataloader), total=len(unlabeled_target_dataloader)):
+        target_x = target_x.to(device).float()
+        target_pseudo_x = torch.cat([target_pseudo_x, target_x]).to(device)
+        target_y = target_y.to(device)
+        num_datas += target_x.shape[0]
+        target_x_embedding = encoder_inference(encoder, encoder_MLP, target_x)
+        fake_x_embedding = GNet(target_x_embedding)
+        pred = CNet(fake_x_embedding)
+        target_acc_unlabel += (pred.argmax(-1) == target_y).sum().item()
+        target_pseudo_y = torch.cat([target_pseudo_y, pred.argmax(-1)]).to(device)
+
+    join_pseudo_dataset = JoinDataset(labeled_source_x, labeled_source_y, target_pseudo_x, target_pseudo_y, random=True)
+    join_pseudo_dataloader = DataLoader(join_pseudo_dataset, batch_size=args.batch_size, shuffle=True, num_workers=0)
+    pseudo_initial_finished = True
+
+    target_acc_unlabel = target_acc_unlabel/num_datas
+    target_acc_unlabel_.append(target_acc_unlabel)
 
     if epoch % args.model_save_period == 0:
-        torch.save(GNet.state_dict(), args.save_path+model_sub_folder+ '/GNet_%i.t7'%(epoch+1))
         torch.save(encoder.state_dict(), args.save_path+model_sub_folder+ '/encoder_%i.t7'%(epoch+1))
-        torch.save(encoder.state_dict(), args.save_path+model_sub_folder+ '/encoder_MLP%i.t7'%(epoch+1))
+        torch.save(encoder_MLP.state_dict(), args.save_path+model_sub_folder+ '/encoder_MLP%i.t7'%(epoch+1))
         torch.save(CNet.state_dict(), args.save_path+model_sub_folder+ '/CNet_%i.t7'%(epoch+1))
+        torch.save(GNet.state_dict(), args.save_path+model_sub_folder+ '/GNet_%i.t7'%(epoch+1))
+        torch.save(criterion_centerloss.state_dict(), args.save_path+model_sub_folder+ '/centerloss_%i.t7'%(epoch+1))
     if epoch == args.epoch_begin_prototype:
-        logger.info('Epochs %i (pass naive): source acc: %f; target labled acc: %f; target unlabeled acc: %f'%(epoch+1, source_acc, target_acc, target_unlabel_acc))
-
-    logger.info('Epochs %i: source acc: %f; target labled acc: %f; target unlabeled acc: %f'%(epoch+1, source_acc, target_acc, target_unlabel_acc))
-    np.save(args.save_path+model_sub_folder+'/source_acc_.npy',source_acc_)
-    np.save(args.save_path+model_sub_folder+'/target_acc_label_.npy',target_acc_label_)
-    np.save(args.save_path+model_sub_folder+'/target_acc_unlabel_.npy',target_acc_unlabel_)
-
-
-
-# In[12]:
+        logger.info('Epochs %i: Start prob. classifier'%(epoch+1))
+    logger.info('Epochs %i: src labeled acc: %f; src unlabeled acc: %f; tgt labeled acc: %f; tgt unlabeled acc: %f'%(epoch+1, source_acc_label, source_acc_unlabel, target_acc_label, target_acc_unlabel))
+    np.save(args.save_path+model_sub_folder+'/target_acc_label_.npy', target_acc_label_)
+    np.save(args.save_path+model_sub_folder+'/target_acc_unlabel_.npy', target_acc_unlabel_)
+    np.save(args.save_path+model_sub_folder+'/source_acc_label_.npy', source_acc_label_)
+    np.save(args.save_path+model_sub_folder+'/source_acc_unlabel_.npy', source_acc_unlabel_)
 
 
-pesudo_dict = {i:[] for i in range(num_class)}
 
 
-# In[13]:
+# In[ ]:
 
 
-target_x, target_y, target_weight = get_batch_target_data_on_class(target_dict, pesudo_dict, target_unlabel_x, args.num_per_class, no_pesudo=True)
-source_x, source_y = get_batch_source_data_on_class(source_dict, args.num_per_class)
 
-
-# In[14]:
-
-
-target_y
-
-
-# In[15]:
-
-
-source_y
 

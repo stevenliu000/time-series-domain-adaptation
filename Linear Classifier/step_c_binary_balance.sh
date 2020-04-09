@@ -2,8 +2,8 @@
 
 echo $1
 python step_c_binary_balance.py \
-    --data_path /home/weixinli \
-    --save_path /home/weixinli/time-series-domain-adaptation/train_related/3 \
+    --data_path /home/tianqinl/time-series-domain-adaptation/data_unzip \
+    --save_path /home/tianqinl/time-series-domain-adaptation/train_related \
     --epochs 500\
     --lbl_percentage 0.7 \
     --sclass 0.7 \
@@ -11,4 +11,4 @@ python step_c_binary_balance.py \
     --lr_centerloss 5e-3 \
     --scent 1e-4 \
     --sbinary_loss $1\
-    --epoch_begin_prototype 10
+    --epoch_begin_prototype 10\
