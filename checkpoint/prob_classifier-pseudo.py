@@ -384,7 +384,6 @@ for epoch in range(args.epochs):
 
         # pseudo random sampling
         if pseudo_initial_finished:
-            print("pseudo train")
             for batch_id, ((source_x, source_y), (target_x, target_y)) in tqdm(enumerate(join_pseudo_dataloader), total=len(join_pseudo_dataloader)):
                 optimizerGNet.zero_grad()
                 optimizerEncoder.zero_grad()
