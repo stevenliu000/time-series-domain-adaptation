@@ -80,7 +80,7 @@ args = parser.parse_args()
 # class local_args:
 #     def __init__(self, **entries):
 #         self.__dict__.update(entries)
-        
+
 # args = local_args(**{
 #     'data_path': '../data_unzip',
 #     'task': '3E',
@@ -129,8 +129,8 @@ device = torch.device('cuda:{}'.format(args.gpu_num) if torch.cuda.is_available(
 
 if args.num_per_class == -1:
     args.num_per_class = math.ceil(args.batch_size / num_class)
-    
-model_sub_folder = '/stepc_binary_balance_saved/task_%s_lrFNN_%f_sbinary_loss_%f'%(args.task, args.lr_FNN, args.sbinary_loss)
+
+model_sub_folder = '/stepc_binary_balance_randomed/task_%s_lrFNN_%f_sbinary_loss_%f'%(args.task, args.lr_FNN, args.sbinary_loss)
 
 if not os.path.exists(args.save_path+model_sub_folder):
     os.makedirs(args.save_path+model_sub_folder)
@@ -146,7 +146,7 @@ logger.setLevel(logging.INFO)
 
 if os.path.isfile(args.save_path+model_sub_folder+ '/logfile.log'):
     os.remove(args.save_path+model_sub_folder+ '/logfile.log')
-    
+
 file_log_handler = logging.FileHandler(args.save_path+model_sub_folder+ '/logfile.log')
 logger.addHandler(file_log_handler)
 
@@ -264,7 +264,7 @@ def compute_mean(samples, labels):
                          [0.0, 0.0]     #-> group / class 0
                   ])
     labels = torch.LongTensor([1, 2, 2, 0])
-    return 
+    return
         tensor([[0.0000, 0.0000],
                 [0.1000, 0.1000],
                 [0.3000, 0.3000]])
@@ -315,11 +315,11 @@ for epoch in range(args.epochs):
         optimizerCenterLoss.step()
         optimizerEncoderMLP.step()
         optimizerEncoder.step()
-        
+
     source_acc = source_acc / num_datas
     source_acc_.append(source_acc)
- 
-       
+
+
     # on target domain
     target_acc = 0.0
     num_datas = 0.0
@@ -327,9 +327,9 @@ for epoch in range(args.epochs):
     encoder.train()
     encoder_MLP.train()
     GNet.train()
-    
+
     for batch_id, (target_x, target_y) in tqdm(enumerate(target_dataloader), total=len(target_dataloader)):
-        
+
         optimizerCNet.zero_grad()
         optimizerG.zero_grad()
         optimizerEncoder.zero_grad()
@@ -347,12 +347,12 @@ for epoch in range(args.epochs):
         optimizerG.step()
         optimizerEncoder.step()
         optimizerEncoderMLP.step()
-    
+
     target_acc = target_acc / num_datas
     target_acc_label_.append(target_acc)
-    
-    
-    # with binary to train Generator 
+
+
+    # with binary to train Generator
     if epoch >= args.epoch_begin_prototype:
         encoder.train()
         encoder_MLP.train()
@@ -383,10 +383,10 @@ for epoch in range(args.epochs):
             optimizerG.zero_grad()
             optimizerEncoder.zero_grad()
             optimizerEncoderMLP.zero_grad()
-            
+
             target_x, target_y, target_weight = get_batch_target_data_on_class(target_dict, pesudo_dict, target_unlabel_x, args.num_per_class, no_pesudo=True)
             source_x, source_y = get_batch_source_data_on_class(source_dict, args.num_per_class)
-            
+
             source_x = torch.Tensor(source_x).to(device).float()
             target_x = torch.Tensor(target_x).to(device).float()
             source_y = torch.LongTensor(target_y).to(device)
@@ -396,16 +396,16 @@ for epoch in range(args.epochs):
             source_x_embedding = encoder_inference(encoder, encoder_MLP, source_x)
             target_x_embedding = encoder_inference(encoder, encoder_MLP, target_x)
             fake_source_embedding = GNet(target_x_embedding)
-            
+
             loss = args.sbinary_loss * criterion_probloss(fake_source_embedding, target_y, source_x_embedding, source_y)
             loss.backward()
             optimizerG.step()
             optimizerEncoderMLP.step()
             optimizerEncoder.step()
 
-            
-    
-    # eval    
+
+
+    # eval
     correct_target = 0.0
     num_datas = 0.0
     CNet.eval()
@@ -420,11 +420,11 @@ for epoch in range(args.epochs):
         fake_source_embedding = GNet(target_unlabel_x_embedding)
         pred = CNet(fake_source_embedding)
         correct_target += (pred.argmax(-1) == target_unlabel_y_batch).sum().item()
-        
+
     target_unlabel_acc = correct_target/num_datas
     target_acc_unlabel_.append(target_unlabel_acc)
-    
-    
+
+
     if epoch % args.model_save_period == 0:
         torch.save(GNet.state_dict(), args.save_path+model_sub_folder+ '/GNet_%i.t7'%(epoch+1))
         torch.save(encoder.state_dict(), args.save_path+model_sub_folder+ '/encoder_%i.t7'%(epoch+1))
@@ -432,12 +432,12 @@ for epoch in range(args.epochs):
         torch.save(CNet.state_dict(), args.save_path+model_sub_folder+ '/CNet_%i.t7'%(epoch+1))
     if epoch == args.epoch_begin_prototype:
         logger.info('Epochs %i (pass naive): source acc: %f; target labled acc: %f; target unlabeled acc: %f'%(epoch+1, source_acc, target_acc, target_unlabel_acc))
- 
+
     logger.info('Epochs %i: source acc: %f; target labled acc: %f; target unlabeled acc: %f'%(epoch+1, source_acc, target_acc, target_unlabel_acc))
     np.save(args.save_path+model_sub_folder+'/source_acc_.npy',source_acc_)
     np.save(args.save_path+model_sub_folder+'/target_acc_label_.npy',target_acc_label_)
     np.save(args.save_path+model_sub_folder+'/target_acc_unlabel_.npy',target_acc_unlabel_)
-    
+
 
 
 # In[12]:
