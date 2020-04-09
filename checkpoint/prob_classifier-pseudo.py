@@ -471,7 +471,7 @@ for epoch in range(args.epochs):
         target_pseudo_y = torch.cat([target_pseudo_y, pred.argmax(-1)]).to(device)
 
     join_pseudo_dataset = JoinDataset(labeled_source_x, labeled_source_y, target_pseudo_x, target_pseudo_y, random=True)
-    join_pseudo_dataloader = DataLoader(join_pseudo_dataset, batch_size=args.batch_size, shuffle=True, pin_memory=True, num_workers=0)
+    join_pseudo_dataloader = DataLoader(join_pseudo_dataset, batch_size=args.batch_size, shuffle=True, num_workers=0)
     pseudo_initial_finished = True
 
     target_acc_unlabel = target_acc_unlabel/num_datas
