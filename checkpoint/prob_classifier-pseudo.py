@@ -76,41 +76,41 @@ args = parser.parse_args()
 # In[4]:
 
 
-# local only
-class local_args:
-    def __init__(self, **entries):
-        self.__dict__.update(entries)
+# # local only
+# class local_args:
+#     def __init__(self, **entries):
+#         self.__dict__.update(entries)
         
-args = local_args(**{
-    'data_path': '../data_unzip',
-    'task': '3E',
-    'num_class': 50,
-    'batch_size': 100,
-    'num_per_class': -1,
-    'gap': 5,
-    'lbl_percentage':0.7,
-    'source_lbl_percentage': 0.7,
-    'target_lbl_percentage': 0.7,
-    'lr_gan': 1e-4,
-    'lr_FNN': 1e-4,
-    'lr_encoder': 1e-4,
-    'epochs': 2,
-    'clip_value': 0.01,
-    'n_critic': 4,
-    'sclass': 0.7,
-    'scent': 1e-2,
-    'seed': None,
-    'save_path': '../train_related',
-    'model_save_period': 1,
-    'lr_centerloss': 1e-3,
-    'lr_prototype': 1e-3,
-    'sprototype': 1e-2,
-    'seed': 0,
-    'select_pretrain_epoch': 77,
-    'epoch_begin_prototype': 0,
-    'sbinary_loss': 1,
-    'spseudo': 0.8,
-})
+# args = local_args(**{
+#     'data_path': '../data_unzip',
+#     'task': '3E',
+#     'num_class': 50,
+#     'batch_size': 100,
+#     'num_per_class': -1,
+#     'gap': 5,
+#     'lbl_percentage':0.7,
+#     'source_lbl_percentage': 0.7,
+#     'target_lbl_percentage': 0.7,
+#     'lr_gan': 1e-4,
+#     'lr_FNN': 1e-4,
+#     'lr_encoder': 1e-4,
+#     'epochs': 2,
+#     'clip_value': 0.01,
+#     'n_critic': 4,
+#     'sclass': 0.7,
+#     'scent': 1e-2,
+#     'seed': None,
+#     'save_path': '../train_related',
+#     'model_save_period': 1,
+#     'lr_centerloss': 1e-3,
+#     'lr_prototype': 1e-3,
+#     'sprototype': 1e-2,
+#     'seed': 0,
+#     'select_pretrain_epoch': 77,
+#     'epoch_begin_prototype': 0,
+#     'sbinary_loss': 1,
+#     'spseudo': 0.8,
+# })
 
 
 # In[18]:
