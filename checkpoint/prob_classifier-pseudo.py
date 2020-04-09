@@ -68,6 +68,9 @@ parser.add_argument('--model_save_period', type=int, default=2, help='period in 
 parser.add_argument('--sbinary_loss', type=float, default=1.0, help='weight for binary loss')
 parser.add_argument('--epoch_begin_prototype', type=int, default=10, help='starting point to train on prob classifier.')
 parser.add_argument('--spseudo', type=float, default=0.8, help='weight for pseudo label.')
+parser.add_argument('--pre_trained_path', type=str, default='', help='path for pre-trained weight')
+parser.add_argument('--pre_trained_epoch', type=int, default=759, help='epoch for pre-trained weight')
+
 
 
 args = parser.parse_args()
@@ -251,6 +254,13 @@ optimizerEncoderMLP = torch.optim.Adam(encoder_MLP.parameters(), lr=args.lr_enco
 optimizerEncoder = torch.optim.Adam(encoder.parameters(), lr=args.lr_encoder)
 optimizerGNet = torch.optim.Adam(GNet.parameters(), lr=args.lr_gan)
 optimizerCenterLoss = torch.optim.Adam(criterion_centerloss.parameters(), lr=args.lr_centerloss)
+
+if args.pre_trained_path != '':
+    encoder.load_state_dict(torch.load(args.pre_trained_path+'/encoder_%i.t7'%args.pre_trained_epoch))
+    encoder_MLP.load_state_dict(torch.load(args.pre_trained_path+'/encoder_MLP_%i.t7'%args.pre_trained_epoch))
+    CNet.load_state_dict(torch.load(args.pre_trained_path+'/CNet_%i.t7'%args.pre_trained_epoch))
+    GNet.load_state_dict(torch.load(args.pre_trained_path+'/GNet_%i.t7'%args.pre_trained_epoch))
+    logger.info("Model loaded at epoch %i"%args.pre_trained_epoch)
 
 
 # In[10]:
