@@ -70,7 +70,7 @@ parser.add_argument('--epoch_begin_prototype', type=int, default=10, help='start
 args = parser.parse_args()
 
 
-# In[5]:
+# In[4]:
 
 
 # # local only
@@ -109,7 +109,7 @@ args = parser.parse_args()
 # })
 
 
-# In[7]:
+# In[5]:
 
 
 device = torch.device('cuda:{}'.format(args.gpu_num) if torch.cuda.is_available() else 'cpu')
@@ -139,7 +139,7 @@ pesudo_dict = {i:[] for i in range(num_class)}
 
 # # Logger
 
-# In[8]:
+# In[6]:
 
 
 logger = logging.getLogger()
@@ -162,7 +162,7 @@ for item in attrs.items():
 # # Data Loading
 # 
 
-# In[9]:
+# In[7]:
 
 
 labeled_target_x_filename = '/processed_file_not_one_hot_%s_%1.1f_target_known_label_x.npy'%(args.task, args.target_lbl_percentage)
@@ -200,7 +200,7 @@ target_labeled_dict = get_class_data_dict(labeled_target_x, labeled_target_y, nu
 
 # # Weight initialize
 
-# In[10]:
+# In[8]:
 
 
 def weights_init(m):
@@ -213,7 +213,7 @@ def weights_init(m):
 
 # # Model creation
 
-# In[11]:
+# In[9]:
 
 
 device = torch.device('cuda:{}'.format(args.gpu_num) if torch.cuda.is_available() else 'cpu')
@@ -249,7 +249,7 @@ optimizerGNet = torch.optim.Adam(GNet.parameters(), lr=args.lr_gan)
 optimizerCenterLoss = torch.optim.Adam(criterion_centerloss.parameters(), lr=args.lr_centerloss)
 
 
-# In[12]:
+# In[10]:
 
 
 def classifier_inference(encoder, CNet, x):
@@ -261,7 +261,7 @@ def classifier_inference(encoder, CNet, x):
     return pred
 
 
-# In[13]:
+# In[11]:
 
 
 def encoder_inference(encoder, encoder_MLP, x):
@@ -285,66 +285,66 @@ def encoder_inference(encoder, encoder_MLP, x):
 
 
 
-# In[17]:
+# In[12]:
 
 
-target_pseudo_x = torch.empty(0).to(device)
-target_pseudo_y = torch.empty(0).long().to(device)
-num_datas = 0
-for batch_id, (target_x, target_y) in tqdm(enumerate(unlabeled_target_dataloader), total=len(unlabeled_target_dataloader)):
-    target_x = target_x.to(device).float()
-    target_pseudo_x = torch.cat([target_pseudo_x, target_x]).to(device)
-    target_y = target_y.to(device)
-    num_datas += target_x.shape[0]
-    target_x_embedding = encoder_inference(encoder, encoder_MLP, target_x)
-    fake_x_embedding = GNet(target_x_embedding)
-    pred = CNet(fake_x_embedding)
-    #target_acc_unlabel += (pred.argmax(-1) == target_y).sum().item()
-    target_pseudo_y = torch.cat([target_pseudo_y, pred.argmax(-1)]).to(device)
+# target_pseudo_x = torch.empty(0).to(device)
+# target_pseudo_y = torch.empty(0).long().to(device)
+# num_datas = 0
+# for batch_id, (target_x, target_y) in tqdm(enumerate(unlabeled_target_dataloader), total=len(unlabeled_target_dataloader)):
+#     target_x = target_x.to(device).float()
+#     target_pseudo_x = torch.cat([target_pseudo_x, target_x]).to(device)
+#     target_y = target_y.to(device)
+#     num_datas += target_x.shape[0]
+#     target_x_embedding = encoder_inference(encoder, encoder_MLP, target_x)
+#     fake_x_embedding = GNet(target_x_embedding)
+#     pred = CNet(fake_x_embedding)
+#     #target_acc_unlabel += (pred.argmax(-1) == target_y).sum().item()
+#     target_pseudo_y = torch.cat([target_pseudo_y, pred.argmax(-1)]).to(device)
 
 
-# In[23]:
+# In[13]:
 
 
-join_pseudo_dataset = JoinDataset(labeled_source_x, labeled_source_y, target_pseudo_x, target_pseudo_y, random=True)
-join_pseudo_dataloader = DataLoader(join_pseudo_dataset, batch_size=args.batch_size, shuffle=True, pin_memory=True, num_workers=4)
+# join_pseudo_dataset = JoinDataset(labeled_source_x, labeled_source_y, target_pseudo_x, target_pseudo_y, random=True)
+# join_pseudo_dataloader = DataLoader(join_pseudo_dataset, batch_size=args.batch_size, shuffle=True, pin_memory=True, num_workers=4)
 
 
-# In[ ]:
+# In[14]:
 
 
 
-join_pseudo_dataset = JoinDataset(labeled_source_x, labeled_source_y, target_pseudo_x, target_pseudo_y, random=True)
-join_pseudo_dataloader = DataLoader(join_pseudo_dataset, batch_size=args.batch_size, shuffle=True, pin_memory=True, num_workers=4)
+# join_pseudo_dataset = JoinDataset(labeled_source_x, labeled_source_y, target_pseudo_x, target_pseudo_y, random=True)
+# join_pseudo_dataloader = DataLoader(join_pseudo_dataset, batch_size=args.batch_size, shuffle=True, pin_memory=True, num_workers=4)
 
 
-# In[24]:
+# In[15]:
 
 
-for batch_id, ((source_x, source_y), (target_x, target_y)) in tqdm(enumerate(join_pseudo_dataloader), total=len(join_pseudo_dataloader)):
-    optimizerGNet.zero_grad()
-    optimizerEncoder.zero_grad()
-    optimizerEncoderMLP.zero_grad()
+# for batch_id, ((source_x, source_y), (target_x, target_y)) in tqdm(enumerate(join_pseudo_dataloader), total=len(join_pseudo_dataloader)):
+#     optimizerGNet.zero_grad()
+#     optimizerEncoder.zero_grad()
+#     optimizerEncoderMLP.zero_grad()
 
-    target_x = target_x.to(device).float()
-    target_y = target_y.to(device)
-    source_x = source_x.to(device).float()
-    source_y = source_y.to(device)
+#     target_x = target_x.to(device).float()
+#     target_y = target_y.to(device)
+#     source_x = source_x.to(device).float()
+#     source_y = source_y.to(device)
 
-    source_x_embedding = encoder_inference(encoder, encoder_MLP, source_x)
-    target_x_embedding = encoder_inference(encoder, encoder_MLP, target_x)
-    fake_source_embedding = GNet(target_x_embedding)
+#     source_x_embedding = encoder_inference(encoder, encoder_MLP, source_x)
+#     target_x_embedding = encoder_inference(encoder, encoder_MLP, target_x)
+#     fake_source_embedding = GNet(target_x_embedding)
 
-    loss = args.sbinary_loss * criterion_probloss(fake_source_embedding, target_y, source_x_embedding, source_y)
-    loss.backward()
-    optimizerGNet.step()
-    optimizerEncoderMLP.step()
-    optimizerEncoder.step()
+#     loss = args.sbinary_loss * criterion_probloss(fake_source_embedding, target_y, source_x_embedding, source_y)
+#     loss.backward()
+#     optimizerGNet.step()
+#     optimizerEncoderMLP.step()
+#     optimizerEncoder.step()
 
 
 # # Train
 
-# In[ ]:
+# In[16]:
 
 
 source_acc_label_ = []
@@ -381,6 +381,7 @@ for epoch in range(args.epochs):
         optimizerCenterLoss.step()
         optimizerEncoderMLP.step()
         optimizerEncoder.step()
+        break
         
         
         
@@ -411,6 +412,7 @@ for epoch in range(args.epochs):
         optimizerGNet.step()
         optimizerEncoderMLP.step()
         optimizerEncoder.step()
+        break
     
         
         
@@ -534,7 +536,7 @@ for epoch in range(args.epochs):
         target_pseudo_y = torch.cat([target_pseudo_y, pred.argmax(-1)]).to(device)
     
     join_pseudo_dataset = JoinDataset(labeled_source_x, labeled_source_y, target_pseudo_x, target_pseudo_y, random=True)
-    join_pseudo_dataloader = DataLoader(join_pseudo_dataset, batch_size=args.batch_size, shuffle=True, pin_memory=True, num_workers=4)
+    join_pseudo_dataloader = DataLoader(join_pseudo_dataset, batch_size=args.batch_size, shuffle=True, pin_memory=True, num_workers=0)
     pseudo_initial_finished = True
     
     target_acc_unlabel = target_acc_unlabel/num_datas
