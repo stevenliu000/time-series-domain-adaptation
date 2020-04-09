@@ -113,7 +113,7 @@ args = parser.parse_args()
 # })
 
 
-# In[18]:
+# In[20]:
 
 
 device = torch.device('cuda:{}'.format(args.gpu_num) if torch.cuda.is_available() else 'cpu')
@@ -133,7 +133,7 @@ device = torch.device('cuda:{}'.format(args.gpu_num) if torch.cuda.is_available(
 if args.num_per_class == -1:
     args.num_per_class = math.ceil(args.batch_size / num_class)
     
-model_sub_folder = '/prob_classifier_pseudo_weight/task_%s_slp_%f_tlp_%f_sclass_%f_scent_%f_sbinary_loss_%f'%(args.task, args.source_lbl_percentage, args.target_lbl_percentage, args.sclass, args.scent, args.sbinary_loss)
+model_sub_folder = '/prob_classifier_pseudo_weight/task_%s_slp_%f_tlp_%f_sclass_%f_scent_%f_sbinary_loss_%f_spseudo_%f'%(args.task, args.source_lbl_percentage, args.target_lbl_percentage, args.sclass, args.scent, args.sbinary_loss, args.spseudo)
 
 if not os.path.exists(args.save_path+model_sub_folder):
     os.makedirs(args.save_path+model_sub_folder)
