@@ -13,6 +13,8 @@ class BinaryLoss(torch.nn.Module):
     def __init__(self, device):
         super().__init__()
         self.device = device
+        self.sigmoid = nn.Sigmoid()
+        self.BCE = nn.BCELoss()
     
 
     def forward(self, target_x_embedding, target_y, source_x_embedding, source_y):
@@ -36,9 +38,7 @@ class BinaryLoss(torch.nn.Module):
         logit_all = torch.sum(target_x_embedding_rand * sourece_x_embedding_rand, axis=1)
         # same class label 1, else 0
         class_same = (target_y_rand == source_y_rand).float()
-        m = nn.Sigmoid()
-        loss = nn.BCELoss()
-        output = loss(m(logit_all), class_same)
+        output = self.BCE(self.sigmoid(logit_all), class_same)
         return output
 
 
