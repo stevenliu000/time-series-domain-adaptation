@@ -218,7 +218,7 @@ encoder = ComplexTransformer(layers=3,
                                num_heads=8,
                                out_dropout=0.2,
                                leaky_slope=0.2).to(device)
-encoder_MLP = FNNSeparated(d_in=64 * 2 * 1, d_h1=500, d_h2=64*2, dp=0.2).to(device)
+encoder_MLP = FNNSeparated(d_in=64 * 2 * 1, d_h1=64*4, d_h2=64*2, dp=0.2).to(device)
 CNet = FNNLinear(d_h2=64*2, d_out=num_class).to(device)
 GNet = Generator(dim=64*2).to(device)
 
