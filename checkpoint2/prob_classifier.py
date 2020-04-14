@@ -351,8 +351,7 @@ for epoch in range(args.epochs):
         encoder.train()
         encoder_MLP.train()
         GNet.train()
-            
-        # sampling same class    
+              
         # TODO: fix range 
         for batch_id in tqdm(range(len(join_dataloader))):
             optimizerGNet.zero_grad()
@@ -371,7 +370,7 @@ for epoch in range(args.epochs):
             target_x_embedding = encoder_inference(encoder, encoder_MLP, target_x)
             fake_source_embedding = GNet(target_x_embedding)
             
-            loss = args.sbinary_loss * criterion_probloss(fake_x_embedding, source_x_embedding, num_class, args.num_per_class)
+            loss = args.sbinary_loss * criterion_probloss(fake_source_embedding, source_x_embedding, num_class, args.num_per_class)
             loss.backward()
             optimizerGNet.step()
             optimizerEncoderMLP.step()
