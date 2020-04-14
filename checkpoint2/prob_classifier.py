@@ -311,7 +311,6 @@ for epoch in range(args.epochs):
         optimizerCenterLoss.step()
         optimizerEncoderMLP.step()
         optimizerEncoder.step()
-        break
         
     source_acc_label = source_acc_label / num_datas
     source_acc_label_.append(source_acc_label)
@@ -341,7 +340,6 @@ for epoch in range(args.epochs):
         optimizerGNet.step()
         optimizerEncoderMLP.step()
         optimizerEncoder.step()
-        break
         
     target_acc_label = target_acc_label / num_datas
     target_acc_label_.append(target_acc_label)
