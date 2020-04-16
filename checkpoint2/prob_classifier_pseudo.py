@@ -394,7 +394,7 @@ for epoch in range(args.epochs):
             target_x_embedding = encoder_inference(encoder, encoder_MLP, target_x)
             fake_source_embedding = GNet(target_x_embedding)
             
-            pseudo_weight = max(args.pseudo_weight * target_acc_label / 0.9, args.pseudo_weight)
+            pseudo_weight = min(args.pseudo_weight * target_acc_label / 0.9, args.pseudo_weight)
             loss = pseudo_weight * args.sbinary_loss * criterion_probloss(fake_source_embedding, source_x_embedding, num_class, args.num_per_class)
             loss.backward()
             optimizerGNet.step()
