@@ -66,6 +66,7 @@ parser.add_argument('--seed', type=int, default=0, help='manual seed')
 parser.add_argument('--save_path', type=str, help='where to store data')
 parser.add_argument('--model_save_period', type=int, default=2, help='period in which the model is saved')
 parser.add_argument('--epoch_begin_prototype', type=int, default=20, help='initial training period')
+parser.add_argument('--sprototype', type=float, default=1e-1, help='initial training period')
 
 
 args = parser.parse_args()
