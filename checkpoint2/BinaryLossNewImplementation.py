@@ -1,7 +1,7 @@
 
 # coding: utf-8
 
-# In[ ]:
+# In[1]:
 
 
 import torch
@@ -13,7 +13,7 @@ class BinaryLossNewImplementation(nn.Module):
         super(BinaryLossNewImplementation, self).__init__()
         self.device = device    
 
-    def forward(self, fake_x_embedding, source_x_embedding, num_class, num_per_class):
+    def forward(self, fake_x_embedding, source_x_embedding, num_class, num_per_class, mask=None):
         """
         fake_x_embedding:  [x1, x1, x1, ..., x2, x2, x2, ..., xn, xn, xn, ...]
         source_x_embedding: [x1, x1, x1, ..., x2, x2, x2, ..., xn, xn, xn, ...]
@@ -21,7 +21,10 @@ class BinaryLossNewImplementation(nn.Module):
         
         for each class, data repeats num_per_class times.
         """
-        
+        if mask == None: 
+            mask = torch.ones([num_per_class * num_class, num_per_class * num_class]).to(self.device)
+        else:
+            mask = mask.to(self.device)
         labels = torch.zeros([num_per_class * num_class, num_per_class * num_class])
         for i in range(num_class):
             labels[i*num_per_class:(i+1)*num_per_class, i*num_per_class:(i+1)*num_per_class] = 1
@@ -33,6 +36,7 @@ class BinaryLossNewImplementation(nn.Module):
         zeros_weights = (1 - labels) / zeros_l1_norm
         weights = ones_weights + zeros_weights
         weights = weights.to(self.device)
+        weights = weights * mask
         
         logits = torch.matmul(fake_x_embedding, source_x_embedding.transpose(0,1))
         # weights already includes the normalization term
