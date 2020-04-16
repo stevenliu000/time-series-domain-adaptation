@@ -66,6 +66,7 @@ parser.add_argument('--seed', type=int, default=0, help='manual seed')
 parser.add_argument('--save_path', type=str, help='where to store data')
 parser.add_argument('--model_save_period', type=int, default=2, help='period in which the model is saved')
 parser.add_argument('--epoch_begin_prototype', type=int, default=20, help='initial training period')
+parser.add_argument('--sprototype', type=float, default=1e-1, help='initial training period')
 
 
 args = parser.parse_args()
@@ -131,7 +132,7 @@ device = torch.device('cuda:{}'.format(args.gpu_num) if torch.cuda.is_available(
 if args.num_per_class == -1:
     args.num_per_class = math.ceil(args.batch_size / num_class)
     
-model_sub_folder = '/checkpoint2_prototype/naive_adaption/task_%s_slp_%f_tlp_%f_sclass_%f_scent_%f'%(args.task, args.source_lbl_percentage, args.target_lbl_percentage, args.sclass, args.scent)
+model_sub_folder = '/checkpoint2_prototype/naive_adaption/task_%s_slp_%f_tlp_%f_sclass_%f_scent_%f_sprototype_%f'%(args.task, args.source_lbl_percentage, args.target_lbl_percentage, args.sclass, args.scent, args.sprototype)
 
 if not os.path.exists(args.save_path+model_sub_folder):
     os.makedirs(args.save_path+model_sub_folder)
