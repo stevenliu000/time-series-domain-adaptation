@@ -68,7 +68,7 @@ parser.add_argument('--save_path', type=str, help='where to store data')
 parser.add_argument('--model_save_period', type=int, default=2, help='period in which the model is saved')
 parser.add_argument('--sbinary_loss', type=float, default=1.0, help='weight for binary loss')
 parser.add_argument('--epoch_begin_prototype', type=int, default=10, help='starting point to train on prob classifier.')
-parser.add_argument('--pseudo_weight', type=int, default=0.5, help='pseudo weight for prob. classifier')
+parser.add_argument('--pseudo_weight', type=float, default=0.5, help='pseudo weight for prob. classifier')
 
 args = parser.parse_args()
 
@@ -394,7 +394,8 @@ for epoch in range(args.epochs):
             target_x_embedding = encoder_inference(encoder, encoder_MLP, target_x)
             fake_source_embedding = GNet(target_x_embedding)
             
-            loss = args.pseudo_weight * args.sbinary_loss * criterion_probloss(fake_source_embedding, source_x_embedding, num_class, args.num_per_class)
+            pseudo_weight = max(args.pseudo_weight * target_acc_label / 0.9, args.pseudo_weight)
+            loss = pseudo_weight * args.sbinary_loss * criterion_probloss(fake_source_embedding, source_x_embedding, num_class, args.num_per_class)
             loss.backward()
             optimizerGNet.step()
             optimizerEncoderMLP.step()
