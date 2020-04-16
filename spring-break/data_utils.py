@@ -106,6 +106,7 @@ def get_batch_target_data_on_class(real_dict, num_per_class, pesudo_dict, unlabe
         num_in_class = real_num + pesudo_num
 
         if no_pesudo:
+            # known label data only
             index = random.sample(range(100000000000), num_per_class)
             index = [i % real_num for i in index]
             batch_x.extend(real_dict[key][index])
@@ -113,36 +114,32 @@ def get_batch_target_data_on_class(real_dict, num_per_class, pesudo_dict, unlabe
             batch_weight.extend([real_weight] * num_per_class)
 
         else:
-            if num_in_class < num_per_class:
-                # if totoal number sample in this class is less than the required number of sample
-                # then fetch the remainding data duplicatly from the labeled set
-                
-                num_fetch_unlabeled = (num_in_class - num_per_class)
-                index = np.random.choice(real_num, num_fetch_unlabeled)
-                batch_x.extend(real_dict[key][index])
-                batch_y.extend([key] * num_fetch_unlabeled)
-                batch_weight.extend([real_weight] * num_fetch_unlabeled)
-
-                batch_x.extend(real_dict[key])
-                batch_weight.extend([real_weight] * real_num)
-                batch_x.extend(pesudo_dict[key])
-                batch_weight.extend([pesudo_weight] * pesudo_num)
-                batch_y.extend([key] * num_in_class)
-
-            else:
-                index = random.sample(range(num_in_class), num_per_class)
-                index_in_real = []
-                index_in_pesudo = []
-                for i in index:
-                    if i >= real_num:
-                        index_in_pesudo.append(i-real_num)
-                    else:
-                        index_in_real.append(i)
-
-                batch_x.extend(real_dict[key][index_in_real])
-                batch_weight.extend([real_weight] * len(index_in_real))
-                batch_x.extend(pesudo_dict[key][index_in_pesudo])
-                batch_weight.extend([pesudo_weight] * len(index_in_pesudo))
+            not_enough_pesudo = num_per_class - pesudo_num
+            if not_enough_pesudo <= 0:
+                # have enough label data in this class
+                index = np.random.permutation(pesudo_num)[:num_per_class]
+                batch_x.extend(pesudo_dict[key][index])
                 batch_y.extend([key] * num_per_class)
+                batch_weight.extend([pesudo_weight] * num_per_class)
+            elif pesudo_num == 0:
+                # no pesudo label at this class
+                # use all known label data
+                index = random.sample(range(100000000000), num_per_class)
+                index = [i % real_num for i in index]
+                batch_x.extend(real_dict[key][index])
+                batch_y.extend([key] * num_per_class)
+                batch_weight.extend([real_weight] * num_per_class)
+            else:
+                # have pesudo label at this class, but not enough
+                # use known label data to fill the rest
+                index_pesudo = np.random.permutation(pesudo_num)
+                batch_x.extend(pesudo_dict[key][index_pesudo])
+                batch_weight.extend([pesudo_weight] * pesudo_num)
+                index_known = random.sample(range(100000000000), not_enough_pesudo)
+                index_known = [i % real_num for i in index_known]
+                batch_x.extend(real_dict[key][index_known])
+                batch_weight.extend([real_weight] * not_enough_pesudo)
+                batch_y.extend([key] * num_per_class)
+                
 
     return np.array(batch_x), np.array(batch_y), np.array(batch_weight)
