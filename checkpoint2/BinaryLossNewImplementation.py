@@ -13,7 +13,7 @@ class BinaryLossNewImplementation(nn.Module):
         super(BinaryLossNewImplementation, self).__init__()
         self.device = device    
 
-    def forward(self, fake_x_embedding, source_x_embedding, num_class, num_per_class, mask=-1):
+    def forward(self, fake_x_embedding, source_x_embedding, num_class, num_per_class, mask=None):
         """
         fake_x_embedding:  [x1, x1, x1, ..., x2, x2, x2, ..., xn, xn, xn, ...]
         source_x_embedding: [x1, x1, x1, ..., x2, x2, x2, ..., xn, xn, xn, ...]
@@ -21,10 +21,14 @@ class BinaryLossNewImplementation(nn.Module):
         
         for each class, data repeats num_per_class times.
         """
-        if mask == -1: 
-            mask = torch.ones([num_per_class * num_class, num_per_class * num_class]).to(self.device)
-        else:
+        if type(mask) == torch.Tensor:
             mask = mask.to(self.device)
+        elif type(mask) == numpy.ndarray:
+            mask = torch.LongTensor(mask).to(device)
+        else:
+            mask = torch.ones([num_per_class * num_class, num_per_class * num_class]).to(self.device)
+        assert mask.shape == torch.Size([num_per_class * num_class, num_per_class * num_class])
+        
         labels = torch.zeros([num_per_class * num_class, num_per_class * num_class])
         for i in range(num_class):
             labels[i*num_per_class:(i+1)*num_per_class, i*num_per_class:(i+1)*num_per_class] = 1
