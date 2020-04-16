@@ -7,6 +7,7 @@
 import torch
 from torch import nn
 import torch.nn.functional as F
+import numpy as np
 
 class BinaryLossNewImplementation(nn.Module):
     def __init__(self, device):
@@ -23,7 +24,7 @@ class BinaryLossNewImplementation(nn.Module):
         """
         if type(mask) == torch.Tensor:
             mask = mask.to(self.device)
-        elif type(mask) == numpy.ndarray:
+        elif type(mask) == np.ndarray:
             mask = torch.LongTensor(mask).to(device)
         else:
             mask = torch.ones([num_per_class * num_class, num_per_class * num_class]).to(self.device)
