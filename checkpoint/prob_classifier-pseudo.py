@@ -43,7 +43,7 @@ from binaryloss import BinaryLoss
 
 # # Parser
 
-# In[3]:
+# In[17]:
 
 
 # Parameters
@@ -67,17 +67,23 @@ parser.add_argument('--save_path', type=str, help='where to store data')
 parser.add_argument('--model_save_period', type=int, default=2, help='period in which the model is saved')
 parser.add_argument('--sbinary_loss', type=float, default=1.0, help='weight for binary loss')
 parser.add_argument('--epoch_begin_prototype', type=int, default=10, help='starting point to train on prob classifier.')
+parser.add_argument('--spseudo', type=float, default=0.8, help='weight for pseudo label.')
+parser.add_argument('--pre_trained_path', type=str, default='', help='path for pre-trained weight')
+parser.add_argument('--pre_trained_epoch', type=int, default=759, help='epoch for pre-trained weight')
+
+
+
 args = parser.parse_args()
 
 
-# In[3]:
+# In[4]:
 
 
 # # local only
 # class local_args:
 #     def __init__(self, **entries):
 #         self.__dict__.update(entries)
-
+        
 # args = local_args(**{
 #     'data_path': '../data_unzip',
 #     'task': '3E',
@@ -104,12 +110,13 @@ args = parser.parse_args()
 #     'sprototype': 1e-2,
 #     'seed': 0,
 #     'select_pretrain_epoch': 77,
-#     'epoch_begin_prototype': 10,
+#     'epoch_begin_prototype': 0,
 #     'sbinary_loss': 1,
+#     'spseudo': 0.8,
 # })
 
 
-# In[11]:
+# In[20]:
 
 
 device = torch.device('cuda:{}'.format(args.gpu_num) if torch.cuda.is_available() else 'cpu')
@@ -128,18 +135,18 @@ device = torch.device('cuda:{}'.format(args.gpu_num) if torch.cuda.is_available(
 
 if args.num_per_class == -1:
     args.num_per_class = math.ceil(args.batch_size / num_class)
-
-model_sub_folder = '/checkpoint_prob_classifier/task_%s_slp_%f_tlp_%f_sclass_%f_scent_%f_sbinary_loss_%f'%(args.task, args.source_lbl_percentage, args.target_lbl_percentage, args.sclass, args.scent, args.sbinary_loss)
+    
+model_sub_folder = '/prob_classifier_pseudo_weight/task_%s_slp_%f_tlp_%f_sclass_%f_scent_%f_sbinary_loss_%f_spseudo_%f'%(args.task, args.source_lbl_percentage, args.target_lbl_percentage, args.sclass, args.scent, args.sbinary_loss, args.spseudo)
 
 if not os.path.exists(args.save_path+model_sub_folder):
     os.makedirs(args.save_path+model_sub_folder)
-
+    
 pesudo_dict = {i:[] for i in range(num_class)}
 
 
 # # Logger
 
-# In[6]:
+# In[19]:
 
 
 logger = logging.getLogger()
@@ -147,7 +154,7 @@ logger.setLevel(logging.INFO)
 
 if os.path.isfile(args.save_path+model_sub_folder+ '/logfile.log'):
     os.remove(args.save_path+model_sub_folder+ '/logfile.log')
-
+    
 file_log_handler = logging.FileHandler(args.save_path+model_sub_folder+ '/logfile.log')
 logger.addHandler(file_log_handler)
 
@@ -160,9 +167,9 @@ for item in attrs.items():
 
 
 # # Data Loading
-#
+# 
 
-# In[8]:
+# In[7]:
 
 
 labeled_target_x_filename = '/processed_file_not_one_hot_%s_%1.1f_target_known_label_x.npy'%(args.task, args.target_lbl_percentage)
@@ -200,7 +207,7 @@ target_labeled_dict = get_class_data_dict(labeled_target_x, labeled_target_y, nu
 
 # # Weight initialize
 
-# In[ ]:
+# In[8]:
 
 
 def weights_init(m):
@@ -213,7 +220,7 @@ def weights_init(m):
 
 # # Model creation
 
-# In[ ]:
+# In[9]:
 
 
 device = torch.device('cuda:{}'.format(args.gpu_num) if torch.cuda.is_available() else 'cpu')
@@ -248,8 +255,15 @@ optimizerEncoder = torch.optim.Adam(encoder.parameters(), lr=args.lr_encoder)
 optimizerGNet = torch.optim.Adam(GNet.parameters(), lr=args.lr_gan)
 optimizerCenterLoss = torch.optim.Adam(criterion_centerloss.parameters(), lr=args.lr_centerloss)
 
+if args.pre_trained_path != '':
+    encoder.load_state_dict(torch.load(args.pre_trained_path+'/encoder_%i.t7'%args.pre_trained_epoch))
+    encoder_MLP.load_state_dict(torch.load(args.pre_trained_path+'/encoder_MLP%i.t7'%args.pre_trained_epoch))
+    CNet.load_state_dict(torch.load(args.pre_trained_path+'/CNet_%i.t7'%args.pre_trained_epoch))
+    GNet.load_state_dict(torch.load(args.pre_trained_path+'/GNet_%i.t7'%args.pre_trained_epoch))
+    logger.info("Model loaded at epoch %i"%args.pre_trained_epoch)
 
-# In[ ]:
+
+# In[10]:
 
 
 def classifier_inference(encoder, CNet, x):
@@ -261,7 +275,7 @@ def classifier_inference(encoder, CNet, x):
     return pred
 
 
-# In[ ]:
+# In[11]:
 
 
 def encoder_inference(encoder, encoder_MLP, x):
@@ -273,15 +287,86 @@ def encoder_inference(encoder, encoder_MLP, x):
     return cat_embedding
 
 
-# # Train
+# In[ ]:
+
+
+
+
 
 # In[ ]:
+
+
+
+
+
+# In[12]:
+
+
+# target_pseudo_x = torch.empty(0).to(device)
+# target_pseudo_y = torch.empty(0).long().to(device)
+# num_datas = 0
+# for batch_id, (target_x, target_y) in tqdm(enumerate(unlabeled_target_dataloader), total=len(unlabeled_target_dataloader)):
+#     target_x = target_x.to(device).float()
+#     target_pseudo_x = torch.cat([target_pseudo_x, target_x]).to(device)
+#     target_y = target_y.to(device)
+#     num_datas += target_x.shape[0]
+#     target_x_embedding = encoder_inference(encoder, encoder_MLP, target_x)
+#     fake_x_embedding = GNet(target_x_embedding)
+#     pred = CNet(fake_x_embedding)
+#     #target_acc_unlabel += (pred.argmax(-1) == target_y).sum().item()
+#     target_pseudo_y = torch.cat([target_pseudo_y, pred.argmax(-1)]).to(device)
+
+
+# In[13]:
+
+
+# join_pseudo_dataset = JoinDataset(labeled_source_x, labeled_source_y, target_pseudo_x, target_pseudo_y, random=True)
+# join_pseudo_dataloader = DataLoader(join_pseudo_dataset, batch_size=args.batch_size, shuffle=True, pin_memory=True, num_workers=4)
+
+
+# In[14]:
+
+
+
+# join_pseudo_dataset = JoinDataset(labeled_source_x, labeled_source_y, target_pseudo_x, target_pseudo_y, random=True)
+# join_pseudo_dataloader = DataLoader(join_pseudo_dataset, batch_size=args.batch_size, shuffle=True, pin_memory=True, num_workers=4)
+
+
+# In[15]:
+
+
+# for batch_id, ((source_x, source_y), (target_x, target_y)) in tqdm(enumerate(join_pseudo_dataloader), total=len(join_pseudo_dataloader)):
+#     optimizerGNet.zero_grad()
+#     optimizerEncoder.zero_grad()
+#     optimizerEncoderMLP.zero_grad()
+
+#     target_x = target_x.to(device).float()
+#     target_y = target_y.to(device)
+#     source_x = source_x.to(device).float()
+#     source_y = source_y.to(device)
+
+#     source_x_embedding = encoder_inference(encoder, encoder_MLP, source_x)
+#     target_x_embedding = encoder_inference(encoder, encoder_MLP, target_x)
+#     fake_source_embedding = GNet(target_x_embedding)
+
+#     loss = args.sbinary_loss * criterion_probloss(fake_source_embedding, target_y, source_x_embedding, source_y)
+#     loss.backward()
+#     optimizerGNet.step()
+#     optimizerEncoderMLP.step()
+#     optimizerEncoder.step()
+
+
+# # Train
+
+# In[16]:
 
 
 source_acc_label_ = []
 source_acc_unlabel_ = []
 target_acc_label_ = []
 target_acc_unlabel_ = []
+
+pseudo_initial_finished = False
 
 logger.info('Started Training')
 for epoch in range(args.epochs):
@@ -310,10 +395,13 @@ for epoch in range(args.epochs):
         optimizerCenterLoss.step()
         optimizerEncoderMLP.step()
         optimizerEncoder.step()
-
+    
+        
+        
+        
     source_acc_label = source_acc_label / num_datas
     source_acc_label_.append(source_acc_label)
-
+    
     # on target domain
     CNet.train()
     encoder.train()
@@ -332,16 +420,19 @@ for epoch in range(args.epochs):
         fake_x_embedding = GNet(target_x_embedding)
         pred = CNet(fake_x_embedding)
         target_acc_label += (pred.argmax(-1) == target_y).sum().item()
-        loss = criterion_classifier(pred, target_y)
+        loss = criterion_classifier(pred, target_y) 
         loss.backward()
         optimizerCNet.step()
         optimizerGNet.step()
         optimizerEncoderMLP.step()
         optimizerEncoder.step()
-
+      
+    
+        
+        
     target_acc_label = target_acc_label / num_datas
     target_acc_label_.append(target_acc_label)
-
+    
     # prob. classifier
     if epoch >= args.epoch_begin_prototype:
         encoder.train()
@@ -353,46 +444,71 @@ for epoch in range(args.epochs):
             optimizerGNet.zero_grad()
             optimizerEncoder.zero_grad()
             optimizerEncoderMLP.zero_grad()
-
+            
             target_x = target_x.to(device).float()
             target_y = target_y.to(device)
             source_x = source_x.to(device).float()
             source_y = source_y.to(device)
-
+            
             source_x_embedding = encoder_inference(encoder, encoder_MLP, source_x)
             target_x_embedding = encoder_inference(encoder, encoder_MLP, target_x)
             fake_source_embedding = GNet(target_x_embedding)
-
+            
             loss = args.sbinary_loss * criterion_probloss(fake_source_embedding, target_y, source_x_embedding, source_y)
             loss.backward()
             optimizerGNet.step()
             optimizerEncoderMLP.step()
             optimizerEncoder.step()
+            
+        
+        # pseudo random sampling
+        if pseudo_initial_finished:
+            for batch_id, ((source_x, source_y), (target_x, target_y)) in tqdm(enumerate(join_pseudo_dataloader), total=len(join_pseudo_dataloader)):
+                optimizerGNet.zero_grad()
+                optimizerEncoder.zero_grad()
+                optimizerEncoderMLP.zero_grad()
 
-        # sampling same class
+                target_x = target_x.to(device).float()
+                target_y = target_y.to(device)
+                source_x = source_x.to(device).float()
+                source_y = source_y.to(device)
+
+                source_x_embedding = encoder_inference(encoder, encoder_MLP, source_x)
+                target_x_embedding = encoder_inference(encoder, encoder_MLP, target_x)
+                fake_source_embedding = GNet(target_x_embedding)
+
+                loss = args.sbinary_loss * args.spseudo * criterion_probloss(fake_source_embedding, target_y, source_x_embedding, source_y)
+                loss.backward()
+                optimizerGNet.step()
+                optimizerEncoderMLP.step()
+                optimizerEncoder.step()
+
+        
+        # sampling same class    
         for batch_id in tqdm(range(len(join_dataloader))):
             optimizerGNet.zero_grad()
             optimizerEncoder.zero_grad()
             optimizerEncoderMLP.zero_grad()
-
+            
             target_x, target_y, target_weight = get_batch_target_data_on_class(target_labeled_dict, args.num_per_class, pesudo_dict, no_pesudo=True)
             source_x, source_y = get_batch_source_data_on_class(source_labeled_dict, args.num_per_class)
-
+    
             source_x = torch.Tensor(source_x).to(device).float()
             target_x = torch.Tensor(target_x).to(device).float()
             source_y = torch.LongTensor(target_y).to(device)
             target_y = torch.LongTensor(target_y).to(device)
-
+            
             source_x_embedding = encoder_inference(encoder, encoder_MLP, source_x)
             target_x_embedding = encoder_inference(encoder, encoder_MLP, target_x)
             fake_source_embedding = GNet(target_x_embedding)
-
+            
             loss = args.sbinary_loss * criterion_probloss(fake_source_embedding, target_y, source_x_embedding, source_y)
             loss.backward()
             optimizerGNet.step()
             optimizerEncoderMLP.step()
             optimizerEncoder.step()
-
+            
+            
     # eval
     # source_domain
     source_acc_unlabel = 0.0
@@ -407,28 +523,38 @@ for epoch in range(args.epochs):
         source_x_embedding = encoder_inference(encoder, encoder_MLP, source_x)
         pred = CNet(source_x_embedding)
         source_acc_unlabel += (pred.argmax(-1) == source_y).sum().item()
-
+        
     source_acc_unlabel = source_acc_unlabel/num_datas
     source_acc_unlabel_.append(source_acc_unlabel)
-
+    
     # target_domain
     target_acc_unlabel = 0.0
     num_datas = 0.0
     CNet.eval()
     encoder.eval()
     encoder_MLP.eval()
+    
+    target_pseudo_x = torch.empty(0).to(device)
+    target_pseudo_y = torch.empty(0).long().to(device)
+    
     for batch_id, (target_x, target_y) in tqdm(enumerate(unlabeled_target_dataloader), total=len(unlabeled_target_dataloader)):
         target_x = target_x.to(device).float()
+        target_pseudo_x = torch.cat([target_pseudo_x, target_x]).to(device)
         target_y = target_y.to(device)
         num_datas += target_x.shape[0]
         target_x_embedding = encoder_inference(encoder, encoder_MLP, target_x)
         fake_x_embedding = GNet(target_x_embedding)
         pred = CNet(fake_x_embedding)
         target_acc_unlabel += (pred.argmax(-1) == target_y).sum().item()
-
+        target_pseudo_y = torch.cat([target_pseudo_y, pred.argmax(-1)]).to(device)
+    
+    join_pseudo_dataset = JoinDataset(labeled_source_x, labeled_source_y, target_pseudo_x, target_pseudo_y, random=True)
+    join_pseudo_dataloader = DataLoader(join_pseudo_dataset, batch_size=args.batch_size, shuffle=True, num_workers=0)
+    pseudo_initial_finished = True
+    
     target_acc_unlabel = target_acc_unlabel/num_datas
     target_acc_unlabel_.append(target_acc_unlabel)
-
+    
     if epoch % args.model_save_period == 0:
         torch.save(encoder.state_dict(), args.save_path+model_sub_folder+ '/encoder_%i.t7'%(epoch+1))
         torch.save(encoder_MLP.state_dict(), args.save_path+model_sub_folder+ '/encoder_MLP%i.t7'%(epoch+1))
@@ -442,6 +568,12 @@ for epoch in range(args.epochs):
     np.save(args.save_path+model_sub_folder+'/target_acc_unlabel_.npy', target_acc_unlabel_)
     np.save(args.save_path+model_sub_folder+'/source_acc_label_.npy', source_acc_label_)
     np.save(args.save_path+model_sub_folder+'/source_acc_unlabel_.npy', source_acc_unlabel_)
+    
+    
+
+
+# In[ ]:
+
 
 
 

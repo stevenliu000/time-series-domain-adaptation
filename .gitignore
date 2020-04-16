@@ -9,3 +9,4 @@ FNN_data*
 *.model
 *.out
 tmp
+*.sh
