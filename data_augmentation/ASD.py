@@ -205,8 +205,8 @@ print("Duriation: {} hrs; {} mins; {} s".format(duration.seconds//3600, duration
 
 
 
-np.save('new_data_x.npy', new_data_x)
-np.save('new_data_y', new_data_y)
+np.save(os.path.join(args.save_path, 'new_data_x.npy'), new_data_x)
+np.save(os.path.join(args.save_path, 'new_data_y'), new_data_y)
 
 
 # In[ ]:
