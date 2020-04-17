@@ -69,6 +69,7 @@ parser.add_argument('--model_save_period', type=int, default=2, help='period in 
 parser.add_argument('--sbinary_loss', type=float, default=1.0, help='weight for binary loss')
 parser.add_argument('--epoch_begin_prototype', type=int, default=10, help='starting point to train on prob classifier.')
 parser.add_argument('--pseudo_weight', type=float, default=0.5, help='pseudo weight for prob. classifier')
+parser.add_argument('--pseudo_same_weight', type=float, default=0.1, help='pseudo weight for same class in prob. classifier')
 
 args = parser.parse_args()
 
@@ -132,7 +133,7 @@ device = torch.device('cuda:{}'.format(args.gpu_num) if torch.cuda.is_available(
 if args.num_per_class == -1:
     args.num_per_class = math.ceil(args.batch_size / num_class)
     
-model_sub_folder = '/checkpoint2/prob_classifier_pseudo/task_%s_slp_%f_tlp_%f_sclass_%f_scent_%f_sbinary_loss_%f_pseudo_weight_%f'%(args.task, args.source_lbl_percentage, args.target_lbl_percentage, args.sclass, args.scent, args.sbinary_loss, args.pseudo_weight)
+model_sub_folder = '/checkpoint2/prob_classifier_pseudo_masking/task_%s_slp_%f_tlp_%f_sclass_%f_scent_%f_sbinary_loss_%f_pseudo_weight_%f_same_weight_%f'%(args.task, args.source_lbl_percentage, args.target_lbl_percentage, args.sclass, args.scent, args.sbinary_loss, args.pseudo_weight, args.pseudo_same_weight)
 
 if not os.path.exists(args.save_path+model_sub_folder):
     os.makedirs(args.save_path+model_sub_folder)
@@ -394,8 +395,12 @@ for epoch in range(args.epochs):
             target_x_embedding = encoder_inference(encoder, encoder_MLP, target_x)
             fake_source_embedding = GNet(target_x_embedding)
             
+            mask = torch.ones([args.num_per_class * num_class, args.num_per_class * num_class])
+            for i in range(num_class):
+                mask[i*args.num_per_class:(i+1)*args.num_per_class, i*args.num_per_class:(i+1)*args.num_per_class] = args.pseudo_same_weight
+            
             pseudo_weight = min(args.pseudo_weight * target_acc_label / 0.9, args.pseudo_weight)
-            loss = pseudo_weight * args.sbinary_loss * criterion_probloss(fake_source_embedding, source_x_embedding, num_class, args.num_per_class)
+            loss = pseudo_weight * args.sbinary_loss * criterion_probloss(fake_source_embedding, source_x_embedding, num_class, args.num_per_class, mask=mask)
             loss.backward()
             optimizerGNet.step()
             optimizerEncoderMLP.step()
