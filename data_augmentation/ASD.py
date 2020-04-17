@@ -150,11 +150,11 @@ def dba_parallel(class_x, verbose=False):
 def dba_parallel_warp(class_x, iter_num, core_used = mp.cpu_count() - 2):
     # parallel
     r = []
-    for m in range(iter_num // 40 + 1):
+    for m in range(iter_num // core_used + 1):
         print("Number of processors used: ", core_used)
         start_time = time.time()
         with parallel_backend("loky", inner_max_num_threads=core_used):
-            results = Parallel(n_jobs=core_used)(delayed(dba_parallel)(class_x) for i in range(iter_num))
+            results = Parallel(n_jobs=core_used)(delayed(dba_parallel)(class_x) for i in range(core_used))
             r.append(results)
         end_time = time.time()
         print("time used: ", end_time - start_time)
