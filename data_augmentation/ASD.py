@@ -76,22 +76,22 @@ args = parser.parse_args()
 # In[5]:
 
 
-# local only
-class local_args:
-    def __init__(self, **entries):
-        self.__dict__.update(entries)
+# # local only
+# class local_args:
+#     def __init__(self, **entries):
+#         self.__dict__.update(entries)
         
-args = local_args(**{
-    'data_path': '../data_unzip',
-    'task': '3E',
-    'num_class': 65,
-    'class_split': "0-4",
-    'subset_count': 20,
-    'duplicate_time': 1,
-    'source_lbl_percentage': 0.7,
-    'target_lbl_percentage': 0.7,
-    'save_path': '..\train_related\asd',
-})
+# args = local_args(**{
+#     'data_path': '../data_unzip',
+#     'task': '3E',
+#     'num_class': 65,
+#     'class_split': "0-4",
+#     'subset_count': 20,
+#     'duplicate_time': 1,
+#     'source_lbl_percentage': 0.7,
+#     'target_lbl_percentage': 0.7,
+#     'save_path': '..\train_related\asd',
+# })
 
 
 # In[6]:
