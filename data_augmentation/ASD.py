@@ -7,7 +7,7 @@
 # 
 # Germain Forestier et al. "Generating synthetic time series to augment sparse datasets". ICDM 2017.
 
-# In[2]:
+# In[3]:
 
 
 import sys, os, inspect
@@ -18,7 +18,7 @@ sys.path.insert(0, os.path.join(parent_dir,'spring-break'))
 sys.path.insert(0, os.path.join(parent_dir,'Linear Classifier'))
 
 
-# In[3]:
+# In[4]:
 
 
 import numpy as np
@@ -55,7 +55,7 @@ import time
 from datetime import datetime, timedelta
 
 
-# In[1]:
+# In[5]:
 
 
 # Parameters
@@ -74,7 +74,7 @@ parser.add_argument("--save_path", type=str, default="../train_related/asd", hel
 args = parser.parse_args()
 
 
-# In[5]:
+# In[11]:
 
 
 # # local only
@@ -88,14 +88,14 @@ args = parser.parse_args()
 #     'num_class': 65,
 #     'class_split': "0-4",
 #     'subset_count': 20,
-#     'duplicate_time': 1,
+#     'duplicate_time': 0.01,
 #     'source_lbl_percentage': 0.7,
 #     'target_lbl_percentage': 0.7,
 #     'save_path': '..\train_related\asd',
 # })
 
 
-# In[6]:
+# In[8]:
 
 
 labeled_target_x_filename = '/processed_file_not_one_hot_%s_%1.1f_target_known_label_x.npy'%(args.task, args.target_lbl_percentage)
@@ -119,7 +119,7 @@ unlabeled_source_y = np.load(args.data_path+unlabeled_source_y_filename)
 
 # # ASD for source labeled
 
-# In[7]:
+# In[9]:
 
 
 def dba_parallel(class_x, verbose=False):
@@ -143,22 +143,22 @@ def dba_parallel(class_x, verbose=False):
     return dba_avg_t_star
 
 
-# In[8]:
+# In[10]:
 
 
-cachedir = os.path.join(args.save_path, r'\cachedir')
-memory = Memory(cachedir, verbose=0)
-@memory.cache
+
 def dba_parallel_warp(class_x, iter_num, core_used = mp.cpu_count() - 2):
     # parallel
-    print("Number of processors used: ", core_used)
-    start_time = time.time()
-    with parallel_backend("loky", inner_max_num_threads=core_used):
-        results = Parallel(n_jobs=core_used)(delayed(dba_parallel)(class_x) for i in range(iter_num))
-    end_time = time.time()
-    print("time used: ", end_time - start_time)
-    memory.clear(warn=False)
-    return np.array(results)
+    r = []
+    for m in range(iter_num // 40 + 1):
+        print("Number of processors used: ", core_used)
+        start_time = time.time()
+        with parallel_backend("loky", inner_max_num_threads=core_used):
+            results = Parallel(n_jobs=core_used)(delayed(dba_parallel)(class_x) for i in range(iter_num))
+            r.append(results)
+        end_time = time.time()
+        print("time used: ", end_time - start_time)
+    return np.array(r)
 
 
 # In[ ]:
@@ -167,7 +167,7 @@ def dba_parallel_warp(class_x, iter_num, core_used = mp.cpu_count() - 2):
 
 
 
-# In[ ]:
+# In[12]:
 
 
 new_data_x = []
