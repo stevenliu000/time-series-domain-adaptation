@@ -55,7 +55,7 @@ import time
 from datetime import datetime, timedelta
 
 
-# In[4]:
+# In[1]:
 
 
 # Parameters
@@ -69,6 +69,7 @@ parser.add_argument("--num_class", type=int, default="65", help="num class")
 parser.add_argument("--class_split", type=str, default="0-4", help="class generated")
 parser.add_argument("--subset_count", type=int, default="20", help="select number of subset from each class")
 parser.add_argument("--duplicate_time", type=int, default="1", help="numer of duplication")
+parser.add_argument("--save_path", type=str, default="../train_related/asd", help="save path")
 
 args = parser.parse_args()
 
