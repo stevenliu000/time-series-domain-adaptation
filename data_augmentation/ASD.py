@@ -69,14 +69,14 @@ parser.add_argument("--num_class", type=int, default="65", help="num class")
 parser.add_argument("--class_split", type=str, default="0-4", help="class generated")
 parser.add_argument("--subset_count", type=int, default="20", help="select number of subset from each class")
 parser.add_argument("--duplicate_time", type=float, default="1", help="numer of duplication")
-parser.add_argument("--save_path", type=str, default="../train_related/asd/replicate_1", help="save path")
+parser.add_argument("--save_path", type=str, default="../train_related/asd/", help="save path")
 
 args = parser.parse_args()
 
 # logging file
-logging.basicConfig(filename=os.path.join(args.save_path, 'logfile.log'), filemode='w', level=logging.DEBUG)
-
-os.makedirs(args.save_path, exist_ok=True)
+subfolder = os.path.join(args.save_path, "class_{}_subset_count_{}".format(args.class_split, args.subset_count))
+os.makedirs(subfolder, exist_ok=True)
+logging.basicConfig(filename=os.path.join(subfolder, 'logfile.log'), filemode='w', level=logging.INFO)
 # In[11]:
 
 
@@ -162,7 +162,7 @@ def dba_parallel_warp(class_x, iter_num, core_used = mp.cpu_count()):
         results = Parallel(n_jobs=core_used)(delayed(dba_parallel)(class_x) for i in range(iter_num))
     r.extend(results)
     end_time = time.time()
-    logging.info("Finished indv class: time used: {}".format(end_time - start_time))
+    logging.info("Finished indv class: time used: {} s.".format(round(end_time - start_time)))
     return np.array(r)
 
 
@@ -180,12 +180,13 @@ new_data_y = []
 
 start_class, end_class = [int(m) for m in args.class_split.split("-")]
 
-mission_left = [0, 1]
+# mission_left = [0, 1]
+mission_left = [i for i in range(start_class, end_class + 1)]
 overall_start = time.time()
 logging.info("###### BEGIN ######## @ {}".format(datetime.now()))
 logging.info("Number/class: {}; total class: {}; total DBA times: {}; cpu cores: {};".format(round(args.duplicate_time * 152), mission_left, round(args.duplicate_time * 152) * len(mission_left), mp.cpu_count()))
 while len(mission_left) > 0:
-    logging.info("--- trying --- ")
+    logging.info("\n--- trying --- ")
     logging.info("mission left: {}".format(mission_left))
     i = mission_left[0]
     try:
@@ -207,29 +208,24 @@ while len(mission_left) > 0:
         new_data_y_total = np.concatenate(new_data_y, axis=0)
         logging.info("new_data_x_now: {}".format(new_data_x_total.shape))
         logging.info('new_data_y_now: {}'.format(new_data_y_total.shape))
-        np.save(os.path.join(args.save_path, 'new_data_x.npy'), new_data_x_total)
-        np.save(os.path.join(args.save_path, 'new_data_y.npy'), new_data_y_total)
+        np.save(os.path.join(subfolder, 'new_data_x.npy'), new_data_x_total)
+        np.save(os.path.join(subfolder, 'new_data_y.npy'), new_data_y_total)
         del new_data_x_total, new_data_y_total 
         logging.info('Saved for class {}'.format(i))
     except Exception as e:
         logging.info("error in class {}, skip for now: {}".format(i, e))
 
         
-new_data_x = np.concatenate(new_data_x, axis=0)
-new_data_y = np.concatenate(new_data_y, axis=0)
+
 overall_end = time.time()
 duration = timedelta(-1, overall_end - overall_start)
 logging.info("###### END ########")
-logging.info("new_data_x: {}".format(new_data_x.shape))
-logging.info('new_data_y: {}'.format(new_data_y.shape))
-logging.info("Duriation: {} hrs; {} mins; {} s".format(duration.seconds//3600, duration.seconds//60, duration.seconds))
+logging.info("Duriation: {} hrs; {} mins; {} s".format(duration.seconds//3600, duration.seconds//60, duration.seconds % 60))
 
 
 
-np.save(os.path.join(args.save_path, 'new_data_x.npy'), new_data_x)
-np.save(os.path.join(args.save_path, 'new_data_y.npy'), new_data_y)
-logging.info("Data saved at {}".format(os.path.abspath(args.save_path)))
-
+logging.info("Data saved at {}".format(os.path.abspath(subfolder)))
+logging.info("DONE!!! for class_{}".format(args.class_split))
 # In[ ]:
 
 
