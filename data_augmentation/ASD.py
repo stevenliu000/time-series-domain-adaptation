@@ -53,14 +53,14 @@ import multiprocessing as mp
 from joblib import Parallel, delayed, parallel_backend, Memory
 import time
 from datetime import datetime, timedelta
-
+import logging
 
 # In[5]:
 
 
 # Parameters
 parser = argparse.ArgumentParser(description='JDA Time series adaptation')
-parser.add_argument("--data_path", type=str, default="/projects/rsalakhugroup/complex/domain_adaptation", help="dataset path")
+parser.add_argument("--data_path", type=str, default="../data_unzip", help="dataset path")
 parser.add_argument("--task", type=str, default="3E", help="task type 3E or 3Av2")
 parser.add_argument('--target_lbl_percentage', type=float, default=0.7, help='percentage of which target data has label')
 parser.add_argument('--source_lbl_percentage', type=float, default=0.7, help='percentage of which source data has label')
@@ -68,12 +68,15 @@ parser.add_argument('--source_lbl_percentage', type=float, default=0.7, help='pe
 parser.add_argument("--num_class", type=int, default="65", help="num class")
 parser.add_argument("--class_split", type=str, default="0-4", help="class generated")
 parser.add_argument("--subset_count", type=int, default="20", help="select number of subset from each class")
-parser.add_argument("--duplicate_time", type=int, default="1", help="numer of duplication")
-parser.add_argument("--save_path", type=str, default="../train_related/asd", help="save path")
+parser.add_argument("--duplicate_time", type=float, default="1", help="numer of duplication")
+parser.add_argument("--save_path", type=str, default="../train_related/asd/replicate_1", help="save path")
 
 args = parser.parse_args()
 
+# logging file
+logging.basicConfig(filename=os.path.join(args.save_path, 'logfile.log'), filemode='w', level=logging.DEBUG)
 
+os.makedirs(args.save_path, exist_ok=True)
 # In[11]:
 
 
@@ -97,7 +100,7 @@ args = parser.parse_args()
 
 # In[8]:
 
-
+logging.info("Loading data")
 labeled_target_x_filename = '/processed_file_not_one_hot_%s_%1.1f_target_known_label_x.npy'%(args.task, args.target_lbl_percentage)
 labeled_target_y_filename = '/processed_file_not_one_hot_%s_%1.1f_target_known_label_y.npy'%(args.task, args.target_lbl_percentage)
 unlabeled_target_x_filename = '/processed_file_not_one_hot_%s_%1.1f_target_unknown_label_x.npy'%(args.task, args.target_lbl_percentage)
@@ -116,15 +119,17 @@ labeled_source_y = np.load(args.data_path+labeled_source_y_filename)
 unlabeled_source_x = np.load(args.data_path+unlabeled_source_x_filename)
 unlabeled_source_y = np.load(args.data_path+unlabeled_source_y_filename)
 
+logging.info('Loading Finished!')
 
 # # ASD for source labeled
 
 # In[9]:
 
 
-def dba_parallel(class_x, verbose=False):
+def dba_parallel(class_x, verbose=True):
     
     # randomly chose one from class_x
+
     t_star_ind = np.random.choice(class_x.shape[0], 1)
     t_star = class_x[t_star_ind,][0]
 
@@ -135,9 +140,10 @@ def dba_parallel(class_x, verbose=False):
     for i in tqdm(range(class_x.shape[0])):
         dist = dtw(class_x[i], t_star)
         dtw_class_t[i] = dist
-        if dist < dnn and i != t_star_ind:
+        if dist < dnn and i != t_star_ind and dist != 0:
             dnn = dist
             dnn_ind = i
+
     weight = np.exp(np.log(0.5) * dtw_class_t / dnn)
     dba_avg_t_star = dtw_barycenter_averaging(class_x, weights=weight, max_iter=5, verbose=verbose)
     return dba_avg_t_star
@@ -147,17 +153,16 @@ def dba_parallel(class_x, verbose=False):
 
 
 
-def dba_parallel_warp(class_x, iter_num, core_used = mp.cpu_count() - 2):
+def dba_parallel_warp(class_x, iter_num, core_used = mp.cpu_count()):
     # parallel
     r = []
-    for m in range(iter_num // core_used + 1):
-        print("Number of processors used: ", core_used)
-        start_time = time.time()
-        with parallel_backend("loky", inner_max_num_threads=core_used):
-            results = Parallel(n_jobs=core_used)(delayed(dba_parallel)(class_x) for i in range(core_used))
-            r.append(results)
-        end_time = time.time()
-        print("time used: ", end_time - start_time)
+    start_time = time.time()
+    # r.append(dba_parallel(class_x, verbose=True))
+    with parallel_backend("loky", inner_max_num_threads=core_used):
+        results = Parallel(n_jobs=core_used)(delayed(dba_parallel)(class_x) for i in range(iter_num))
+    r.extend(results)
+    end_time = time.time()
+    logging.info("Finished indv class: time used: {}".format(end_time - start_time))
     return np.array(r)
 
 
@@ -175,39 +180,55 @@ new_data_y = []
 
 start_class, end_class = [int(m) for m in args.class_split.split("-")]
 
-mission_left = [0]
+mission_left = [0, 1]
 overall_start = time.time()
-print("###### BEGIN ########")
+logging.info("###### BEGIN ######## @ {}".format(datetime.now()))
+logging.info("Number/class: {}; total class: {}; total DBA times: {}; cpu cores: {};".format(round(args.duplicate_time * 152), mission_left, round(args.duplicate_time * 152) * len(mission_left), mp.cpu_count()))
 while len(mission_left) > 0:
-    print("--- trying --- ")
-    print("mission left: ", mission_left)
-    for i in mission_left:
-        try:
-            class_ind = np.where(labeled_source_y == i)
-            class_ind_subset = class_ind[0][np.random.choice(class_ind[0].shape[0], args.subset_count)]
-            class_x = labeled_source_x[class_ind_subset]
-            iter_num_class = round(args.duplicate_time * class_ind[0].shape[0])
-            print("number of data generated for class {}: {}".format(i, iter_num_class))
-            results_class = dba_parallel_warp(class_x, iter_num_class) # [iter_num_class, 2]
-            new_data_x.append(results_class)
-            new_data_y.extend([np.array([i] * iter_num_class)])
-            mission_left.pop(mission_left.index(i))
-            del class_x, class_ind, class_ind_subset, results_class
-        except:
-            print("error in class {}, skip for now.".format(i))
+    logging.info("--- trying --- ")
+    logging.info("mission left: {}".format(mission_left))
+    i = mission_left[0]
+    try:
+        logging.info("### START class {} @ {}".format(i, datetime.now()))
+        class_ind = np.where(labeled_source_y == i)
+        logging.debug("In class {}".format(i))
+        class_ind_subset = class_ind[0][np.random.choice(class_ind[0].shape[0], args.subset_count)]
+        class_x = labeled_source_x[class_ind_subset]
+        iter_num_class = round(args.duplicate_time * class_ind[0].shape[0])
+        logging.info("Number of data generated for class {}: {}".format(i, iter_num_class))
+        results_class = dba_parallel_warp(class_x, iter_num_class) # [iter_num_class, 2]
+        new_data_x.append(results_class)
+        new_data_y.extend([np.array([i] * iter_num_class)])
+        mission_left.pop(mission_left.index(i))
+        logging.debug("misson left after pop: {}".format(mission_left))
+        
+        # save so far
+        new_data_x_total = np.concatenate(new_data_x, axis=0)
+        new_data_y_total = np.concatenate(new_data_y, axis=0)
+        logging.info("new_data_x_now: {}".format(new_data_x_total.shape))
+        logging.info('new_data_y_now: {}'.format(new_data_y_total.shape))
+        np.save(os.path.join(args.save_path, 'new_data_x.npy'), new_data_x_total)
+        np.save(os.path.join(args.save_path, 'new_data_y.npy'), new_data_y_total)
+        del new_data_x_total, new_data_y_total 
+        logging.info('Saved for class {}'.format(i))
+    except Exception as e:
+        logging.info("error in class {}, skip for now: {}".format(i, e))
+
         
 new_data_x = np.concatenate(new_data_x, axis=0)
 new_data_y = np.concatenate(new_data_y, axis=0)
 overall_end = time.time()
 duration = timedelta(-1, overall_end - overall_start)
-print("###### END ########")
-print("Duriation: {} hrs; {} mins; {} s".format(duration.seconds//3600, duration.seconds//60, duration.seconds))
+logging.info("###### END ########")
+logging.info("new_data_x: {}".format(new_data_x.shape))
+logging.info('new_data_y: {}'.format(new_data_y.shape))
+logging.info("Duriation: {} hrs; {} mins; {} s".format(duration.seconds//3600, duration.seconds//60, duration.seconds))
 
 
 
 np.save(os.path.join(args.save_path, 'new_data_x.npy'), new_data_x)
-np.save(os.path.join(args.save_path, 'new_data_y'), new_data_y)
-
+np.save(os.path.join(args.save_path, 'new_data_y.npy'), new_data_y)
+logging.info("Data saved at {}".format(os.path.abspath(args.save_path)))
 
 # In[ ]:
 
