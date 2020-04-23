@@ -225,7 +225,7 @@ def log_mean_exp(x, device):
     stable_x = x - max_score
     return max_score - batch_size.log() + stable_x.exp().sum(dim=0).log()
 
-a = torch.rand([100,1])
+a = torch.rand([100,1]).to(device)
 assert torch.all(log_mean_exp(a, device) - a.exp().mean(dim=0).log() < 1e-6)
 
 
