@@ -324,9 +324,9 @@ for epoch in range(3, source_acc_label_.shape[0], args.intervals*args.model_save
     gfunction2.apply(weights_init)
 
     # load weight
-    encoder.load_state_dict(torch.load(os.join(args.model_path, 'encoder_%i.t7'%epoch)))
-    encoder_MLP.load_state_dict(torch.load(os.join(args.model_path, 'encoder_MLP%i.t7'%epoch)))
-    GNet.load_state_dict(torch.load(os.join(args.model_path, 'GNet_%i.t7'%epoch)))
+    encoder.load_state_dict(torch.load(os.path.join(args.model_path, 'encoder_%i.t7'%epoch)))
+    encoder_MLP.load_state_dict(torch.load(os.path.join(args.model_path, 'encoder_MLP%i.t7'%epoch)))
+    GNet.load_state_dict(torch.load(os.path.join(args.model_path, 'GNet_%i.t7'%epoch)))
     
     # inferencing
     GNet.eval()
