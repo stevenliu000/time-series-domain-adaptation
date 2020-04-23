@@ -232,7 +232,7 @@ assert torch.all(log_mean_exp(a) - a.exp().mean(dim=0).log() < 1e-6)
 # In[180]:
 
 
-def fDiv(nn.Module):
+def fDiv(g_x_source, g_x_target):
     # clipping
     g_x_source = torch.clamp(g_x_source, -1e4, 1e4)
     g_x_target = torch.clamp(g_x_target, -1e4, 1e4)
