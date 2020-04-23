@@ -390,7 +390,7 @@ for epoch in range(3, source_acc_label_.shape[0], args.intervals*args.model_save
     epochs.append(epoch)
     
     logger.info("-----------------------------------------")
-    logger.info("Epoch %i, labeled f-div: %f, unlabeled f-div: %f"%(epoch, i, loss1, loss2))
+    logger.info("Epoch %i, labeled f-div: %f, unlabeled f-div: %f"%(epoch, loss1, loss2))
     logger.info("-----------------------------------------")
     
     np.save(args.save_path+model_sub_folder+'/epochs.npy', epochs)
