@@ -219,9 +219,9 @@ class Gfunction(nn.Sequential):
 # In[274]:
 
 
-def log_mean_exp(x):
+def log_mean_exp(x, device):
     max_score = x.max()
-    batch_size = torch.Tensor([x.shape[0]])
+    batch_size = torch.Tensor([x.shape[0]]).to(device)
     stable_x = x - max_score
     return max_score - batch_size.log() + stable_x.exp().sum(dim=0).log()
 
@@ -232,11 +232,11 @@ assert torch.all(log_mean_exp(a) - a.exp().mean(dim=0).log() < 1e-6)
 # In[183]:
 
 
-def fDiv(g_x_source, g_x_target):
+def fDiv(g_x_source, g_x_target, device):
     # clipping
 #     g_x_source = torch.clamp(g_x_source, -1e3, 1e3)
 #     g_x_target = torch.clamp(g_x_target, -1e3, 1e3)
-    return g_x_source.mean(dim=0) - log_mean_exp(g_x_target)
+    return g_x_source.mean(dim=0) - log_mean_exp(g_x_target, device)
 
 
 # In[52]:
@@ -362,7 +362,7 @@ for epoch in range(3, source_acc_label_.shape[0], args.intervals*args.model_save
         optimizerGfunction1.zero_grad()
         source_x_labeled_g = gfunction1(source_x_labeled_embedding)
         target_x_labeled_g = gfunction1(target_x_labeled_embedding)
-        loss1 = - fDiv(source_x_labeled_g, target_x_labeled_g)
+        loss1 = - fDiv(source_x_labeled_g, target_x_labeled_g, device)
         loss1.backward()
         optimizerGfunction1.step()
 #         if i % 20 == 0:
@@ -374,7 +374,7 @@ for epoch in range(3, source_acc_label_.shape[0], args.intervals*args.model_save
         optimizerGfunction2.zero_grad()
         source_x_unlabeled_g = gfunction2(source_x_unlabeled_embedding)
         target_x_unlabeled_g = gfunction2(target_x_unlabeled_embedding)
-        loss2 = - fDiv(source_x_unlabeled_g, target_x_unlabeled_g)
+        loss2 = - fDiv(source_x_unlabeled_g, target_x_unlabeled_g, device)
         loss2.backward()
         optimizerGfunction2.step()
 #         if i % 20 == 0:
