@@ -358,27 +358,27 @@ for epoch in range(3, source_acc_label_.shape[0], args.intervals*args.model_save
             target_x_unlabeled_embedding = torch.cat([target_x_unlabeled_embedding, fake_x_embedding])    
         
     # for loop to train the gfunction 
-    for i in tqdm(range(200)):
+    for i in tqdm(range(1000)):
         optimizerGfunction1.zero_grad()
         source_x_labeled_g = gfunction1(source_x_labeled_embedding)
         target_x_labeled_g = gfunction1(target_x_labeled_embedding)
         loss1 = fDiv(source_x_labeled_g, target_x_labeled_g)
         loss1.backward()
         optimizerGfunction1.step()
-        if i % 20 == 0:
-            logger.info("Epoch %i, iter %i, labeled f-div: %f"%(epoch, i, loss1.item()))
+#         if i % 20 == 0:
+#             logger.info("Epoch %i, iter %i, labeled f-div: %f"%(epoch, i, loss1.item()))
     loss1 = loss1.item()
     labeled_f_div.append(loss1)
     
-    for i in tqdm(range(200)):
+    for i in tqdm(range(1000)):
         optimizerGfunction2.zero_grad()
         source_x_unlabeled_g = gfunction2(source_x_unlabeled_embedding)
         target_x_unlabeled_g = gfunction2(target_x_unlabeled_embedding)
         loss2 = fDiv(source_x_unlabeled_g, target_x_unlabeled_g)
         loss2.backward()
         optimizerGfunction2.step()
-        if i % 20 == 0:
-            logger.info("Epoch %i, iter %i, unlabeled f-div: %f"%(epoch, i, loss2.item()))
+#         if i % 20 == 0:
+#             logger.info("Epoch %i, iter %i, unlabeled f-div: %f"%(epoch, i, loss2.item()))
     loss2 = loss2.item()
     unlabeled_f_div.append(loss2)
         
@@ -390,7 +390,7 @@ for epoch in range(3, source_acc_label_.shape[0], args.intervals*args.model_save
     epochs.append(epoch)
     
     logger.info("-----------------------------------------")
-    logger.info("Epoch %i, labeled f-div: %f, unlabeled f-div"%(epoch, i, loss1.item(), loss2.itme()))
+    logger.info("Epoch %i, labeled f-div: %f, unlabeled f-div"%(epoch, i, loss1, loss2))
     logger.info("-----------------------------------------")
     
     np.save(args.save_path+model_sub_folder+'/epochs.npy', epochs)
