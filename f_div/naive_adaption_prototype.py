@@ -61,6 +61,7 @@ parser.add_argument('--save_path', type=str, help='where to store data')
 parser.add_argument('--model_save_period', type=int, default=2, help='period in which the model is saved')
 parser.add_argument('--model_path', type=str, help='where the data is stored')
 parser.add_argument('--intervals', type=int, default=2, help='freq of compute f-div')
+parser.add_argument('--gfunction_epoch', type=int, default=5000, help='epoch of which gfunction is trained for')
 
 
 args = parser.parse_args()
@@ -358,7 +359,7 @@ for epoch in range(3, source_acc_label_.shape[0], args.intervals*args.model_save
             target_x_unlabeled_embedding = torch.cat([target_x_unlabeled_embedding, fake_x_embedding])    
         
     # for loop to train the gfunction 
-    for i in tqdm(range(2000)):
+    for i in tqdm(range(args.gfunction_epoch)):
         optimizerGfunction1.zero_grad()
         source_x_labeled_g = gfunction1(source_x_labeled_embedding)
         target_x_labeled_g = gfunction1(target_x_labeled_embedding)
@@ -370,7 +371,7 @@ for epoch in range(3, source_acc_label_.shape[0], args.intervals*args.model_save
     loss1 = loss1.item()
     labeled_f_div.append(loss1)
     
-    for i in tqdm(range(2000)):
+    for i in tqdm(range(args.gfunction_epoch)):
         optimizerGfunction2.zero_grad()
         source_x_unlabeled_g = gfunction2(source_x_unlabeled_embedding)
         target_x_unlabeled_g = gfunction2(target_x_unlabeled_embedding)
