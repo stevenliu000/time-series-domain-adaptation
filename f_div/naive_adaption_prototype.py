@@ -216,7 +216,7 @@ class Gfunction(nn.Sequential):
         )
 
 
-# In[274]:
+# In[275]:
 
 
 def log_mean_exp(x, device):
@@ -226,10 +226,10 @@ def log_mean_exp(x, device):
     return max_score - batch_size.log() + stable_x.exp().sum(dim=0).log()
 
 a = torch.rand([100,1])
-assert torch.all(log_mean_exp(a) - a.exp().mean(dim=0).log() < 1e-6)
+assert torch.all(log_mean_exp(a, device) - a.exp().mean(dim=0).log() < 1e-6)
 
 
-# In[183]:
+# In[276]:
 
 
 def fDiv(g_x_source, g_x_target, device):
