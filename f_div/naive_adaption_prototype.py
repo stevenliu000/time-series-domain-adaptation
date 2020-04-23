@@ -229,13 +229,13 @@ a = torch.rand([100,128])
 assert torch.all(log_mean_exp(a) - a.exp().mean(dim=0).log() < 1e-6)
 
 
-# In[180]:
+# In[183]:
 
 
 def fDiv(g_x_source, g_x_target):
     # clipping
-    g_x_source = torch.clamp(g_x_source, -1e4, 1e4)
-    g_x_target = torch.clamp(g_x_target, -1e4, 1e4)
+    g_x_source = torch.clamp(g_x_source, -1e3, 1e3)
+    g_x_target = torch.clamp(g_x_target, -1e3, 1e3)
     return g_x_source.mean(dim=0) - g_x_target.exp().mean(dim=0).log()
 
 
@@ -358,7 +358,7 @@ for epoch in range(3, source_acc_label_.shape[0], args.intervals*args.model_save
             target_x_unlabeled_embedding = torch.cat([target_x_unlabeled_embedding, fake_x_embedding])    
         
     # for loop to train the gfunction 
-    for i in tqdm(range(1000)):
+    for i in tqdm(range(10000)):
         optimizerGfunction1.zero_grad()
         source_x_labeled_g = gfunction1(source_x_labeled_embedding)
         target_x_labeled_g = gfunction1(target_x_labeled_embedding)
@@ -370,7 +370,7 @@ for epoch in range(3, source_acc_label_.shape[0], args.intervals*args.model_save
     loss1 = loss1.item()
     labeled_f_div.append(loss1)
     
-    for i in tqdm(range(1000)):
+    for i in tqdm(range(10000)):
         optimizerGfunction2.zero_grad()
         source_x_unlabeled_g = gfunction2(source_x_unlabeled_embedding)
         target_x_unlabeled_g = gfunction2(target_x_unlabeled_embedding)
