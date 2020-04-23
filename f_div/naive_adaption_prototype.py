@@ -232,15 +232,11 @@ assert torch.all(log_mean_exp(a) - a.exp().mean(dim=0).log() < 1e-6)
 # In[180]:
 
 
-class fDiv(nn.Module):
-    def __init__(self):
-        super(fDiv, self).__init__()
-    
-    def forward(g_x_source, g_x_target):
-        # clipping
-        g_x_source = torch.clamp(g_x_source, -1e4, 1e4)
-        g_x_target = torch.clamp(g_x_target, -1e4, 1e4)
-        return g_x_source.mean(dim=0) - g_x_target.exp().mean(dim=0).log()
+def fDiv(nn.Module):
+    # clipping
+    g_x_source = torch.clamp(g_x_source, -1e4, 1e4)
+    g_x_target = torch.clamp(g_x_target, -1e4, 1e4)
+    return g_x_source.mean(dim=0) - g_x_target.exp().mean(dim=0).log()
 
 
 # In[52]:
