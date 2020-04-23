@@ -301,10 +301,10 @@ def encoder_inference(encoder, encoder_MLP, x):
 
 
 logger.info('Started loading')
-source_acc_label_ = np.load(os.join(args.model_path, 'source_acc_label_.npy'))
-source_acc_unlabel_ = np.load(os.join(args.model_path, 'source_acc_unlabel_.npy'))
-target_acc_label_ = np.load(os.join(args.model_path, 'target_acc_label_.npy'))
-target_acc_unlabel_ = np.load(os.join(args.model_path, 'target_acc_unlabel_.npy'))
+source_acc_label_ = np.load(os.path.join(args.model_path, 'source_acc_label_.npy'))
+source_acc_unlabel_ = np.load(os.path.join(args.model_path, 'source_acc_unlabel_.npy'))
+target_acc_label_ = np.load(os.path.join(args.model_path, 'target_acc_label_.npy'))
+target_acc_unlabel_ = np.load(os.path.join(args.model_path, 'target_acc_unlabel_.npy'))
 
 labeled_f_div = []
 unlabeled_f_div = []
