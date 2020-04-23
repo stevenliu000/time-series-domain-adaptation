@@ -363,24 +363,20 @@ for epoch in range(3, source_acc_label_.shape[0], args.intervals*args.model_save
         optimizerGfunction1.zero_grad()
         source_x_labeled_g = gfunction1(source_x_labeled_embedding)
         target_x_labeled_g = gfunction1(target_x_labeled_embedding)
-        loss1 = - fDiv(source_x_labeled_g, target_x_labeled_g, device)
+        loss1 = - fDiv(source_x_labeled_g, target_x_labeled_g, device) # maximize
         loss1.backward()
         optimizerGfunction1.step()
-#         if i % 20 == 0:
-#             logger.info("Epoch %i, iter %i, labeled f-div: %f"%(epoch, i, loss1.item()))
-    loss1 = loss1.item()
+    loss1 = - loss1.item()
     labeled_f_div.append(loss1)
     
     for i in tqdm(range(args.gfunction_epoch)):
         optimizerGfunction2.zero_grad()
         source_x_unlabeled_g = gfunction2(source_x_unlabeled_embedding)
         target_x_unlabeled_g = gfunction2(target_x_unlabeled_embedding)
-        loss2 = - fDiv(source_x_unlabeled_g, target_x_unlabeled_g, device)
+        loss2 = - fDiv(source_x_unlabeled_g, target_x_unlabeled_g, device) # maximize
         loss2.backward()
         optimizerGfunction2.step()
-#         if i % 20 == 0:
-#             logger.info("Epoch %i, iter %i, unlabeled f-div: %f"%(epoch, i, loss2.item()))
-    loss2 = loss2.item()
+    loss2 = - loss2.item()
     unlabeled_f_div.append(loss2)
         
     # save corresponding acc
