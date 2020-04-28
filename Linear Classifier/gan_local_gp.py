@@ -92,7 +92,7 @@ class SingleDataset(Dataset):
 
 # Parameters
 parser = argparse.ArgumentParser(description='JDA Time series adaptation')
-parser.add_argument("--data_path", type=str, default="/projects/rsalakhugroup/complex/domain_adaptation", help="dataset path")
+parser.add_argument("--data_path", type=str, default="../data_unzip/", help="dataset path")
 parser.add_argument("--task", type=str, help='3A or 3E')
 parser.add_argument('--batch_size', type=int, default=400, help='batch size')
 parser.add_argument('--epochs', type=int, default=50, help='number of epochs')
@@ -104,7 +104,7 @@ parser.add_argument('--target_lbl_percentage', type=float, default=0.7, help='pe
 parser.add_argument('--source_lbl_percentage', type=float, default=0.7, help='percentage of source labeled data')
 parser.add_argument('--num_per_class', type=int, default=2, help='number of sample per class when training local discriminator')
 parser.add_argument('--seed', type=int, help='manual seed')
-parser.add_argument('--save_path', type=str, help='where to store data')
+parser.add_argument('--save_path', type=str, default="../train_related/", help='where to store data')
 parser.add_argument('--model_save_period', type=int, default=2, help='period in which the model is saved')
 parser.add_argument('--gpweight', type=float, default=10, help='clip_value for WGAN')
 parser.add_argument('--sclass', type=float, default=0.7, help='source domain classification weight on loss function')
@@ -156,7 +156,7 @@ args.isglobal = True if args.isglobal == 1 else False
 
 
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-
+print(device)
 
 args.task = '3Av2' if args.task == '3A' else '3E'
 num_class = 50 if args.task == "3Av2" else 65
@@ -180,10 +180,10 @@ if not os.path.exists(save_folder):
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
-if os.path.isfile(args.save_path+model_sub_folder+ '/logfile.log'):
-    os.remove(args.save_path+model_sub_folder+ '/logfile.log')
+if os.path.isfile(os.path.join(save_folder, 'logfile.log')):
+    os.remove(os.path.join(save_folder, 'logfile.log'))
 
-file_log_handler = logging.FileHandler(args.save_path+model_sub_folder+ '/logfile.log')
+file_log_handler = logging.FileHandler(os.path.join(save_folder, 'logfile.log'))
 logger.addHandler(file_log_handler)
 
 stdout_log_handler = logging.StreamHandler(sys.stdout)
@@ -354,7 +354,7 @@ def _gradient_penalty(real_data, generated_data, DNet, mask, num_class, device, 
 
 # # Train
 
-# In[28]:
+# In[29]:
 
 
 target_acc_label_ = []
@@ -656,47 +656,22 @@ for epoch in range(args.epochs):
     error_D_local.append(total_error_D_local)
     error_G_global.append(total_error_G)
  
-    np.save(args.save_path+model_sub_folder+'/target_acc_label_.npy',target_acc_label_)
-    np.save(args.save_path+model_sub_folder+'/source_acc_.npy',source_acc_)
-    np.save(args.save_path+model_sub_folder+'/target_acc_unlabel_.npy',target_acc_unlabel_)
-    np.save(args.save_path+model_sub_folder+'/source_acc_unlabel_.npy',source_acc_unlabel_)
+    np.save(os.path.join(args.save_path, model_sub_folder, 'target_acc_label_.npy'),target_acc_label_)
+    np.save(os.path.join(args.save_path, model_sub_folder, 'source_acc_.npy'),source_acc_)
+    np.save(os.path.join(args.save_path, model_sub_folder, 'target_acc_unlabel_.npy'),target_acc_unlabel_)
+    np.save(os.path.join(args.save_path, model_sub_folder, 'source_acc_unlabel_.npy'),source_acc_unlabel_)
     if args.isglobal:
-        np.save(args.save_path+model_sub_folder+'/error_D_global.npy',error_D_global)
-        np.save(args.save_path+model_sub_folder+'/error_G_global.npy',error_G_global)
-    np.save(args.save_path+model_sub_folder+'/error_D_local.npy',error_D_local)
-    np.save(args.save_path+model_sub_folder+'/error_G_local.npy',error_G_local)
+        np.save(os.path.join(args.save_path, model_sub_folder, 'error_D_global.npy'),error_D_global)
+        np.save(os.path.join(args.save_path, model_sub_folder, 'error_G_global.npy'),error_G_global)
+    np.save(os.path.join(args.save_path, model_sub_folder, 'error_D_local.npy'),error_D_local)
+    np.save(os.path.join(args.save_path, model_sub_folder, 'error_G_local.npy'),error_G_local)
 
     if epoch % args.model_save_period == 0:
-        torch.save(CNet.state_dict(), args.save_path+model_sub_folder+ '/CNet_%i.t7'%(epoch+1))
-        torch.save(GNet.state_dict(), args.save_path+model_sub_folder+ '/GNet_%i.t7'%(epoch+1))
-        torch.save(encoder.state_dict(), args.save_path+model_sub_folder+ '/encoder_%i.t7'%(epoch+1))
-        torch.save(encoder_MLP.state_dict(), args.save_path+model_sub_folder+ '/encoder_MLP_%i.t7'%(epoch+1))
+        torch.save(CNet.state_dict(), os.path.join(args.save_path,model_sub_folder, 'CNet_%i.t7'%(epoch+1)))
+        torch.save(GNet.state_dict(), os.path.join(args.save_path,model_sub_folder, 'GNet_%i.t7'%(epoch+1)))
+        torch.save(encoder.state_dict(), os.path.join(args.save_path,model_sub_folder,'encoder_%i.t7'%(epoch+1)))
+        torch.save(encoder_MLP.state_dict(), os.path.join(args.save_path,model_sub_folder,'encoder_MLP_%i.t7'%(epoch+1)))
         if args.isglobal:
-            torch.save(DNet_global.state_dict(),  args.save_path+model_sub_folder+ '/DNet_global_%i.t7'%(epoch+1))
-        torch.save(DNet_local.state_dict(), args.save_path+model_sub_folder+ '/DNet_local_%i.t7'%(epoch+1))
-
-
-# In[15]:
-
-
-a = { 2:234, 3:134,1:21,
-    }
-
-
-# In[16]:
-
-
-keys = [key for key in a]
-
-
-# In[18]:
-
-
-keys.sort()
-
-
-# In[19]:
-
-
-keys
+            torch.save(DNet_global.state_dict(),  os.path.join(args.save_path,model_sub_folder,'DNet_global_%i.t7'%(epoch+1)))
+        torch.save(DNet_local.state_dict(), os.path.join(args.save_path,model_sub_folder, 'DNet_local_%i.t7'%(epoch+1)))
 
