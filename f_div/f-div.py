@@ -471,8 +471,9 @@ for epoch in range(3, source_acc_label_.shape[0], args.intervals*args.model_save
     acc_source_labeled_classifier = 0
     acc_target_labeled_classifier = 0
     if args.classifier:
-        CNet.train()
         while i < args.classifier_epoch or (acc_source_labeled_classifier < 98 and acc_target_labeled_classifier < 98):
+#         for i in tqdm(range(args.classifier_epoch)):
+            CNet.train()
             optimizer_CNet.zero_grad()
             optimizer_centerloss.zero_grad()
             pred = CNet(source_x_labeled_embedding)
@@ -490,6 +491,7 @@ for epoch in range(3, source_acc_label_.shape[0], args.intervals*args.model_save
             loss_target_classifier_labeled.backward()
             optimizer_CNet.step()
             
+            i++
             if i % 50 == 0:
                 CNet.eval()
                 pred = CNet(source_x_unlabeled_embedding)
