@@ -69,7 +69,7 @@ parser.add_argument('--JS', type=bool, default=False, help="if calculate JS dive
 parser.add_argument('--classifier', type=bool, default=False, help="if optmizer classifier")
 parser.add_argument('--sclass', type=float, default=0.7, help='target classifier loss weight')
 parser.add_argument('--scent', type=float, default=0.0001, help='source domain classification weight on centerloss')
-parser.add_argument('--classifier_epoch', type=int, default=10000, help='max iteration to train classifier')
+parser.add_argument('--classifier_epoch', type=int, default=5000, help='max iteration to train classifier')
 
 
 args = parser.parse_args()
@@ -502,9 +502,9 @@ for epoch in range(3, source_acc_label_.shape[0], args.intervals*args.model_save
         
         CNet.eval()
         pred = CNet(source_x_unlabeled_embedding)
-        acc_source_unlabeled_classifier = (pred.argmax(-1) == source_y_unlabeled).sum().item()
+        acc_source_unlabeled_classifier = (pred.argmax(-1) == source_y_unlabeled).sum().item() / pred.size(0)
         pred = CNet(target_x_unlabeled_embedding)
-        acc_target_unlabeled_classifier = (pred.argmax(-1) == target_y_unlabeled).sum().item()  
+        acc_target_unlabeled_classifier = (pred.argmax(-1) == target_y_unlabeled).sum().item() / pred.size(0)
         acc_source_unlabeled_classifier_.append(acc_source_unlabeled_classifier)
         acc_target_unlabeled_classifier_.append(acc_target_unlabeled_classifier)
         
@@ -516,9 +516,9 @@ for epoch in range(3, source_acc_label_.shape[0], args.intervals*args.model_save
     epochs.append(epoch)
     
     logger.info("-----------------------------------------")
-    log_string = "Epoch %i"%epoch
+    log_string = "Epoch %i: "%epoch
     if args.KL: log_string += "labeled KL: %f, unlabeled KL: %f; "%(loss_KL_labeled, loss_KL_unlabeled)
-    if args.JS: log_string += "labeled JS: %f, unlabeled KL: %f; "%(loss_JS_labeled, loss_JS_unlabeled)   
+    if args.JS: log_string += "labeled JS: %f, unlabeled JS: %f; "%(loss_JS_labeled, loss_JS_unlabeled)   
     if args.classifier: log_string += "src unlbl acc: %f, tgt unlbl acc: %f; "%(acc_source_unlabeled_classifier, acc_target_unlabeled_classifier)      
     logger.info(log_string)
     logger.info("-----------------------------------------")
