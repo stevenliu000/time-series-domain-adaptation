@@ -477,7 +477,7 @@ for epoch in range(3, source_acc_label_.shape[0], args.intervals*args.model_save
             optimizer_CNet.zero_grad()
             optimizer_centerloss.zero_grad()
             pred = CNet(source_x_labeled_embedding)
-            acc_source_labeled_classifier = (pred.argmax(-1) == source_y_labeled).mean().item()
+            acc_source_labeled_classifier = (pred.argmax(-1) == source_y_labeled).sum().item() / pred.size(0)
             loss_source_classifier_labeled = (criterion_classifier(pred, source_y_labeled) +
                                        criterion_centerloss(source_x_labeled_embedding, source_y_labeled) * args.scent) * args.sclass
             loss_source_classifier_labeled.backward()
@@ -486,7 +486,7 @@ for epoch in range(3, source_acc_label_.shape[0], args.intervals*args.model_save
             
             optimizer_CNet.zero_grad()
             pred = CNet(target_x_labeled_embedding)
-            acc_target_labeled_classifier = (pred.argmax(-1) == target_y_labeled).mean().item()
+            acc_target_labeled_classifier = (pred.argmax(-1) == target_y_labeled).sum().item() / pred.size(0)
             loss_target_classifier_labeled = criterion_classifier(pred, target_y_labeled)
             loss_target_classifier_labeled.backward()
             optimizer_CNet.step()
@@ -495,9 +495,9 @@ for epoch in range(3, source_acc_label_.shape[0], args.intervals*args.model_save
             if i % 50 == 0:
                 CNet.eval()
                 pred = CNet(source_x_unlabeled_embedding)
-                acc_source_unlabeled_classifier = (pred.argmax(-1) == source_y_unlabeled).mean().item()
+                acc_source_unlabeled_classifier = (pred.argmax(-1) == source_y_unlabeled).sum().item() / pred.size(0)
                 pred = CNet(target_x_unlabeled_embedding)
-                acc_target_unlabeled_classifier = (pred.argmax(-1) == target_y_unlabeled).mean().item()  
+                acc_target_unlabeled_classifier = (pred.argmax(-1) == target_y_unlabeled).sum().item() / pred.size(0)
                 print("Iter %i: source acc: labeled: %f, unlabeled: %f; target acc: labeled: %f, unlabeled: %f"%(
                     i, acc_source_labeled_classifier, acc_source_unlabeled_classifier, acc_target_labeled_classifier, acc_target_unlabeled_classifier))
         
