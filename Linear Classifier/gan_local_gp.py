@@ -753,6 +753,13 @@ error_G_local
 np.std([1,2,3])
 
 
+# In[3]:
+
+
+import torch
+torch.cuda.empty_cache()
+
+
 # In[ ]:
 
 
