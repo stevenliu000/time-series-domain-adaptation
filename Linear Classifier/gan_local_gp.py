@@ -109,6 +109,7 @@ parser.add_argument('--model_save_period', type=int, default=2, help='period in 
 parser.add_argument('--gpweight', type=float, default=10, help='clip_value for WGAN')
 parser.add_argument('--sclass', type=float, default=0.7, help='source domain classification weight on loss function')
 parser.add_argument('--dlocal', type=float, default=0.01, help='local GAN weight on loss function')
+parser.add_argument('--dglobal', type=float, default=0.01, help='global GAN weight on loss function')
 parser.add_argument('--GANweights', type=int, default=-1, help='pretrained GAN weight')
 parser.add_argument('--isglobal', type=int, default=0, help='if using global DNet')
 parser.add_argument('--lr_centerloss', type=float, default=1e-3, help='center loss weight')
@@ -355,6 +356,40 @@ def _gradient_penalty(real_data, generated_data, DNet, mask, num_class, device, 
     return args.gpweight * ((gradients_norm - 1) ** 2).mean(dim=0)
 
 
+# In[1]:
+
+
+def _gradient_penalty_global(real_data, generated_data, DNet, num_class, device, args):
+        batch_size = real_data.size()[0]
+
+        # Calculate interpolation
+        alpha = torch.rand(batch_size, 1)
+        alpha = alpha.expand_as(real_data)
+        alpha = alpha.to(device)
+        interpolated = alpha * real_data.data + (1 - alpha) * generated_data.data
+        interpolated = Variable(interpolated, requires_grad=True)
+        interpolated = interpolated.to(device)
+
+        # Calculate probability of interpolated examples
+        prob_interpolated = DNet(interpolated, 1)
+
+        # Calculate gradients of probabilities with respect to examples
+        gradients = torch_grad(outputs=prob_interpolated, inputs=interpolated,
+                               grad_outputs=torch.ones(prob_interpolated.size()).to(device),
+                               create_graph=True, retain_graph=True)[0]
+
+        # Gradients have shape (batch_size, num_channels, img_width, img_height),
+        # so flatten to easily take norm per example in batch
+        gradients = gradients.view(batch_size, -1)
+
+        # Derivatives of the gradient close to 0 can cause problems because of
+        # the square root, so manually calculate norm and add epsilon
+        gradients_norm = torch.sqrt(torch.sum(gradients ** 2, dim=1) + 1e-12)
+
+        # Return gradient penalty
+        return args.gpweight * ((gradients_norm - 1) ** 2).mean()
+
+
 # # Train
 
 # In[22]:
@@ -498,43 +533,52 @@ for epoch in range(args.epochs):
         total_error_D_global = 0
         total_error_G = 0
         for batch_id, ((source_x, source_y), (target_x, target_y)) in tqdm(enumerate(join_dataloader), total=len(join_dataloader)):
-            """Update D Net"""
             optimizerD_global.zero_grad()
+            optimizerG.zero_grad()
+ 
             source_data = source_x.to(device).float()
             source_embedding = encoder_inference(encoder, encoder_MLP, source_data)
             target_data = target_x.to(device).float()
             target_embedding = encoder_inference(encoder, encoder_MLP, target_data)
-            fake_source_embedding = GNet(target_embedding).detach()
+            fake_source_embedding = GNet(target_embedding)
+            """Update G Network"""     
 
             # adversarial loss
-            loss_D_global = DNet_global(fake_source_embedding,1).mean() - DNet_global(source_embedding,1).mean()
+            loss_G = -DNet_global(fake_source_embedding,1).mean()
 
-            total_error_D_global += loss_D_global.item()
+            total_error_G += loss_G.item() * args.dglobal
 
-            loss_D_global.backward()
-            optimizerD_global.step()
+            loss_G.backward()
+            optimizerG.step()
+            
 
-            # Clip weights of discriminator
-            for p in DNet_global.parameters():
-                p.data.clamp_(-args.clip_value, args.clip_value)
-
-            if batch_id % args.n_critic == 0:
-                """Update G Network"""
-                optimizerG.zero_grad()
-                optimizerEncoder.zero_grad()
-                fake_source_embedding = GNet(target_embedding)
-
+            if batch_id % int(1/args.n_critic) == 0:
+                """Update D Net"""
+                optimizerD_global.zero_grad()
+                source_data = source_x.to(device).float()
+                source_embedding = encoder_inference(encoder, encoder_MLP, source_data)
+                target_data = target_x.to(device).float()
+                target_embedding = encoder_inference(encoder, encoder_MLP, target_data)
+                fake_source_embedding = GNet(target_embedding).detach()
                 # adversarial loss
-                loss_G = -DNet_global(fake_source_embedding,1).mean()
+                loss_D_global = DNet_global(fake_source_embedding,1).mean() - DNet_global(source_embedding,1).mean()
+                gradient_penalty = _gradient_penalty_global(source_embedding, fake_source_embedding, DNet_global, num_class, device, args)
 
-                total_error_G += loss_G.item()
+                loss_D_global = loss_D_global + gradient_penalty
+                loss_D_global = loss_D_global * args.dglobal
+                total_error_D_global += loss_D_global.item()
 
-                loss_G.backward()
-                optimizerG.step()
-                # optimizerEncoder.step()
+                loss_D_global.backward()
+                optimizerD_global.step()
+
+#             # Clip weights of discriminator
+#             for p in DNet_global.parameters():
+#                 p.data.clamp_(-args.clip_value, args.clip_value)
+
+            #if batch_id % args.n_critic == 0:
 
         
-        logger.info('Epoch: %i, Global Discrimator Updates: Loss D_global: %f, Loss G: %f'%(epoch+1, total_error_D_global, total_error_G))
+        logger.info('Epoch: %i, Global Discrimator Updates: Loss D_global: %f, Loss G: %f; update_ratio: %i'%(epoch+1, total_error_D_global, total_error_G, int(1/args.n_critic)))
 
         error_D_global.append(total_error_D_global)
         error_G_global.append(total_error_G)
