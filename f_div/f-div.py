@@ -471,6 +471,7 @@ for epoch in range(3, source_acc_label_.shape[0], args.intervals*args.model_save
     acc_target_labeled_classifier = 0
     if args.classifier:
 #         while i < args.classifier_epoch or (acc_source_labeled_classifier < 0.98 and acc_target_labeled_classifier < 0.98):
+#             i += 1
         for i in tqdm(range(args.classifier_epoch)):
             CNet.train()
             optimizer_CNet.zero_grad()
@@ -490,15 +491,14 @@ for epoch in range(3, source_acc_label_.shape[0], args.intervals*args.model_save
             loss_target_classifier_labeled.backward()
             optimizer_CNet.step()
             
-            i += 1
-            if i % 50 == 0:
-                CNet.eval()
-                pred = CNet(source_x_unlabeled_embedding)
-                acc_source_unlabeled_classifier = (pred.argmax(-1) == source_y_unlabeled).sum().item() / pred.size(0)
-                pred = CNet(target_x_unlabeled_embedding)
-                acc_target_unlabeled_classifier = (pred.argmax(-1) == target_y_unlabeled).sum().item() / pred.size(0)
-                print("Iter %i: source acc: labeled: %f, unlabeled: %f; target acc: labeled: %f, unlabeled: %f"%(
-                    i, acc_source_labeled_classifier, acc_source_unlabeled_classifier, acc_target_labeled_classifier, acc_target_unlabeled_classifier))
+#             if i % 500 == 0:
+#                 CNet.eval()
+#                 pred = CNet(source_x_unlabeled_embedding)
+#                 acc_source_unlabeled_classifier = (pred.argmax(-1) == source_y_unlabeled).sum().item() / pred.size(0)
+#                 pred = CNet(target_x_unlabeled_embedding)
+#                 acc_target_unlabeled_classifier = (pred.argmax(-1) == target_y_unlabeled).sum().item() / pred.size(0)
+#                 print("Iter %i: source acc: labeled: %f, unlabeled: %f; target acc: labeled: %f, unlabeled: %f"%(
+#                     i, acc_source_labeled_classifier, acc_source_unlabeled_classifier, acc_target_labeled_classifier, acc_target_unlabeled_classifier))
         
         CNet.eval()
         pred = CNet(source_x_unlabeled_embedding)
