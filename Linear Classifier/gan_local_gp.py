@@ -112,10 +112,12 @@ parser.add_argument('--dlocal', type=float, default=0.01, help='local GAN weight
 parser.add_argument('--GANweights', type=int, default=-1, help='pretrained GAN weight')
 parser.add_argument('--isglobal', type=int, default=0, help='if using global DNet')
 parser.add_argument('--lr_centerloss', type=float, default=1e-3, help='center loss weight')
+parser.add_argument('--pure_random', type=int, default=1, help='Pure random for n_critic')
 
 
 args = parser.parse_args()
 args.isglobal = True if args.isglobal == 1 else False
+args.pure_random = True if args.pure_random == 1 else False
 
 
 # In[23]:
@@ -165,7 +167,7 @@ device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 if args.num_per_class == -1:
     args.num_per_class = math.ceil(args.batch_size / num_class)
     
-model_sub_folder = 'Linear_GAN/task_%s_gpweight_%f_dlocal_%f_critic_%f_sclass_%f'%(args.task, args.gpweight, args.dlocal, args.n_critic, args.sclass)
+model_sub_folder = 'Linear_GAN/task_%s_gpweight_%f_dlocal_%f_critic_%f_rand_%i_sclass_%f'%(args.task, args.gpweight, args.dlocal, args.n_critic, args.pure_random, args.sclass)
 
 save_folder = os.path.join(args.save_path, model_sub_folder)
 if not os.path.exists(save_folder):
@@ -628,7 +630,18 @@ for epoch in range(args.epochs):
             loss_G.backward()
             optimizerG.step()
             
-            if batch_id % int(1/args.n_critic) == 0:
+            
+            update_id = int(1/args.n_critic)
+            if args.pure_random:
+                update_id = max(1, update_id + np.random.randint(-2,2,1)[0])
+#             elif args.adaptive_random:
+#                 if batch_id > 10:
+                    
+#                     # mean of last 10 trail
+#                     sd_Gloss = np.std(error_G_local[-10:])
+#                     sd_Dlocalloss = np.std(error_D_local[-10:])
+#                     update_id = update_id + np.random.randint(-2,2,1)[0]
+            if batch_id % update_id == 0:
                 """Update D Net"""
                 optimizerD_local.zero_grad()
                 source_embedding = encoder_inference(encoder, encoder_MLP, source_x)
@@ -674,4 +687,28 @@ for epoch in range(args.epochs):
         if args.isglobal:
             torch.save(DNet_global.state_dict(),  os.path.join(args.save_path,model_sub_folder,'DNet_global_%i.t7'%(epoch+1)))
         torch.save(DNet_local.state_dict(), os.path.join(args.save_path,model_sub_folder, 'DNet_local_%i.t7'%(epoch+1)))
+
+
+# In[37]:
+
+
+np.random.randint(-3,3,1)[0]
+
+
+# In[38]:
+
+
+error_G_local
+
+
+# In[43]:
+
+
+np.std([1,2,3])
+
+
+# In[ ]:
+
+
+
 
