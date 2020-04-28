@@ -120,7 +120,7 @@ args.isglobal = True if args.isglobal == 1 else False
 args.pure_random = True if args.pure_random == 1 else False
 
 
-# In[23]:
+# In[21]:
 
 
 # # local only
@@ -141,7 +141,7 @@ args.pure_random = True if args.pure_random == 1 else False
 #     'lr_encoder': 1e-4,
 #     'epochs': 2,
 #     'clip_value': 0.01,
-#     'n_critic': 4,
+#     'n_critic': 0.16,
 #     'save_path': '/home/tianqinl/Code/time-series-domain-adaptation/train_related/',
 #     'target_lbl_percentage': 0.7,
 #     'source_lbl_percentage': 0.7,
@@ -151,10 +151,11 @@ args.pure_random = True if args.pure_random == 1 else False
 #     'gpweight': 10,
 #     'dlocal': 1e-2,
 #     'model_save_period': 2,
+#     'pure_random': True,
 # })
 
 
-# In[6]:
+# In[12]:
 
 
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
@@ -176,7 +177,7 @@ if not os.path.exists(save_folder):
 
 # # Logger
 
-# In[7]:
+# In[13]:
 
 
 logger = logging.getLogger()
@@ -198,7 +199,7 @@ for item in attrs.items():
 
 # # Data loading
 
-# In[8]:
+# In[14]:
 
 
 labeled_target_x_filename = '/processed_file_not_one_hot_%s_%1.1f_target_known_label_x.npy'%(args.task, args.target_lbl_percentage)
@@ -239,7 +240,7 @@ target_labeled_dict = get_class_data_dict(labeled_target_x, labeled_target_y, nu
 
 # # weight Initialize
 
-# In[9]:
+# In[15]:
 
 
 def weights_init(m):
@@ -252,7 +253,7 @@ def weights_init(m):
 
 # # model creation
 
-# In[10]:
+# In[16]:
 
 
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
@@ -295,7 +296,7 @@ optimizerEncoderMLP = torch.optim.Adam(encoder_MLP.parameters(), lr=args.lr_enco
 optimizerCenterLoss = torch.optim.Adam(criterion_centerloss.parameters(), lr=args.lr_centerloss)
 
 
-# In[11]:
+# In[17]:
 
 
 def classifier_inference(encoder, CNet, x):
@@ -307,7 +308,7 @@ def classifier_inference(encoder, CNet, x):
     return pred
 
 
-# In[12]:
+# In[18]:
 
 
 def encoder_inference(encoder, encoder_MLP, x):
@@ -319,7 +320,7 @@ def encoder_inference(encoder, encoder_MLP, x):
     return cat_embedding
 
 
-# In[13]:
+# In[19]:
 
 
 def _gradient_penalty(real_data, generated_data, DNet, mask, num_class, device, args):
@@ -356,7 +357,7 @@ def _gradient_penalty(real_data, generated_data, DNet, mask, num_class, device, 
 
 # # Train
 
-# In[29]:
+# In[22]:
 
 
 target_acc_label_ = []
@@ -665,7 +666,7 @@ for epoch in range(args.epochs):
                 loss_D_local.backward()
                 optimizerD_local.step()
             
-    logger.info('Epoch: %i, Local Discrimator Updates: Loss D_local: %f, Loss G: %f'%(epoch+1, total_error_D_local, total_error_G))
+    logger.info('Epoch: %i, Local Discrimator Updates: Loss D_local: %f, Loss G: %f; update_ratio: %i'%(epoch+1, total_error_D_local, total_error_G, update_id))
     error_D_local.append(total_error_D_local)
     error_G_global.append(total_error_G)
  
