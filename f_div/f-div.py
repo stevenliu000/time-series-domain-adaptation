@@ -137,7 +137,7 @@ if args.num_per_class == -1:
 model_sub_folder = '/f-gan/'+args.model_name
 if args.KL: model_sub_folder += '_KL'
 if args.JS: model_sub_folder += '_JS'   
-if args.Classifier: model_sub_folder += '_Classifier'
+if args.classifier: model_sub_folder += '_classifier'
 model_sub_folder += '/'
 
 if not os.path.exists(args.save_path+model_sub_folder):
