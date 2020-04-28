@@ -547,6 +547,17 @@ for epoch in range(args.epochs):
     encoder_MLP.eval()
     GNet.train()
     DNet_local.train()
+    
+    update_id = int(1/args.n_critic)
+    if args.pure_random:
+        update_id = max(1, update_id + np.random.randint(-2,2,1)[0])
+#     elif args.adaptive_random:
+#         if batch_id > 10:
+
+#             # mean of last 10 trail
+#             sd_Gloss = np.std(error_G_local[-10:])
+#             sd_Dlocalloss = np.std(error_D_local[-10:])
+#             update_id = update_id + np.random.randint(-2,2,1)[0]
     for batch_id in tqdm(range(math.ceil(label_target_len/args.batch_size))):
         target_x, target_y, target_weight = get_batch_target_data_on_class(target_labeled_dict, args.num_per_class, pesudo_dict, no_pesudo=True)
         source_x, source_y = get_batch_source_data_on_class(source_labeled_dict, args.num_per_class)
@@ -632,16 +643,6 @@ for epoch in range(args.epochs):
             optimizerG.step()
             
             
-            update_id = int(1/args.n_critic)
-            if args.pure_random:
-                update_id = max(1, update_id + np.random.randint(-2,2,1)[0])
-#             elif args.adaptive_random:
-#                 if batch_id > 10:
-                    
-#                     # mean of last 10 trail
-#                     sd_Gloss = np.std(error_G_local[-10:])
-#                     sd_Dlocalloss = np.std(error_D_local[-10:])
-#                     update_id = update_id + np.random.randint(-2,2,1)[0]
             if batch_id % update_id == 0:
                 """Update D Net"""
                 optimizerD_local.zero_grad()
