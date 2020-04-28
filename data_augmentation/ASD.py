@@ -2,9 +2,9 @@
 # coding: utf-8
 
 # # Data augmentation
-# 
+#
 # method used here is based on the following paper
-# 
+#
 # Germain Forestier et al. "Generating synthetic time series to augment sparse datasets". ICDM 2017.
 
 # In[3]:
@@ -84,7 +84,7 @@ logging.basicConfig(filename=os.path.join(subfolder, 'logfile.log'), filemode='w
 # class local_args:
 #     def __init__(self, **entries):
 #         self.__dict__.update(entries)
-        
+
 # args = local_args(**{
 #     'data_path': '../data_unzip',
 #     'task': '3E',
@@ -127,7 +127,7 @@ logging.info('Loading Finished!')
 
 
 def dba_parallel(class_x, verbose=True):
-    
+
     # randomly chose one from class_x
 
     t_star_ind = np.random.choice(class_x.shape[0], 1)
@@ -191,10 +191,10 @@ while len(mission_left) > 0:
     i = mission_left[0]
     try:
         logging.info("### START class {} @ {}".format(i, datetime.now()))
-        class_ind = np.where(labeled_source_y == i)
+        class_ind = np.where(labeled_target_y == i)
         logging.debug("In class {}".format(i))
         class_ind_subset = class_ind[0][np.random.choice(class_ind[0].shape[0], args.subset_count)]
-        class_x = labeled_source_x[class_ind_subset]
+        class_x = labeled_target_x[class_ind_subset]
         iter_num_class = round(args.duplicate_time * class_ind[0].shape[0])
         logging.info("Number of data generated for class {}: {}".format(i, iter_num_class))
         results_class = dba_parallel_warp(class_x, iter_num_class) # [iter_num_class, 2]
@@ -202,7 +202,7 @@ while len(mission_left) > 0:
         new_data_y.extend([np.array([i] * iter_num_class)])
         mission_left.pop(mission_left.index(i))
         logging.debug("misson left after pop: {}".format(mission_left))
-        
+
         # save so far
         new_data_x_total = np.concatenate(new_data_x, axis=0)
         new_data_y_total = np.concatenate(new_data_y, axis=0)
@@ -210,12 +210,12 @@ while len(mission_left) > 0:
         logging.info('new_data_y_now: {}'.format(new_data_y_total.shape))
         np.save(os.path.join(subfolder, 'new_data_x.npy'), new_data_x_total)
         np.save(os.path.join(subfolder, 'new_data_y.npy'), new_data_y_total)
-        del new_data_x_total, new_data_y_total 
+        del new_data_x_total, new_data_y_total
         logging.info('Saved for class {}'.format(i))
     except Exception as e:
         logging.info("error in class {}, skip for now: {}".format(i, e))
 
-        
+
 
 overall_end = time.time()
 duration = timedelta(-1, overall_end - overall_start)
