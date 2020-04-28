@@ -461,13 +461,13 @@ for epoch in range(3, source_acc_label_.shape[0], args.intervals*args.model_save
             optimizer_gfunction_JS_div_unlabeled.step()
             
     if args.KL:  
-    loss_KL_unlabeled = - loss_KL_unlabeled.item()
-    unlabeled_KL.append(loss_KL_unlabeled)
+        loss_KL_unlabeled = - loss_KL_unlabeled.item()
+        unlabeled_KL.append(loss_KL_unlabeled)
     
     if args.JS:
-    loss_JS_unlabeled = - loss_JS_unlabeled.item()
-    unlabeled_JS.append(loss_JS_unlabeled)
-        
+        loss_JS_unlabeled = - loss_JS_unlabeled.item()
+        unlabeled_JS.append(loss_JS_unlabeled)
+
     if args.classifier:
         CNet.train()
         while i < args.classifier_epoch or (acc_source_labeled_classifier < 98 and acc_target_labeled_classifer < 98):
