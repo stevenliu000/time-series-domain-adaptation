@@ -53,6 +53,7 @@ parser.add_argument("--task", type=str, help='3A or 3E')
 parser.add_argument('--gpu_num', type=int, default=0, help='gpu number')
 parser.add_argument('--batch_size', type=int, default=256, help='batch size')
 parser.add_argument('--lr', type=float, default=1e-3, help='learning rate')
+parser.add_argument('--lr_centerloss', type=float, default=0.005, help='learning rate for centerloss')
 parser.add_argument('--target_lbl_percentage', type=float, default=0.7, help='percentage of which target data has label')
 parser.add_argument('--source_lbl_percentage', type=float, default=0.7, help='percentage of which source data has label')
 parser.add_argument('--num_per_class', type=int, default=-1, help='number of sample per class when training local discriminator')
@@ -359,8 +360,10 @@ for epoch in range(3, source_acc_label_.shape[0], args.intervals*args.model_save
         optimizer_gfunction_JS_div_unlabeled = torch.optim.Adam(gfunction_JS_div_unlabeled.parameters(), lr=args.lr)
 
     if args.classifier:
-        CNet.load_state_dict(torch.load(os.path.join(args.model_path, 'encoder_%i.t7'%epoch)))
+        CNet.load_state_dict(torch.load(os.path.join(args.model_path, 'CNet_%i.t7'%epoch)))
+        criterion_centerloss.load_state_dict(torch.load(os.path.join(args.model_path, 'centerloss_%i.t7'%epoch)))
         optimizer_CNet = torch.optim.Adam(CNet.parameters(), lr=args.lr)
+        optimizer_centerloss = torch.optim.Adam(criterion_centerloss.parameters(), lr=args.lr_centerloss)
     
     # load weight
     encoder.load_state_dict(torch.load(os.path.join(args.model_path, 'encoder_%i.t7'%epoch)))
@@ -460,11 +463,13 @@ for epoch in range(3, source_acc_label_.shape[0], args.intervals*args.model_save
         CNet.train()
         while i < args.classifier_epoch or (acc_source_labeled_classifier < 98 and acc_target_labeled_classifer < 98):
             optimizer_CNet.zero_grad()
+            optimizer_centerloss.zero_grad()
             pred = CNet(source_x_labeled_embedding)
             acc_source_labeled_classifier = (pred.argmax(-1) == source_y_labeled).sum().item()
             loss_source_classifier_labeled = (criterion_classifier(pred, source_y_labeled) +
                                        criterion_centerloss(source_x_embedding, source_y_labeled) * args.scent) * args.sclass
             loss_source_classifier_labeled.backward()
+            optimizer_centerloss.step()
             optimizer_CNet.step()
             
             optimizer_CNet.zero_grad()
