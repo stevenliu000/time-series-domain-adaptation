@@ -69,7 +69,7 @@ parser.add_argument('--JS', type=bool, default=False, help="if calculate JS dive
 parser.add_argument('--classifier', type=bool, default=False, help="if optmizer classifier")
 parser.add_argument('--sclass', type=float, default=0.7, help='target classifier loss weight')
 parser.add_argument('--scent', type=float, default=0.0001, help='source domain classification weight on centerloss')
-parser.add_argument('--classifier_epoch', type=int, default=500, help='max iteration to train classifier')
+parser.add_argument('--classifier_epoch', type=int, default=10000, help='max iteration to train classifier')
 
 
 args = parser.parse_args()
@@ -451,7 +451,6 @@ for epoch in range(3, source_acc_label_.shape[0], args.intervals*args.model_save
             loss_KL_unlabeled.backward()
             optimizer_gfunction_KL_div_unlabeled.step()
 
-        
         if args.JS:
             optimizer_gfunction_JS_div_unlabeled.zero_grad()
             source_x_unlabeled_g = gfunction_JS_div_unlabeled(source_x_unlabeled_embedding)
@@ -471,8 +470,8 @@ for epoch in range(3, source_acc_label_.shape[0], args.intervals*args.model_save
     acc_source_labeled_classifier = 0
     acc_target_labeled_classifier = 0
     if args.classifier:
-        while i < args.classifier_epoch or (acc_source_labeled_classifier < 0.98 and acc_target_labeled_classifier < 0.98):
-#         for i in tqdm(range(args.classifier_epoch)):
+#         while i < args.classifier_epoch or (acc_source_labeled_classifier < 0.98 and acc_target_labeled_classifier < 0.98):
+        for i in tqdm(range(args.classifier_epoch)):
             CNet.train()
             optimizer_CNet.zero_grad()
             optimizer_centerloss.zero_grad()
