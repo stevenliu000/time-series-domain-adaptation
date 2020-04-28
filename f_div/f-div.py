@@ -468,9 +468,11 @@ for epoch in range(3, source_acc_label_.shape[0], args.intervals*args.model_save
         loss_JS_unlabeled = - loss_JS_unlabeled.item()
         unlabeled_JS.append(loss_JS_unlabeled)
 
+    acc_source_labeled_classifier = 0
+    acc_target_labeled_classifier = 0
     if args.classifier:
         CNet.train()
-        while i < args.classifier_epoch or (acc_source_labeled_classifier < 98 and acc_target_labeled_classifer < 98):
+        while i < args.classifier_epoch or (acc_source_labeled_classifier < 98 and acc_target_labeled_classifier < 98):
             optimizer_CNet.zero_grad()
             optimizer_centerloss.zero_grad()
             pred = CNet(source_x_labeled_embedding)
