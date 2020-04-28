@@ -348,15 +348,15 @@ for epoch in range(3, source_acc_label_.shape[0], args.intervals*args.model_save
     # initialize 
     if args.KL:
         gfunction_KL_div_labeled.apply(weights_init)
-        optimizer_gfunction_KL_div_labeled = torch.optim.Adam(gfunction1.parameters(), lr=args.lr)
+        optimizer_gfunction_KL_div_labeled = torch.optim.Adam(gfunction_KL_div_labeled.parameters(), lr=args.lr)
         gfunction_KL_div_unlabeled.apply(weights_init)
-        optimizer_gfunction_KL_div_unlabeled = torch.optim.Adam(gfunction1.parameters(), lr=args.lr)
+        optimizer_gfunction_KL_div_unlabeled = torch.optim.Adam(gfunction_KL_div_unlabeled.parameters(), lr=args.lr)
 
     if args.JS:
         gfunction_JS_div_labeled.apply(weights_init)
-        optimizer_gfunction_JS_div_labeled = torch.optim.Adam(gfunction1.parameters(), lr=args.lr)
+        optimizer_gfunction_JS_div_labeled = torch.optim.Adam(gfunction_JS_div_labeled.parameters(), lr=args.lr)
         gfunction_JS_div_unlabeled.apply(weights_init)
-        optimizer_gfunction_JS_div_unlabeled = torch.optim.Adam(gfunction1.parameters(), lr=args.lr)
+        optimizer_gfunction_JS_div_unlabeled = torch.optim.Adam(gfunction_JS_div_unlabeled.parameters(), lr=args.lr)
 
     if args.classification:
         CNet.load_state_dict(torch.load(os.path.join(args.model_path, 'encoder_%i.t7'%epoch)))
