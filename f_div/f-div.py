@@ -377,13 +377,13 @@ for epoch in range(3, source_acc_label_.shape[0], args.intervals*args.model_save
     
     # get source/target embedding
     source_x_labeled_embedding = torch.empty(0).to(device)
-    source_y_labeled = torch.empty(0).to(device)
+    source_y_labeled = torch.empty(0).long().to(device)
     source_x_unlabeled_embedding = torch.empty(0).to(device)
-    source_y_unlabeled = torch.empty(0).to(device)
+    source_y_unlabeled = torch.empty(0).long().to(device)
     target_x_labeled_embedding = torch.empty(0).to(device)
-    target_x_labeled = torch.empty(0).to(device)
+    target_x_labeled = torch.empty(0).long().to(device)
     target_x_unlabeled_embedding = torch.empty(0).to(device)
-    target_y_unlabeled = torch.empty(0).to(device)
+    target_y_unlabeled = torch.empty(0).long().to(device)
     with torch.no_grad():
         for batch_id, (source_x, source_y) in tqdm(enumerate(labeled_source_dataloader), total=len(labeled_source_dataloader)):
             source_x = source_x.to(device).float()
