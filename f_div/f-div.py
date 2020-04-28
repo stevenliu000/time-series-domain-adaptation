@@ -285,7 +285,7 @@ if args.JS:
     gfunction_JS_div_labeled = Gfunction().to(device)
     gfunction_JS_div_unlabeled = Gfunction().to(device)
     
-if args.classification:
+if args.classifier:
     CNet = FNNLinear(d_h2=64*2, d_out=num_class).to(device)
     criterion_centerloss = CenterLoss(num_classes=num_class, feat_dim=64*2, use_gpu=device).to(device)
     criterion_classifier = nn.CrossEntropyLoss().to(device)
