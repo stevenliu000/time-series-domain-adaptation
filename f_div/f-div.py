@@ -425,9 +425,7 @@ for epoch in range(3, source_acc_label_.shape[0], args.intervals*args.model_save
             loss_KL_labeled = - KLDiv(source_x_labeled_g, target_x_labeled_g, device) # maximize
             loss_KL_labeled.backward()
             optimizer_gfunction_KL_div_labeled.step()
-        loss_KL_labeled = - loss_KL_labeled.item()
-        labeled_KL.append(loss_KL_labeled)
-        
+       
         if args.JS:
             optimizer_gfunction_JS_div_labeled.zero_grad()
             source_x_labeled_g = gfunction_JS_div_labeled(source_x_labeled_embedding)
@@ -435,6 +433,12 @@ for epoch in range(3, source_acc_label_.shape[0], args.intervals*args.model_save
             loss_JS_labeled = - JSDiv(source_x_labeled_g, target_x_labeled_g, device) # maximize
             loss_JS_labeled.backward()
             optimizer_gfunction_JS_div_labeled.step()
+            
+    if args.KL:
+        loss_KL_labeled = - loss_KL_labeled.item()
+        labeled_KL.append(loss_KL_labeled)
+      
+    if args.JS:
         loss_JS_labeled = - loss_JS_labeled.item()
         labeled_JS.append(loss_JS_labeled)
     
@@ -446,8 +450,7 @@ for epoch in range(3, source_acc_label_.shape[0], args.intervals*args.model_save
             loss_KL_unlabeled = - KLDiv(source_x_unlabeled_g, target_x_unlabeled_g, device) # maximize
             loss_KL_unlabeled.backward()
             optimizer_gfunction_KL_div_unlabeled.step()
-        loss_KL_unlabeled = - loss_KL_unlabeled.item()
-        unlabeled_KL.append(loss_KL_unlabeled)
+
         
         if args.JS:
             optimizer_gfunction_JS_div_unlabeled.zero_grad()
@@ -456,8 +459,14 @@ for epoch in range(3, source_acc_label_.shape[0], args.intervals*args.model_save
             loss_JS_unlabeled = - JSDiv(source_x_unlabeled_g, target_x_unlabeled_g, device) # maximize
             loss_JS_unlabeled.backward()
             optimizer_gfunction_JS_div_unlabeled.step()
-        loss_JS_unlabeled = - loss_JS_unlabeled.item()
-        unlabeled_JS.append(loss_JS_unlabeled)
+            
+    if args.KL:  
+    loss_KL_unlabeled = - loss_KL_unlabeled.item()
+    unlabeled_KL.append(loss_KL_unlabeled)
+    
+    if args.JS:
+    loss_JS_unlabeled = - loss_JS_unlabeled.item()
+    unlabeled_JS.append(loss_JS_unlabeled)
         
     if args.classifier:
         CNet.train()
