@@ -478,7 +478,7 @@ for epoch in range(3, source_acc_label_.shape[0], args.intervals*args.model_save
             pred = CNet(source_x_labeled_embedding)
             acc_source_labeled_classifier = (pred.argmax(-1) == source_y_labeled).sum().item()
             loss_source_classifier_labeled = (criterion_classifier(pred, source_y_labeled) +
-                                       criterion_centerloss(source_x_embedding, source_y_labeled) * args.scent) * args.sclass
+                                       criterion_centerloss(source_x_labeled_embedding, source_y_labeled) * args.scent) * args.sclass
             loss_source_classifier_labeled.backward()
             optimizer_centerloss.step()
             optimizer_CNet.step()
