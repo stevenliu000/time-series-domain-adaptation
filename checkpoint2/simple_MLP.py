@@ -247,7 +247,7 @@ class Gfunction(nn.Sequential):
 device = torch.device('cuda:{}'.format(args.gpu_num) if torch.cuda.is_available() else 'cpu')
 print(device)
 
-CNet = Gfunction.to(device)
+CNet = Gfunction().to(device)
 
 criterion_classifier = nn.CrossEntropyLoss().to(device)
 
