@@ -164,7 +164,25 @@ class Gfunction(nn.Sequential):
             nn.ELU(),
             nn.Linear(1600,800),
             nn.ELU(),
-            nn.Linear(800,1)
+            nn.Linear(800,400),
+            nn.ELU(),
+            nn.Linear(400,200),
+            nn.ELU(),
+            nn.Linear(200,100),
+            nn.ELU(),
+            nn.Linear(100,100),
+            nn.ELU(),
+            nn.Linear(100,100),
+            nn.ELU(),
+            nn.Linear(100,100),
+            nn.ELU(),
+            nn.Linear(100,100),
+            nn.ELU(),
+            nn.Linear(100,100),
+            nn.ELU(),
+            nn.Linear(100,100),
+            nn.ELU(),
+            nn.Linear(100,1),
         )
 
 
