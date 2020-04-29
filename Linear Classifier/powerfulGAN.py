@@ -9,19 +9,15 @@ class Generator(nn.Module):
             nn.LayerNorm(300),
             nn.LeakyReLU(0.2, inplace=True),
 
-            nn.Linear(300, 1000),
-            nn.LayerNorm(1000),
+            nn.Linear(300, 500),
+            nn.LayerNorm(500),
             nn.LeakyReLU(0.2, inplace=True),
 
-            nn.Linear(1000, 1000),
-            nn.LayerNorm(1000),
+            nn.Linear(500, 500),
+            nn.LayerNorm(500),
             nn.LeakyReLU(0.2, inplace=True),
             
-            nn.Linear(1000, 1000),
-            nn.LayerNorm(1000),
-            nn.LeakyReLU(0.2, inplace=True),
-
-            nn.Linear(1000, 300),
+            nn.Linear(500, 300),
             nn.LayerNorm(300),
             nn.LeakyReLU(0.2, inplace=True),
 
@@ -40,9 +36,9 @@ class Discriminator(nn.Module):
             nn.Linear(feature_dim, feature_dim),
             nn.LeakyReLU(0.2, inplace=True),
 
-#             nn.Linear(feature_dim, feature_dim),
-#             nn.LayerNorm(feature_dim),
-#             nn.LeakyReLU(0.2, inplace=True),
+            nn.Linear(feature_dim, feature_dim),
+            nn.LayerNorm(feature_dim),
+            nn.LeakyReLU(0.2, inplace=True),
 
             nn.Linear(feature_dim, feature_dim),
             nn.LayerNorm(feature_dim),
