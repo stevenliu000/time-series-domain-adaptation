@@ -48,7 +48,7 @@ from binaryloss import BinaryLoss
 
 # Parameters
 parser = argparse.ArgumentParser(description='JDA Time series adaptation')
-parser.add_argument("--data_path", type=str, default="/projects/rsalakhugroup/complex/domain_adaptation", help="dataset path")
+parser.add_argument("--data_path", type=str, default="../data_unzip", help="dataset path")
 parser.add_argument("--task", type=str, help='3A or 3E')
 parser.add_argument('--gpu_num', type=int, default=0, help='gpu number')
 parser.add_argument('--batch_size', type=int, default=256, help='batch size')
@@ -58,7 +58,7 @@ parser.add_argument('--target_lbl_percentage', type=float, default=0.7, help='pe
 parser.add_argument('--source_lbl_percentage', type=float, default=0.7, help='percentage of which source data has label')
 parser.add_argument('--num_per_class', type=int, default=-1, help='number of sample per class when training local discriminator')
 parser.add_argument('--seed', type=int, default=0, help='manual seed')
-parser.add_argument('--save_path', type=str, help='where to store data')
+parser.add_argument('--save_path', type=str, default='../train_related/', help='where to store data')
 parser.add_argument('--model_save_period', type=int, default=2, help='period in which the model is saved')
 parser.add_argument('--model_path', type=str, help='where the data is stored')
 parser.add_argument('--intervals', type=int, default=2, help='freq of compute f-div')
@@ -70,7 +70,7 @@ parser.add_argument('--classifier', type=bool, default=False, help="if optmizer 
 parser.add_argument('--sclass', type=float, default=0.7, help='target classifier loss weight')
 parser.add_argument('--scent', type=float, default=0.0001, help='source domain classification weight on centerloss')
 parser.add_argument('--centerloss', type=bool, default=False, help='if use centerloss')
-parser.add_argument('--classifier_epoch', type=int, default=5000, help='max iteration to train classifier')
+parser.add_argument('--classifier_epoch', type=int, default=10000, help='max iteration to train classifier')
 
 
 args = parser.parse_args()
@@ -219,9 +219,7 @@ def weights_init(m):
 # In[ ]:
 
 
-class Gfunction(nn.Sequential):
-    def __init__(self):
-        super(Gfunction, self).__init__(
+
 class Gfunction(nn.Sequential):
     def __init__(self):
         super(Gfunction, self).__init__(
