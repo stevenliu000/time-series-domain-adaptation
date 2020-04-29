@@ -301,7 +301,7 @@ for epoch in range(args.epochs):
     optimizerCNet.zero_grad()
     for batch_id, (source_x, source_y) in tqdm(enumerate(labeled_source_dataloader), total=len(labeled_source_dataloader)):
         optimizerCNet.zero_grad()
-        source_x = source_x.to(device).float()
+        source_x = source_x.to(device).view(-1,3200).float()
         source_y = source_y.to(device)
         num_datas += source_x.size(0)
         pred = CNet(source_x)
@@ -320,7 +320,7 @@ for epoch in range(args.epochs):
     num_datas = 0.0
     for batch_id, (target_x, target_y) in tqdm(enumerate(labeled_target_dataloader), total=len(labeled_target_dataloader)):
         optimizerCNet.zero_grad()
-        target_x = target_x.to(device).float()
+        target_x = target_x.to(device).view(-1,3200).float()
         target_y = target_y.to(device)
         num_datas += target_x.size(0)
         pred = CNet(target_x)
@@ -339,7 +339,7 @@ for epoch in range(args.epochs):
     num_datas = 0.0
     CNet.eval()
     for batch_id, (source_x, source_y) in tqdm(enumerate(unlabeled_source_dataloader), total=len(unlabeled_source_dataloader)):
-        source_x = source_x.to(device).float()
+        source_x = source_x.to(device).view(-1,3200).float()
         source_y = source_y.to(device)
         num_datas += source_x.shape[0]
         pred = CNet(source_x)
@@ -353,7 +353,7 @@ for epoch in range(args.epochs):
     num_datas = 0.0
     CNet.eval()
     for batch_id, (target_x, target_y) in tqdm(enumerate(unlabeled_target_dataloader), total=len(unlabeled_target_dataloader)):
-        target_x = target_x.to(device).float()
+        target_x = target_x.to(device).view(-1,3200).float()
         target_y = target_y.to(device)
         num_datas += target_x.shape[0]
         pred = CNet(target_x)
