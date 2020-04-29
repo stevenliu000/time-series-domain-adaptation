@@ -127,8 +127,8 @@ for item in attrs.items():
 
 labeled_x_filename = '/processed_file_not_one_hot_%s_%1.1f_%s_known_label_x.npy'%(args.task, args.target_lbl_percentage, args.data)
 labeled_y_filename = '/processed_file_not_one_hot_%s_%1.1f_%s_known_label_y.npy'%(args.task, args.target_lbl_percentage, args.data)
-unlabeled_x_filename = '/processed_file_not_one_hot_%s_%1.1f_target_unknown_label_x.npy'%(args.task, args.target_lbl_percentage, args.data)
-unlabeled_y_filename = '/processed_file_not_one_hot_%s_%1.1f_target_unknown_label_y.npy'%(args.task, args.target_lbl_percentage, args.data)
+unlabeled_x_filename = '/processed_file_not_one_hot_%s_%1.1f_%s_unknown_label_x.npy'%(args.task, args.target_lbl_percentage, args.data)
+unlabeled_y_filename = '/processed_file_not_one_hot_%s_%1.1f_%s_unknown_label_y.npy'%(args.task, args.target_lbl_percentage, args.data)
 
 labeled_x = np.load(args.data_path+labeled_x_filename)
 labeled_y = np.load(args.data_path+labeled_y_filename)
