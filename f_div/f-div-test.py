@@ -48,7 +48,7 @@ from binaryloss import BinaryLoss
 
 # Parameters
 parser = argparse.ArgumentParser(description='JDA Time series adaptation')
-parser.add_argument("--data_path", type=str, default="../data_unzip", help="dataset path")
+parser.add_argument("--data_path", type=str, default="/projects/rsalakhugroup/complex/domain_adaptation", help="dataset path")
 parser.add_argument("--task", type=str, help='3A or 3E')
 parser.add_argument('--gpu_num', type=int, default=0, help='gpu number')
 parser.add_argument('--batch_size', type=int, default=256, help='batch size')
@@ -58,7 +58,7 @@ parser.add_argument('--target_lbl_percentage', type=float, default=0.7, help='pe
 parser.add_argument('--source_lbl_percentage', type=float, default=0.7, help='percentage of which source data has label')
 parser.add_argument('--num_per_class', type=int, default=-1, help='number of sample per class when training local discriminator')
 parser.add_argument('--seed', type=int, default=0, help='manual seed')
-parser.add_argument('--save_path', type=str, default='../train_related/', help='where to store data')
+parser.add_argument('--save_path', type=str, help='where to store data')
 parser.add_argument('--model_save_period', type=int, default=2, help='period in which the model is saved')
 parser.add_argument('--model_path', type=str, help='where the data is stored')
 parser.add_argument('--intervals', type=int, default=2, help='freq of compute f-div')
@@ -69,8 +69,7 @@ parser.add_argument('--JS', type=bool, default=False, help="if calculate JS dive
 parser.add_argument('--classifier', type=bool, default=False, help="if optmizer classifier")
 parser.add_argument('--sclass', type=float, default=0.7, help='target classifier loss weight')
 parser.add_argument('--scent', type=float, default=0.0001, help='source domain classification weight on centerloss')
-parser.add_argument('--centerloss', type=bool, default=False, help='if use centerloss')
-parser.add_argument('--classifier_epoch', type=int, default=10000, help='max iteration to train classifier')
+parser.add_argument('--classifier_epoch', type=int, default=5000, help='max iteration to train classifier')
 
 
 args = parser.parse_args()
@@ -136,7 +135,7 @@ device = torch.device('cuda:{}'.format(args.gpu_num) if torch.cuda.is_available(
 if args.num_per_class == -1:
     args.num_per_class = math.ceil(args.batch_size / num_class)
     
-model_sub_folder = '/f-gan/'+args.model_name
+model_sub_folder = '/f-gan-test/'+args.model_name
 if args.KL: model_sub_folder += '_KL'
 if args.JS: model_sub_folder += '_JS'   
 if args.classifier: model_sub_folder += '_classifier'
@@ -219,29 +218,10 @@ def weights_init(m):
 # In[ ]:
 
 
-
 class Gfunction(nn.Sequential):
     def __init__(self):
         super(Gfunction, self).__init__(
             nn.Linear(128,100),
-            nn.ELU(),
-            nn.Linear(100,100),
-            nn.ELU(),
-            nn.Linear(100,100),
-            nn.ELU(),
-            nn.Linear(100,100),
-            nn.ELU(),
-            nn.Linear(100,100),
-            nn.ELU(),
-            nn.Linear(100,100),
-            nn.ELU(),
-            nn.Linear(100,100),
-            nn.ELU(),
-            nn.Linear(100,100),
-            nn.ELU(),
-            nn.Linear(100,100),
-            nn.ELU(),
-            nn.Linear(100,100),
             nn.ELU(),
             nn.Linear(100,100),
             nn.ELU(),
@@ -308,8 +288,7 @@ if args.JS:
     
 if args.classifier:
     CNet = FNNLinear(d_h2=64*2, d_out=num_class).to(device)
-    if args.centerloss:
-        criterion_centerloss = CenterLoss(num_classes=num_class, feat_dim=64*2, use_gpu=device).to(device)
+    criterion_centerloss = CenterLoss(num_classes=num_class, feat_dim=64*2, use_gpu=device).to(device)
     criterion_classifier = nn.CrossEntropyLoss().to(device)
 
 encoder.apply(weights_init)
@@ -366,7 +345,7 @@ target_acc_unlabel = []
 
 epochs = []
 
-for epoch in range(3, source_acc_label_.shape[0], args.intervals*args.model_save_period):
+for epoch in [999]:
     # initialize 
     if args.KL:
         gfunction_KL_div_labeled.apply(weights_init)
@@ -382,11 +361,9 @@ for epoch in range(3, source_acc_label_.shape[0], args.intervals*args.model_save
 
     if args.classifier:
         CNet.load_state_dict(torch.load(os.path.join(args.model_path, 'CNet_%i.t7'%epoch)))
-        if args.centerloss:
-            criterion_centerloss.load_state_dict(torch.load(os.path.join(args.model_path, 'centerloss_%i.t7'%epoch)))
+        criterion_centerloss.load_state_dict(torch.load(os.path.join(args.model_path, 'centerloss_%i.t7'%epoch)))
         optimizer_CNet = torch.optim.Adam(CNet.parameters(), lr=args.lr)
-        if args.centerloss:
-            optimizer_centerloss = torch.optim.Adam(criterion_centerloss.parameters(), lr=args.lr_centerloss)
+        optimizer_centerloss = torch.optim.Adam(criterion_centerloss.parameters(), lr=args.lr_centerloss)
     
     # load weight
     encoder.load_state_dict(torch.load(os.path.join(args.model_path, 'encoder_%i.t7'%epoch)))
@@ -448,8 +425,8 @@ for epoch in range(3, source_acc_label_.shape[0], args.intervals*args.model_save
             loss_KL_labeled = - KLDiv(source_x_labeled_g, target_x_labeled_g, device) # maximize
             loss_KL_labeled.backward()
             optimizer_gfunction_KL_div_labeled.step()
-            if i % 500 == 0:
-                print("Epoch %i, Iter %i, labeled KL: %f"%(epoch, i, -loss_KL_labeled.item()))
+            if i % 300 == 0:
+                logger.info("iter %i, KL: %f"%(i, - loss_KL_labeled.item()))
        
         if args.JS:
             optimizer_gfunction_JS_div_labeled.zero_grad()
@@ -458,8 +435,6 @@ for epoch in range(3, source_acc_label_.shape[0], args.intervals*args.model_save
             loss_JS_labeled = - JSDiv(source_x_labeled_g, target_x_labeled_g, device) # maximize
             loss_JS_labeled.backward()
             optimizer_gfunction_JS_div_labeled.step()
-            if i % 500 == 0:
-                print("Epoch %i, Iter %i, labeled JS: %f"%(epoch, i, -loss_JS_labeled.item()))
             
     if args.KL:
         loss_KL_labeled = - loss_KL_labeled.item()
@@ -477,8 +452,6 @@ for epoch in range(3, source_acc_label_.shape[0], args.intervals*args.model_save
             loss_KL_unlabeled = - KLDiv(source_x_unlabeled_g, target_x_unlabeled_g, device) # maximize
             loss_KL_unlabeled.backward()
             optimizer_gfunction_KL_div_unlabeled.step()
-            if i % 500 == 0:
-                print("Epoch %i, Iter %i, unlabeled KL: %f"%(epoch, i, -loss_KL_unlabeled.item()))
 
         if args.JS:
             optimizer_gfunction_JS_div_unlabeled.zero_grad()
@@ -487,8 +460,6 @@ for epoch in range(3, source_acc_label_.shape[0], args.intervals*args.model_save
             loss_JS_unlabeled = - JSDiv(source_x_unlabeled_g, target_x_unlabeled_g, device) # maximize
             loss_JS_unlabeled.backward()
             optimizer_gfunction_JS_div_unlabeled.step()
-            if i % 500 == 0:
-                print("Epoch %i, Iter %i, unlabeled JS: %f"%(epoch, i, -loss_JS_unlabeled.item()))
             
     if args.KL:  
         loss_KL_unlabeled = - loss_KL_unlabeled.item()
@@ -506,14 +477,13 @@ for epoch in range(3, source_acc_label_.shape[0], args.intervals*args.model_save
         for i in tqdm(range(args.classifier_epoch)):
             CNet.train()
             optimizer_CNet.zero_grad()
-            if args.centerloss:
-                optimizer_centerloss.zero_grad()
+            optimizer_centerloss.zero_grad()
             pred = CNet(source_x_labeled_embedding)
             acc_source_labeled_classifier = (pred.argmax(-1) == source_y_labeled).sum().item() / pred.size(0)
-            loss_source_classifier_labeled = criterion_classifier(pred, source_y_labeled) * args.sclass
-            if args.centerloss: loss_source_classifier_labeled += criterion_centerloss(source_x_labeled_embedding, source_y_labeled) * args.scent * args.sclass
+            loss_source_classifier_labeled = (criterion_classifier(pred, source_y_labeled) +
+                                       criterion_centerloss(source_x_labeled_embedding, source_y_labeled) * args.scent) * args.sclass
             loss_source_classifier_labeled.backward()
-            if args.centerloss: optimizer_centerloss.step()
+            optimizer_centerloss.step()
             optimizer_CNet.step()
             
             optimizer_CNet.zero_grad()
