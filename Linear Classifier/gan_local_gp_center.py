@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[1]:
+# In[8]:
 
 
 import sys, os, inspect
@@ -11,10 +11,12 @@ sys.path.insert(0, parent_dir)
 sys.path.insert(0, os.path.join(parent_dir,'spring-break'))
 
 
-# In[2]:
+# In[27]:
 
 
 import numpy as np
+import sys
+from shutil import copyfile
 import random
 import copy
 import math
@@ -42,7 +44,7 @@ from centerloss import CenterLoss
 
 # # DataLoader
 
-# In[3]:
+# In[10]:
 
 
 class JoinDataset(Dataset):
@@ -85,7 +87,7 @@ class SingleDataset(Dataset):
 
 # # Parser
 
-# In[4]:
+# In[25]:
 
 
 # Parameters
@@ -112,14 +114,21 @@ parser.add_argument('--GANweights', type=int, default=-1, help='pretrained GAN w
 parser.add_argument('--isglobal', type=int, default=0, help='if using global DNet')
 parser.add_argument('--lr_centerloss', type=float, default=1e-3, help='center loss weight')
 parser.add_argument('--pure_random', type=int, default=1, help='Pure random for n_critic')
+parser.add_argument('--scent', type=float, default=0.01, help='source domain center loss weigth')
+parser.add_argument('--sprototype', type=float, default=1e-3, help='target prototype loss weight')
+parser.add_argument('--epoch_begin_prototype', type=int, default=20, help='initial epochs without prototype')
+
 
 
 args = parser.parse_args()
 args.isglobal = True if args.isglobal == 1 else False
 args.pure_random = True if args.pure_random == 1 else False
 
+# snap shot of py file and command
+python_file_name = sys.argv[0]
 
-# In[21]:
+
+# In[26]:
 
 
 # # local only
@@ -151,10 +160,15 @@ args.pure_random = True if args.pure_random == 1 else False
 #     'dlocal': 1e-2,
 #     'model_save_period': 2,
 #     'pure_random': True,
+#     'scent': 1e-2,
+#     'sprototype': 1e-3,
+#     'epoch_begin_prototype': 20,
 # })
 
+# sys.argv = ['de']
 
-# In[12]:
+
+# In[13]:
 
 
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
@@ -167,7 +181,7 @@ device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 if args.num_per_class == -1:
     args.num_per_class = math.ceil(args.batch_size / num_class)
     
-model_sub_folder = 'Linear_GAN/task_%s_gpweight_%f_dlocal_%f_critic_%f_rand_%i_sclass_%f_global_%i'%(args.task, args.gpweight, args.dlocal, args.n_critic, args.pure_random, args.sclass, args.isglobal)
+model_sub_folder = 'Linear_GAN/task_%s_gpweight_%f_dlocal_%f_critic_%f_rand_%i_sclass_%f_global_%i_center_%f_sprototype_%f'%(args.task, args.gpweight, args.dlocal, args.n_critic, args.pure_random, args.sclass, args.isglobal, args.scent, args.sprototype)
 
 save_folder = os.path.join(args.save_path, model_sub_folder)
 if not os.path.exists(save_folder):
@@ -176,7 +190,7 @@ if not os.path.exists(save_folder):
 
 # # Logger
 
-# In[13]:
+# In[28]:
 
 
 logger = logging.getLogger()
@@ -196,9 +210,21 @@ for item in attrs.items():
     logger.info("%s: %s"%item)
 
 
+# # File/Command Snapshot
+
+# In[ ]:
+
+
+copyfile(python_file_name, os.path.join(save_folder, 'executed.py'))
+commands = ['python']
+commands.extend(sys.argv)
+with open(os.path.join(save_folder, 'command.log'), 'w') as f:
+    f.write(' '.join(commands))
+
+
 # # Data loading
 
-# In[14]:
+# In[15]:
 
 
 labeled_target_x_filename = '/processed_file_not_one_hot_%s_%1.1f_target_known_label_x.npy'%(args.task, args.target_lbl_percentage)
@@ -239,7 +265,7 @@ target_labeled_dict = get_class_data_dict(labeled_target_x, labeled_target_y, nu
 
 # # weight Initialize
 
-# In[15]:
+# In[16]:
 
 
 def weights_init(m):
@@ -252,7 +278,7 @@ def weights_init(m):
 
 # # model creation
 
-# In[16]:
+# In[17]:
 
 
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
@@ -295,7 +321,7 @@ optimizerEncoderMLP = torch.optim.Adam(encoder_MLP.parameters(), lr=args.lr_enco
 optimizerCenterLoss = torch.optim.Adam(criterion_centerloss.parameters(), lr=args.lr_centerloss)
 
 
-# In[17]:
+# In[18]:
 
 
 def classifier_inference(encoder, CNet, x):
@@ -307,7 +333,7 @@ def classifier_inference(encoder, CNet, x):
     return pred
 
 
-# In[18]:
+# In[19]:
 
 
 def encoder_inference(encoder, encoder_MLP, x):
@@ -319,7 +345,7 @@ def encoder_inference(encoder, encoder_MLP, x):
     return cat_embedding
 
 
-# In[19]:
+# In[20]:
 
 
 def _gradient_penalty(real_data, generated_data, DNet, mask, num_class, device, args):
@@ -354,7 +380,7 @@ def _gradient_penalty(real_data, generated_data, DNet, mask, num_class, device, 
     return args.gpweight * ((gradients_norm - 1) ** 2).mean(dim=0)
 
 
-# In[1]:
+# In[21]:
 
 
 def _gradient_penalty_global(real_data, generated_data, DNet, num_class, device, args):
@@ -386,6 +412,31 @@ def _gradient_penalty_global(real_data, generated_data, DNet, num_class, device,
 
         # Return gradient penalty
         return args.gpweight * ((gradients_norm - 1) ** 2).mean()
+
+
+# In[22]:
+
+
+def compute_mean(samples, labels):
+    assert samples.size(0) == labels.size(0)
+    """
+    samples = torch.Tensor([
+                         [0.1, 0.1],    #-> group / class 1
+                         [0.2, 0.2],    #-> group / class 2
+                         [0.4, 0.4],    #-> group / class 2
+                         [0.0, 0.0]     #-> group / class 0
+                  ])
+    labels = torch.LongTensor([1, 2, 2, 0])
+    return 
+        tensor([[0.0000, 0.0000],
+                [0.1000, 0.1000],
+                [0.3000, 0.3000]])
+    """
+    M = torch.zeros(labels.max()+1, len(samples)).to(device)
+    M[labels, torch.arange(len(samples))] = 1
+    M = torch.nn.functional.normalize(M, p=1, dim=1)
+    res = torch.mm(M, samples)
+    return res
 
 
 # # Train
@@ -425,6 +476,10 @@ for epoch in range(args.epochs):
     GNet.train()
     source_acc = 0.0
     num_datas = 0.0
+    
+    source_x_embeddings = torch.empty(0).to(device)
+    source_ys = torch.empty(0, dtype=torch.long).to(device)
+ 
     for batch_id, (source_x, source_y) in tqdm(enumerate(labeled_source_dataloader), total=len(labeled_source_dataloader)):
         optimizerCNet.zero_grad()
         optimizerEncoder.zero_grad()
@@ -433,11 +488,15 @@ for epoch in range(args.epochs):
         source_y = source_y.to(device)
         num_datas += source_x.size(0)
         source_x_embedding = encoder_inference(encoder, encoder_MLP, source_x)
+        source_x_embeddings = torch.cat([source_x_embeddings, source_x_embedding])
+        source_ys = torch.cat([source_ys, source_y])
         pred = CNet(source_x_embedding)
         source_acc += (pred.argmax(-1) == source_y).sum().item()
-        loss = criterion_classifier(pred, source_y) * args.sclass
+        loss = (criterion_classifier(pred, source_y) + 
+                criterion_centerloss(source_x_embedding, source_y) * args.scent) * args.sclass
         loss.backward()
         optimizerCNet.step()
+        optimizerCenterLoss.step()
         optimizerEncoder.step()
         optimizerEncoderMLP.step()
 
@@ -445,6 +504,10 @@ for epoch in range(args.epochs):
     source_acc = source_acc / num_datas
     source_acc_.append(source_acc)
     
+    # get center
+    source_centers = compute_mean(source_x_embeddings, source_ys) # (65, 128)
+    source_centers = source_centers.detach()
+  
     
     # on target domain
     target_acc = 0.0
@@ -462,16 +525,29 @@ for epoch in range(args.epochs):
         target_y = target_y.to(device)
         num_datas += target_x.size(0)
         target_x_embedding = encoder_inference(encoder, encoder_MLP, target_x)
-        fake_source_embedding = GNet(target_x_embedding)
-        pred = CNet(fake_source_embedding)
+        fake_target_embedding = GNet(target_x_embedding)
+        pred = CNet(fake_target_embedding)
         target_acc += (pred.argmax(-1) == target_y).sum().item()
-        loss = criterion_classifier(pred, target_y)
+        
+        if epoch >= args.epoch_begin_prototype: 
+            # prototype loss calculate
+            center_batch = source_centers[target_y, ]
+            dist = torch.sum(torch.pow(fake_target_embedding - center_batch, 2), axis=1)
+            unique_class_y, class_count = torch.unique(target_y, return_counts=True)
+            prototype_loss = torch.mean(compute_mean(dist.view(-1,1), target_y))
+            # add prototype loss
+            loss = criterion_classifier(pred, target_y) + args.sprototype * prototype_loss
+        else:
+            loss = criterion_classifier(pred, target_y)
+        
         loss.backward()
         optimizerCNet.step()
         optimizerG.step()
         optimizerEncoder.step()
         optimizerEncoderMLP.step()
-
+    if epoch == args.epoch_begin_prototype:
+        logger.info("Start Prototye Loss")
+ 
     
     target_acc = target_acc / num_datas
     target_acc_label_.append(target_acc)
@@ -516,7 +592,7 @@ for epoch in range(args.epochs):
     pesudo_dict = get_class_data_dict(unlabeled_target_x, target_pesudo_y, num_class)
     target_acc_unlabel = correct_target/(unlabeled_target_x.shape[0])
     target_acc_unlabel_.append(target_acc_unlabel)
-    
+
     logger.info('Epoch: %i, update classifier: source acc: %f; source unlbl acc: %f; target acc: %f; target unlabel acc: %f'%(epoch+1, source_acc, source_acc_unlabel, target_acc, target_acc_unlabel))
 
     # Update GAN
