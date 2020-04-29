@@ -221,7 +221,28 @@ def weights_init(m):
 class Gfunction(nn.Sequential):
     def __init__(self):
         super(Gfunction, self).__init__(
+class Gfunction(nn.Sequential):
+    def __init__(self):
+        super(Gfunction, self).__init__(
             nn.Linear(128,100),
+            nn.ELU(),
+            nn.Linear(100,100),
+            nn.ELU(),
+            nn.Linear(100,100),
+            nn.ELU(),
+            nn.Linear(100,100),
+            nn.ELU(),
+            nn.Linear(100,100),
+            nn.ELU(),
+            nn.Linear(100,100),
+            nn.ELU(),
+            nn.Linear(100,100),
+            nn.ELU(),
+            nn.Linear(100,100),
+            nn.ELU(),
+            nn.Linear(100,100),
+            nn.ELU(),
+            nn.Linear(100,100),
             nn.ELU(),
             nn.Linear(100,100),
             nn.ELU(),
