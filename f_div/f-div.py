@@ -448,6 +448,8 @@ for epoch in range(3, source_acc_label_.shape[0], args.intervals*args.model_save
             loss_KL_labeled = - KLDiv(source_x_labeled_g, target_x_labeled_g, device) # maximize
             loss_KL_labeled.backward()
             optimizer_gfunction_KL_div_labeled.step()
+            if i % 500 == 0:
+                print("Epoch %i, Iter %i, labeled KL: %f"%(epoch, i, -loss_KL_labeled.item()))
        
         if args.JS:
             optimizer_gfunction_JS_div_labeled.zero_grad()
@@ -456,6 +458,8 @@ for epoch in range(3, source_acc_label_.shape[0], args.intervals*args.model_save
             loss_JS_labeled = - JSDiv(source_x_labeled_g, target_x_labeled_g, device) # maximize
             loss_JS_labeled.backward()
             optimizer_gfunction_JS_div_labeled.step()
+            if i % 500 == 0:
+                print("Epoch %i, Iter %i, labeled JS: %f"%(epoch, i, -loss_JS_labeled.item()))
             
     if args.KL:
         loss_KL_labeled = - loss_KL_labeled.item()
@@ -473,6 +477,8 @@ for epoch in range(3, source_acc_label_.shape[0], args.intervals*args.model_save
             loss_KL_unlabeled = - KLDiv(source_x_unlabeled_g, target_x_unlabeled_g, device) # maximize
             loss_KL_unlabeled.backward()
             optimizer_gfunction_KL_div_unlabeled.step()
+            if i % 500 == 0:
+                print("Epoch %i, Iter %i, unlabeled KL: %f"%(epoch, i, -loss_KL_unlabeled.item()))
 
         if args.JS:
             optimizer_gfunction_JS_div_unlabeled.zero_grad()
@@ -481,6 +487,8 @@ for epoch in range(3, source_acc_label_.shape[0], args.intervals*args.model_save
             loss_JS_unlabeled = - JSDiv(source_x_unlabeled_g, target_x_unlabeled_g, device) # maximize
             loss_JS_unlabeled.backward()
             optimizer_gfunction_JS_div_unlabeled.step()
+            if i % 500 == 0:
+                print("Epoch %i, Iter %i, unlabeled JS: %f"%(epoch, i, -loss_JS_unlabeled.item()))
             
     if args.KL:  
         loss_KL_unlabeled = - loss_KL_unlabeled.item()
