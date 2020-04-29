@@ -89,10 +89,9 @@ device = torch.device('cuda:{}'.format(args.gpu_num) if torch.cuda.is_available(
 if args.num_per_class == -1:
     args.num_per_class = math.ceil(args.batch_size / num_class)
     
-model_sub_folder = '/f-gan/'+args.model_name
+model_sub_folder = '/f-gan/%s'%args.data
 if args.KL: model_sub_folder += '_KL'
 if args.JS: model_sub_folder += '_JS'   
-if args.classifier: model_sub_folder += '_%s/'%args.data
 
 if not os.path.exists(args.save_path+model_sub_folder):
     os.makedirs(args.save_path+model_sub_folder)
