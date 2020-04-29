@@ -69,6 +69,7 @@ parser.add_argument('--JS', type=bool, default=False, help="if calculate JS dive
 parser.add_argument('--classifier', type=bool, default=False, help="if optmizer classifier")
 parser.add_argument('--sclass', type=float, default=0.7, help='target classifier loss weight')
 parser.add_argument('--scent', type=float, default=0.0001, help='source domain classification weight on centerloss')
+parser.add_argument('--centerloss', type=bool, default=False, help='if use centerloss')
 parser.add_argument('--classifier_epoch', type=int, default=5000, help='max iteration to train classifier')
 
 
@@ -309,7 +310,8 @@ if args.JS:
     
 if args.classifier:
     CNet = FNNLinear(d_h2=64*2, d_out=num_class).to(device)
-    criterion_centerloss = CenterLoss(num_classes=num_class, feat_dim=64*2, use_gpu=device).to(device)
+    if args.centerloss:
+        criterion_centerloss = CenterLoss(num_classes=num_class, feat_dim=64*2, use_gpu=device).to(device)
     criterion_classifier = nn.CrossEntropyLoss().to(device)
 
 encoder.apply(weights_init)
@@ -382,9 +384,11 @@ for epoch in range(3, source_acc_label_.shape[0], args.intervals*args.model_save
 
     if args.classifier:
         CNet.load_state_dict(torch.load(os.path.join(args.model_path, 'CNet_%i.t7'%epoch)))
-        criterion_centerloss.load_state_dict(torch.load(os.path.join(args.model_path, 'centerloss_%i.t7'%epoch)))
+        if args.centerloss:
+            criterion_centerloss.load_state_dict(torch.load(os.path.join(args.model_path, 'centerloss_%i.t7'%epoch)))
         optimizer_CNet = torch.optim.Adam(CNet.parameters(), lr=args.lr)
-        optimizer_centerloss = torch.optim.Adam(criterion_centerloss.parameters(), lr=args.lr_centerloss)
+        if args.centerloss:
+            optimizer_centerloss = torch.optim.Adam(criterion_centerloss.parameters(), lr=args.lr_centerloss)
     
     # load weight
     encoder.load_state_dict(torch.load(os.path.join(args.model_path, 'encoder_%i.t7'%epoch)))
@@ -496,13 +500,14 @@ for epoch in range(3, source_acc_label_.shape[0], args.intervals*args.model_save
         for i in tqdm(range(args.classifier_epoch)):
             CNet.train()
             optimizer_CNet.zero_grad()
-            optimizer_centerloss.zero_grad()
+            if args.centerloss:
+                optimizer_centerloss.zero_grad()
             pred = CNet(source_x_labeled_embedding)
             acc_source_labeled_classifier = (pred.argmax(-1) == source_y_labeled).sum().item() / pred.size(0)
-            loss_source_classifier_labeled = (criterion_classifier(pred, source_y_labeled) +
-                                       criterion_centerloss(source_x_labeled_embedding, source_y_labeled) * args.scent) * args.sclass
+            loss_source_classifier_labeled = criterion_classifier(pred, source_y_labeled) * args.sclass
+            if args.centerloss: loss_source_classifier_labeled += criterion_centerloss(source_x_labeled_embedding, source_y_labeled) * args.scent * args.sclass
             loss_source_classifier_labeled.backward()
-            optimizer_centerloss.step()
+            if args.centerloss: optimizer_centerloss.step()
             optimizer_CNet.step()
             
             optimizer_CNet.zero_grad()
