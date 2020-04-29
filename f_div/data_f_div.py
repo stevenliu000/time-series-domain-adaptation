@@ -61,7 +61,7 @@ parser.add_argument('--save_path', type=str, default='../train_related/', help='
 parser.add_argument('--gfunction_epoch', type=int, default=5000, help='epoch of which gfunction is trained for')
 parser.add_argument('--KL', type=bool, default=False, help="if calculate KL divergence")
 parser.add_argument('--JS', type=bool, default=False, help="if calculate JS divergence")
-parser.add_argument('--data', type=str, require=True, help='source or target to run')
+parser.add_argument('--data', type=str, required=True, help='source or target to run')
 
 
 args = parser.parse_args()
