@@ -281,7 +281,6 @@ for epoch in range(args.epochs):
  
     source_acc_label = 0.0
     num_datas = 0.0
-    optimizerCNet.zero_grad()
     for batch_id, (source_x, source_y) in tqdm(enumerate(labeled_source_dataloader), total=len(labeled_source_dataloader)):
         optimizer.zero_grad()
         source_x = source_x.to(device).view(-1,3200).float()
