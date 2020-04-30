@@ -168,9 +168,9 @@ labeled_target_y = np.load(args.data_path+labeled_target_y_filename)
 unlabeled_target_x = np.load(args.data_path+unlabeled_target_x_filename)
 unlabeled_target_y = np.load(args.data_path+unlabeled_target_y_filename)
 labeled_target_dataset = SingleDataset(labeled_target_x, labeled_target_y)
-unlabled_target_dataset = SingleDataset(unlabeled_target_x, unlabeled_target_y)
+unlabeled_target_dataset = SingleDataset(unlabeled_target_x, unlabeled_target_y)
 labeled_target_dataloader = DataLoader(labeled_target_dataset, batch_size=args.batch_size, shuffle=True, pin_memory=True, num_workers=4)
-unlabeled_target_dataloader = DataLoader(unlabled_target_dataset, batch_size=args.batch_size, shuffle=False, pin_memory=True, num_workers=4)
+unlabeled_target_dataloader = DataLoader(unlabeled_target_dataset, batch_size=args.batch_size, shuffle=False, pin_memory=True, num_workers=4)
 
 labeled_source_x_filename = '/processed_file_not_one_hot_%s_%1.1f_source_known_label_x.npy'%(args.task, args.source_lbl_percentage)
 labeled_source_y_filename = '/processed_file_not_one_hot_%s_%1.1f_source_known_label_y.npy'%(args.task, args.source_lbl_percentage)
@@ -181,9 +181,9 @@ labeled_source_y = np.load(args.data_path+labeled_source_y_filename)
 unlabeled_source_x = np.load(args.data_path+unlabeled_source_x_filename)
 unlabeled_source_y = np.load(args.data_path+unlabeled_source_y_filename)
 labeled_source_dataset = SingleDataset(labeled_source_x, labeled_source_y)
-unlabled_source_dataset = SingleDataset(unlabeled_source_x, unlabeled_source_y)
+unlabeled_source_dataset = SingleDataset(unlabeled_source_x, unlabeled_source_y)
 labeled_source_dataloader = DataLoader(labeled_source_dataset, batch_size=args.batch_size, shuffle=True, pin_memory=True, num_workers=4)
-unlabeled_source_dataloader = DataLoader(unlabled_source_dataset, batch_size=args.batch_size, shuffle=False, pin_memory=True, num_workers=4)
+unlabeled_source_dataloader = DataLoader(unlabeled_source_dataset, batch_size=args.batch_size, shuffle=False, pin_memory=True, num_workers=4)
 
 join_dataset = JoinDataset(labeled_source_x, labeled_source_y, labeled_target_x, labeled_target_y, random=True)
 join_dataloader = DataLoader(join_dataset, batch_size=args.batch_size, shuffle=True, pin_memory=True, num_workers=4)
@@ -208,9 +208,9 @@ def weights_init(m):
 # In[ ]:
 
 
-class Gfunction(nn.Sequential):
+class SimpleMLP1(nn.Sequential):
     def __init__(self):
-        super(Gfunction, self).__init__(
+        super(SimpleMLP1, self).__init__(
             nn.Linear(3200,1600),
             nn.ELU(),
             nn.Dropout(0.2),
@@ -234,6 +234,11 @@ class Gfunction(nn.Sequential):
             nn.Dropout(0.2),
             nn.Linear(200,200),
             nn.ELU(),
+        )
+        
+class SimpleMLP2(nn.Sequential):
+    def __init__(self):
+        super(SimpleMLP2, self).__init__(
             nn.Dropout(0.2),
             nn.Linear(200,num_class),
         )
@@ -247,37 +252,14 @@ class Gfunction(nn.Sequential):
 device = torch.device('cuda:{}'.format(args.gpu_num) if torch.cuda.is_available() else 'cpu')
 print(device)
 
-CNet = Gfunction().to(device)
+encoder = SimpleMLP1().to(device)
+CNet = SimpleMLP2().to(device)
 
 criterion_classifier = nn.CrossEntropyLoss().to(device)
 
 CNet.apply(weights_init)
 
-optimizerCNet = torch.optim.Adam(CNet.parameters(), lr=args.lr)
-
-
-# In[11]:
-
-
-def classifier_inference(encoder, CNet, x):
-    CNet.eval()
-    encoder.eval()
-    with torch.no_grad():
-        embedding = encoder_inference(encoder, x)
-        pred = CNet(embedding)
-    return pred
-
-
-# In[12]:
-
-
-def encoder_inference(encoder, encoder_MLP, x):
-    real = x[:,:,0].reshape(x.size(0), seq_len, feature_dim).float()
-    imag = x[:,:,1].reshape(x.size(0), seq_len, feature_dim).float()
-    real, imag = encoder(real, imag)
-    cat_embedding = torch.cat((real[:,-1,:], imag[:,-1,:]), -1).reshape(x.shape[0], -1)
-    cat_embedding = encoder_MLP(cat_embedding)
-    return cat_embedding
+optimizer = torch.optim.Adam(list(encoder.parameters()) + list(CNet.parameters()), lr=args.lr)
 
 
 # # Train
@@ -294,40 +276,42 @@ logger.info('Started Training')
 for epoch in range(args.epochs):
     # update classifier
     # on source domain
+    encoder.train()
     CNet.train()
  
     source_acc_label = 0.0
     num_datas = 0.0
     optimizerCNet.zero_grad()
     for batch_id, (source_x, source_y) in tqdm(enumerate(labeled_source_dataloader), total=len(labeled_source_dataloader)):
-        optimizerCNet.zero_grad()
+        optimizer.zero_grad()
         source_x = source_x.to(device).view(-1,3200).float()
         source_y = source_y.to(device)
         num_datas += source_x.size(0)
-        pred = CNet(source_x)
+        pred = CNet(encoder(source_x))
         source_acc_label += (pred.argmax(-1) == source_y).sum().item()
         loss = criterion_classifier(pred, source_y)
         loss.backward()
-        optimizerCNet.step()
+        optimizer.step()
         
     source_acc_label = source_acc_label / num_datas
     source_acc_label_.append(source_acc_label)
     
     # on target domain
+    encoder.train()
     CNet.train()
 
     target_acc_label = 0.0
     num_datas = 0.0
     for batch_id, (target_x, target_y) in tqdm(enumerate(labeled_target_dataloader), total=len(labeled_target_dataloader)):
-        optimizerCNet.zero_grad()
+        optimizer.zero_grad()
         target_x = target_x.to(device).view(-1,3200).float()
         target_y = target_y.to(device)
         num_datas += target_x.size(0)
-        pred = CNet(target_x)
+        pred = CNet(encoder(target_x))
         target_acc_label += (pred.argmax(-1) == target_y).sum().item()
         loss = criterion_classifier(pred, target_y) 
         loss.backward()
-        optimizerCNet.step()
+        optimizer.step()
         
     target_acc_label = target_acc_label / num_datas
     target_acc_label_.append(target_acc_label)
@@ -337,12 +321,13 @@ for epoch in range(args.epochs):
     # source_domain
     source_acc_unlabel = 0.0
     num_datas = 0.0
+    encoder.eval()
     CNet.eval()
     for batch_id, (source_x, source_y) in tqdm(enumerate(unlabeled_source_dataloader), total=len(unlabeled_source_dataloader)):
         source_x = source_x.to(device).view(-1,3200).float()
         source_y = source_y.to(device)
         num_datas += source_x.shape[0]
-        pred = CNet(source_x)
+        pred = CNet(encoder(source_x))
         source_acc_unlabel += (pred.argmax(-1) == source_y).sum().item()
         
     source_acc_unlabel = source_acc_unlabel/num_datas
@@ -351,12 +336,13 @@ for epoch in range(args.epochs):
     # target_domain
     target_acc_unlabel = 0.0
     num_datas = 0.0
+    encoder.eval()
     CNet.eval()
     for batch_id, (target_x, target_y) in tqdm(enumerate(unlabeled_target_dataloader), total=len(unlabeled_target_dataloader)):
         target_x = target_x.to(device).view(-1,3200).float()
         target_y = target_y.to(device)
         num_datas += target_x.shape[0]
-        pred = CNet(target_x)
+        pred = CNet(encoder(target_x))
         target_acc_unlabel += (pred.argmax(-1) == target_y).sum().item()
         
     target_acc_unlabel = target_acc_unlabel/num_datas
@@ -364,6 +350,8 @@ for epoch in range(args.epochs):
     
     if epoch % args.model_save_period == 0:
         torch.save(CNet.state_dict(), args.save_path+model_sub_folder+ '/CNet_%i.t7'%(epoch+1))
+        torch.save(encoder.state_dict(), args.save_path+model_sub_folder+ '/encoder_%i.t7'%(epoch+1))
+
     logger.info('Epochs %i: src labeled acc: %f; src unlabeled acc: %f; tgt labeled acc: %f; tgt unlabeled acc: %f'%(epoch+1, source_acc_label, source_acc_unlabel, target_acc_label, target_acc_unlabel))
     np.save(args.save_path+model_sub_folder+'/target_acc_label_.npy', target_acc_label_)
     np.save(args.save_path+model_sub_folder+'/target_acc_unlabel_.npy', target_acc_unlabel_)
