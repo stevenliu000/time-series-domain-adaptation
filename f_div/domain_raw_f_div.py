@@ -71,7 +71,6 @@ args = parser.parse_args()
 
 
 device = torch.device('cuda:{}'.format(args.gpu_num) if torch.cuda.is_available() else 'cpu')
-assert args.data in ['source', 'target']
 
 # seed
 torch.manual_seed(args.seed)
@@ -124,7 +123,7 @@ for item in attrs.items():
 # In[ ]:
 
 
-data_dict = np.load(args.data_path+'processed_file_not_one_hot_%s.pkl'args.task, allow_pickle=True)
+data_dict = np.load(args.data_path+'processed_file_not_one_hot_%s.pkl'%args.task, allow_pickle=True)
 
 source_x = data_dict['tr_data']
 target_x = data_dict['te_data']
