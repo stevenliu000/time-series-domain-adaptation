@@ -443,7 +443,7 @@ for epoch in range(3, source_acc_label_.shape[0], args.intervals*args.model_save
         for batch_id, (source_x, source_y) in tqdm(enumerate(unlabeled_source_dataloader), total=len(unlabeled_source_dataloader)):
             source_x = source_x.to(device).float()
             source_y = source_y.to(device).long()
-            source_x_embedding = = CNet(source_x)[0].detach()
+            source_x_embedding = CNet(source_x)[0].detach()
             source_x_unlabeled_embedding = torch.cat([source_x_unlabeled_embedding, source_x_embedding])
             source_y_unlabeled = torch.cat([source_y_unlabeled, source_y])
             
