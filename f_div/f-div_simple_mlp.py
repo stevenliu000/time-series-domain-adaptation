@@ -219,10 +219,9 @@ def weights_init(m):
 # In[ ]:
 
 
-class Simple_MLP(nn.Module):
+class SimpleMLP1(nn.Sequential):
     def __init__(self):
-        super(Simple_MLP, self).__init__()
-        self.nn1 = nn.Sequential(
+        super(SimpleMLP1, self).__init__(
             nn.Linear(3200,1600),
             nn.ELU(),
             nn.Dropout(0.2),
@@ -246,20 +245,17 @@ class Simple_MLP(nn.Module):
             nn.Dropout(0.2),
             nn.Linear(200,200),
             nn.ELU(),
-            nn.Dropout(0.2),
         )
-        self.nn2 = nn.Linear(200,num_class)
         
-    def forward(x):
-        out1 = self.nn1(x)
-        out2 = self.nn2(out1)
-        
-        return out1, out2
-                
+class SimpleMLP2(nn.Sequential):
+    def __init__(self):
+        super(SimpleMLP2, self).__init__(
+            nn.Dropout(0.2),
+            nn.Linear(200,num_class),
+        )
 
 
 # In[ ]:
-
 
 
 class Gfunction(nn.Sequential):
@@ -327,9 +323,7 @@ def JSDiv(g_x_source, g_x_target, device):
 device = torch.device('cuda:{}'.format(args.gpu_num) if torch.cuda.is_available() else 'cpu')
 print(device)
 
-CNet = Simple_MLP().to(device)
-
-CNet.apply(weights_init)
+encoder = SimpleMLP1().to(device)
 
 if args.KL:
     gfunction_KL_div_labeled = Gfunction().to(device)
@@ -339,35 +333,9 @@ if args.JS:
     gfunction_JS_div_labeled = Gfunction().to(device)
     gfunction_JS_div_unlabeled = Gfunction().to(device)
     
-# if args.classifier:
-#     CNet = FNNLinear(d_h2=64*2, d_out=num_class).to(device)
-#     if args.centerloss:
-#         criterion_centerloss = CenterLoss(num_classes=num_class, feat_dim=64*2, use_gpu=device).to(device)
-#     criterion_classifier = nn.CrossEntropyLoss().to(device)
-
-
-# In[12]:
-
-
-def classifier_inference(encoder, CNet, x):
-    CNet.eval()
-    encoder.eval()
-    with torch.no_grad():
-        embedding = encoder_inference(encoder, x)
-        pred = CNet(embedding)
-    return pred
-
-
-# In[13]:
-
-
-def encoder_inference(encoder, encoder_MLP, x):
-    real = x[:,:,0].reshape(x.size(0), seq_len, feature_dim).float()
-    imag = x[:,:,1].reshape(x.size(0), seq_len, feature_dim).float()
-    real, imag = encoder(real, imag)
-    cat_embedding = torch.cat((real[:,-1,:], imag[:,-1,:]), -1).reshape(x.shape[0], -1)
-    cat_embedding = encoder_MLP(cat_embedding)
-    return cat_embedding
+if args.classifier:
+    CNet = SimpleMLP2().to(device)
+    criterion_classifier = nn.CrossEntropyLoss().to(device)
 
 
 # # Train
@@ -409,19 +377,15 @@ for epoch in range(3, source_acc_label_.shape[0], args.intervals*args.model_save
         gfunction_JS_div_unlabeled.apply(weights_init)
         optimizer_gfunction_JS_div_unlabeled = torch.optim.Adam(gfunction_JS_div_unlabeled.parameters(), lr=args.lr)
 
-#     if args.classifier:
-#         CNet.load_state_dict(torch.load(os.path.join(args.model_path, 'CNet_%i.t7'%epoch)))
-#         if args.centerloss:
-#             criterion_centerloss.load_state_dict(torch.load(os.path.join(args.model_path, 'centerloss_%i.t7'%epoch)))
-#         optimizer_CNet = torch.optim.Adam(CNet.parameters(), lr=args.lr)
-#         if args.centerloss:
-#             optimizer_centerloss = torch.optim.Adam(criterion_centerloss.parameters(), lr=args.lr_centerloss)
+    if args.classifier:
+        CNet.load_state_dict(torch.load(os.path.join(args.model_path, 'CNet_%i.t7'%epoch)))
+        optimizer_CNet = torch.optim.Adam(CNet.parameters(), lr=args.lr)
     
     # load weight
-    CNet.load_state_dict(torch.load(os.path.join(args.model_path, 'CNet_%i.t7'%epoch)))
+    encoder.load_state_dict(torch.load(os.path.join(args.model_path, 'encoder_%i.t7'%epoch)))
     
     # inferencing
-    CNet.eval()
+    encoder.eval()
     
     # get source/target embedding
     source_x_labeled_embedding = torch.empty(0).to(device)
@@ -436,21 +400,21 @@ for epoch in range(3, source_acc_label_.shape[0], args.intervals*args.model_save
         for batch_id, (source_x, source_y) in tqdm(enumerate(labeled_source_dataloader), total=len(labeled_source_dataloader)):
             source_x = source_x.to(device).float()
             source_y = source_y.to(device).long()
-            source_x_embedding = CNet(source_x)[0].detach()
+            source_x_embedding = encoder(source_x).detach()
             source_x_labeled_embedding = torch.cat([source_x_labeled_embedding, source_x_embedding])
             source_y_labeled = torch.cat([source_y_labeled, source_y])
             
         for batch_id, (source_x, source_y) in tqdm(enumerate(unlabeled_source_dataloader), total=len(unlabeled_source_dataloader)):
             source_x = source_x.to(device).float()
             source_y = source_y.to(device).long()
-            source_x_embedding = CNet(source_x)[0].detach()
+            source_x_embedding = encoder(source_x).detach()
             source_x_unlabeled_embedding = torch.cat([source_x_unlabeled_embedding, source_x_embedding])
             source_y_unlabeled = torch.cat([source_y_unlabeled, source_y])
             
         for batch_id, (target_x, target_y) in tqdm(enumerate(labeled_target_dataloader), total=len(labeled_target_dataloader)):
             target_x = target_x.to(device).float()
             target_y = target_y.to(device).long()
-            fake_x_embedding = CNet(target_x)[0].detach()
+            fake_x_embedding = encoder(target_x).detach()
             target_x_labeled_embedding = torch.cat([target_x_labeled_embedding, fake_x_embedding])     
             target_y_labeled = torch.cat([target_y_labeled, target_y])
 
@@ -458,7 +422,7 @@ for epoch in range(3, source_acc_label_.shape[0], args.intervals*args.model_save
         for batch_id, (target_x, target_y) in tqdm(enumerate(unlabeled_target_dataloader), total=len(unlabeled_target_dataloader)):
             target_x = target_x.to(device).float()
             target_y = target_y.to(device).long()
-            fake_x_embedding = CNet(target_x)[0].detach()
+            fake_x_embedding = encoder(target_x).detach()
             target_x_unlabeled_embedding = torch.cat([target_x_unlabeled_embedding, fake_x_embedding])    
             target_y_unlabeled = torch.cat([target_y_unlabeled, target_y])
             
@@ -523,45 +487,43 @@ for epoch in range(3, source_acc_label_.shape[0], args.intervals*args.model_save
 
     acc_source_labeled_classifier = 0
     acc_target_labeled_classifier = 0
-#     if args.classifier:
-# #         while i < args.classifier_epoch or (acc_source_labeled_classifier < 0.98 and acc_target_labeled_classifier < 0.98):
-# #             i += 1
-#         for i in tqdm(range(args.classifier_epoch)):
-#             CNet.train()
-#             optimizer_CNet.zero_grad()
-#             if args.centerloss:
-#                 optimizer_centerloss.zero_grad()
-#             pred = CNet(source_x_labeled_embedding)
-#             acc_source_labeled_classifier = (pred.argmax(-1) == source_y_labeled).sum().item() / pred.size(0)
-#             loss_source_classifier_labeled = criterion_classifier(pred, source_y_labeled) * args.sclass
-#             if args.centerloss: loss_source_classifier_labeled += criterion_centerloss(source_x_labeled_embedding, source_y_labeled) * args.scent * args.sclass
-#             loss_source_classifier_labeled.backward()
-#             if args.centerloss: optimizer_centerloss.step()
-#             optimizer_CNet.step()
+    if args.classifier:
+#         while i < args.classifier_epoch or (acc_source_labeled_classifier < 0.98 and acc_target_labeled_classifier < 0.98):
+#             i += 1
+        for i in tqdm(range(args.classifier_epoch)):
+            CNet.train()
+            optimizer_CNet.zero_grad()
+            pred = CNet(source_x_labeled_embedding)
+            acc_source_labeled_classifier = (pred.argmax(-1) == source_y_labeled).sum().item() / pred.size(0)
+            loss_source_classifier_labeled = criterion_classifier(pred, source_y_labeled) * args.sclass
+            if args.centerloss: loss_source_classifier_labeled += criterion_centerloss(source_x_labeled_embedding, source_y_labeled) * args.scent * args.sclass
+            loss_source_classifier_labeled.backward()
+            if args.centerloss: optimizer_centerloss.step()
+            optimizer_CNet.step()
             
-#             optimizer_CNet.zero_grad()
-#             pred = CNet(target_x_labeled_embedding)
-#             acc_target_labeled_classifier = (pred.argmax(-1) == target_y_labeled).sum().item() / pred.size(0)
-#             loss_target_classifier_labeled = criterion_classifier(pred, target_y_labeled)
-#             loss_target_classifier_labeled.backward()
-#             optimizer_CNet.step()
+            optimizer_CNet.zero_grad()
+            pred = CNet(target_x_labeled_embedding)
+            acc_target_labeled_classifier = (pred.argmax(-1) == target_y_labeled).sum().item() / pred.size(0)
+            loss_target_classifier_labeled = criterion_classifier(pred, target_y_labeled)
+            loss_target_classifier_labeled.backward()
+            optimizer_CNet.step()
             
-# #             if i % 500 == 0:
-# #                 CNet.eval()
-# #                 pred = CNet(source_x_unlabeled_embedding)
-# #                 acc_source_unlabeled_classifier = (pred.argmax(-1) == source_y_unlabeled).sum().item() / pred.size(0)
-# #                 pred = CNet(target_x_unlabeled_embedding)
-# #                 acc_target_unlabeled_classifier = (pred.argmax(-1) == target_y_unlabeled).sum().item() / pred.size(0)
-# #                 print("Iter %i: source acc: labeled: %f, unlabeled: %f; target acc: labeled: %f, unlabeled: %f"%(
-# #                     i, acc_source_labeled_classifier, acc_source_unlabeled_classifier, acc_target_labeled_classifier, acc_target_unlabeled_classifier))
+#             if i % 500 == 0:
+#                 CNet.eval()
+#                 pred = CNet(source_x_unlabeled_embedding)
+#                 acc_source_unlabeled_classifier = (pred.argmax(-1) == source_y_unlabeled).sum().item() / pred.size(0)
+#                 pred = CNet(target_x_unlabeled_embedding)
+#                 acc_target_unlabeled_classifier = (pred.argmax(-1) == target_y_unlabeled).sum().item() / pred.size(0)
+#                 print("Iter %i: source acc: labeled: %f, unlabeled: %f; target acc: labeled: %f, unlabeled: %f"%(
+#                     i, acc_source_labeled_classifier, acc_source_unlabeled_classifier, acc_target_labeled_classifier, acc_target_unlabeled_classifier))
         
-#         CNet.eval()
-#         pred = CNet(source_x_unlabeled_embedding)
-#         acc_source_unlabeled_classifier = (pred.argmax(-1) == source_y_unlabeled).sum().item() / pred.size(0)
-#         pred = CNet(target_x_unlabeled_embedding)
-#         acc_target_unlabeled_classifier = (pred.argmax(-1) == target_y_unlabeled).sum().item() / pred.size(0)
-#         acc_source_unlabeled_classifier_.append(acc_source_unlabeled_classifier)
-#         acc_target_unlabeled_classifier_.append(acc_target_unlabeled_classifier)
+        CNet.eval()
+        pred = CNet(source_x_unlabeled_embedding)
+        acc_source_unlabeled_classifier = (pred.argmax(-1) == source_y_unlabeled).sum().item() / pred.size(0)
+        pred = CNet(target_x_unlabeled_embedding)
+        acc_target_unlabeled_classifier = (pred.argmax(-1) == target_y_unlabeled).sum().item() / pred.size(0)
+        acc_source_unlabeled_classifier_.append(acc_source_unlabeled_classifier)
+        acc_target_unlabeled_classifier_.append(acc_target_unlabeled_classifier)
         
     # save corresponding acc
     source_acc_label.append(source_acc_label_[epoch-1])
