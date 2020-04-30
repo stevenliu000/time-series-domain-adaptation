@@ -164,6 +164,7 @@ parser.add_argument('--pure_random', type=int, default=1, help='Pure random for 
 
 args = parser.parse_args()
 args.isglobal = True if args.isglobal == 1 else False
+args.islocal = True if args.islocal == 1 else False
 args.pure_random = True if args.pure_random == 1 else False
 
 
