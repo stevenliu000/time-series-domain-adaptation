@@ -398,21 +398,21 @@ for epoch in range(3, source_acc_label_.shape[0], args.intervals*args.model_save
     target_y_unlabeled = torch.empty(0).long().to(device)
     with torch.no_grad():
         for batch_id, (source_x, source_y) in tqdm(enumerate(labeled_source_dataloader), total=len(labeled_source_dataloader)):
-            source_x = source_x.to(device).float()
+            source_x = source_x.to(device).view(-1,3200).float()
             source_y = source_y.to(device).long()
             source_x_embedding = encoder(source_x).detach()
             source_x_labeled_embedding = torch.cat([source_x_labeled_embedding, source_x_embedding])
             source_y_labeled = torch.cat([source_y_labeled, source_y])
             
         for batch_id, (source_x, source_y) in tqdm(enumerate(unlabeled_source_dataloader), total=len(unlabeled_source_dataloader)):
-            source_x = source_x.to(device).float()
+            source_x = source_x.to(device).view(-1,3200).float()
             source_y = source_y.to(device).long()
             source_x_embedding = encoder(source_x).detach()
             source_x_unlabeled_embedding = torch.cat([source_x_unlabeled_embedding, source_x_embedding])
             source_y_unlabeled = torch.cat([source_y_unlabeled, source_y])
             
         for batch_id, (target_x, target_y) in tqdm(enumerate(labeled_target_dataloader), total=len(labeled_target_dataloader)):
-            target_x = target_x.to(device).float()
+            target_x = target_x.to(device).view(-1,3200).float()
             target_y = target_y.to(device).long()
             fake_x_embedding = encoder(target_x).detach()
             target_x_labeled_embedding = torch.cat([target_x_labeled_embedding, fake_x_embedding])     
@@ -420,7 +420,7 @@ for epoch in range(3, source_acc_label_.shape[0], args.intervals*args.model_save
 
             
         for batch_id, (target_x, target_y) in tqdm(enumerate(unlabeled_target_dataloader), total=len(unlabeled_target_dataloader)):
-            target_x = target_x.to(device).float()
+            target_x = target_x.to(device).view(-1,3200).float()
             target_y = target_y.to(device).long()
             fake_x_embedding = encoder(target_x).detach()
             target_x_unlabeled_embedding = torch.cat([target_x_unlabeled_embedding, fake_x_embedding])    
