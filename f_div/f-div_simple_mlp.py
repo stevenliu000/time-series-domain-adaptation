@@ -219,7 +219,7 @@ def weights_init(m):
 # In[ ]:
 
 
-class Simple_MLP(nn.module):
+class Simple_MLP(nn.Module):
     def __init__(self):
         super(Simple_MLP, self).__init__()
         self.nn1 = nn.Sequential(
