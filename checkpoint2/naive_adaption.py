@@ -1,4 +1,4 @@
-
+#!/usr/bin/env python
 # coding: utf-8
 
 # In[2]:
@@ -21,6 +21,7 @@ import copy
 import math
 from tqdm import tqdm
 import torch
+from shutil import copyfile
 from torch import nn
 from torch.utils.data import Dataset, DataLoader
 from torch.optim.lr_scheduler import ReduceLROnPlateau
@@ -65,8 +66,13 @@ parser.add_argument('--num_per_class', type=int, default=-1, help='number of sam
 parser.add_argument('--seed', type=int, default=0, help='manual seed')
 parser.add_argument('--save_path', type=str, help='where to store data')
 parser.add_argument('--model_save_period', type=int, default=2, help='period in which the model is saved')
+parser.add_argument('--is_centerloss', type=int, default=0, help='if centerloss used')
 
 args = parser.parse_args()
+args.is_centerloss = True if args.is_centerloss == 1 else False
+
+# snap shot of py file and command
+python_file_name = sys.argv[0]
 
 
 # In[ ]:
@@ -126,10 +132,12 @@ device = torch.device('cuda:{}'.format(args.gpu_num) if torch.cuda.is_available(
 if args.num_per_class == -1:
     args.num_per_class = math.ceil(args.batch_size / num_class)
     
-model_sub_folder = '/checkpoint2/naive_adaption/task_%s_slp_%f_tlp_%f_sclass_%f_scent_%f'%(args.task, args.source_lbl_percentage, args.target_lbl_percentage, args.sclass, args.scent)
+model_sub_folder = 'naive_adaption/lbl_percent_%f/task_%s_slp_%f_tlp_%f_sclass_%f_scent_%f_centerloss_%i'%(args.target_lbl_percentage, args.task, args.source_lbl_percentage, args.target_lbl_percentage, args.sclass, args.scent, args.is_centerloss)
 
-if not os.path.exists(args.save_path+model_sub_folder):
-    os.makedirs(args.save_path+model_sub_folder)
+
+save_folder = os.path.join(args.save_path, model_sub_folder)
+if not os.path.exists(save_folder):
+    os.makedirs(save_folder)  
 
 
 # # Logger
@@ -152,6 +160,17 @@ logger.addHandler(stdout_log_handler)
 attrs = vars(args)
 for item in attrs.items():
     logger.info("%s: %s"%item)
+logger.info("Saved in {}".format(save_folder))
+
+
+# In[ ]:
+
+
+copyfile(python_file_name, os.path.join(save_folder, 'executed.py'))
+commands = ['python']
+commands.extend(sys.argv)
+with open(os.path.join(save_folder, 'command.log'), 'w') as f:
+    f.write(' '.join(commands))
 
 
 # # Data Loading
@@ -291,8 +310,11 @@ for epoch in range(args.epochs):
         source_x_embedding = encoder_inference(encoder, encoder_MLP, source_x)
         pred = CNet(source_x_embedding)
         source_acc_label += (pred.argmax(-1) == source_y).sum().item()
-        loss = (criterion_classifier(pred, source_y) +
+        if args.is_centerloss:
+            loss = (criterion_classifier(pred, source_y) +
                 criterion_centerloss(source_x_embedding, source_y) * args.scent) * args.sclass
+        else:
+            loss = criterion_classifier(pred, source_y) * args.sclass
         loss.backward()
         optimizerCNet.step()
         optimizerCenterLoss.step()
