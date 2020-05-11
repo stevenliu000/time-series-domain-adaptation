@@ -119,6 +119,9 @@ args = parser.parse_args()
 args.isglobal = True if args.isglobal == 1 else False
 args.pure_random = True if args.pure_random == 1 else False
 
+# snap shot of py file and command
+python_file_name = sys.argv[0]
+
 
 # In[21]:
 
@@ -196,6 +199,16 @@ attrs = vars(args)
 for item in attrs.items():
     logger.info("%s: %s"%item)
 logger.info('Saved in: {}'.format(save_folder))
+
+
+# In[ ]:
+
+
+copyfile(python_file_name, os.path.join(save_folder, 'executed.py'))
+commands = ['python']
+commands.extend(sys.argv)
+with open(os.path.join(save_folder, 'command.log'), 'w') as f:
+    f.write(' '.join(commands))
 
 
 # # Data loading
