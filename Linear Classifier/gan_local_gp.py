@@ -16,6 +16,7 @@ sys.path.insert(0, os.path.join(parent_dir,'spring-break'))
 
 import numpy as np
 import random
+from shutil import copyfile
 import copy
 import math
 from tqdm import tqdm
@@ -167,7 +168,7 @@ device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 if args.num_per_class == -1:
     args.num_per_class = math.ceil(args.batch_size / num_class)
     
-model_sub_folder = 'Linear_GAN/task_%s_gpweight_%f_dlocal_%f_critic_%f_rand_%i_sclass_%f_global_%i'%(args.task, args.gpweight, args.dlocal, args.n_critic, args.pure_random, args.sclass, args.isglobal)
+model_sub_folder = 'Linear_GAN/lbl_percent_%f/task_%s_gpweight_%f_dlocal_%f_critic_%f_rand_%i_sclass_%f_global_%i'%(args.target_lbl_percentage, args.task, args.gpweight, args.dlocal, args.n_critic, args.pure_random, args.sclass, args.isglobal)
 
 save_folder = os.path.join(args.save_path, model_sub_folder)
 if not os.path.exists(save_folder):
@@ -176,7 +177,7 @@ if not os.path.exists(save_folder):
 
 # # Logger
 
-# In[13]:
+# In[1]:
 
 
 logger = logging.getLogger()
@@ -194,6 +195,7 @@ logger.addHandler(stdout_log_handler)
 attrs = vars(args)
 for item in attrs.items():
     logger.info("%s: %s"%item)
+logger.info('Saved in: {}'.format(save_folder))
 
 
 # # Data loading
