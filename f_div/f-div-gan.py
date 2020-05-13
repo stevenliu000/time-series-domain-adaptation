@@ -248,8 +248,37 @@ class Gfunction(nn.Sequential):
             nn.ELU(),
             nn.Linear(100,1)
         )
+"""
 
 
+class Gfunction(nn.Sequential):
+    def __init__(self):
+        super(Gfunction, self).__init__(
+            nn.Linear(128,100),
+            nn.ELU(),
+            nn.Linear(100,100),
+            nn.ELU(),
+            nn.Linear(100,100),
+            nn.ELU(),
+            nn.Linear(100,100),
+            nn.ELU(),
+            nn.Linear(100,100),
+            nn.ELU(),
+            nn.Linear(100,100),
+            nn.ELU(),
+            nn.Linear(100,100),
+            nn.ELU(),
+            nn.Linear(100,100),
+            nn.ELU(),
+            nn.Linear(100,100),
+            nn.ELU(),
+            nn.Linear(100,100),
+            nn.ELU(),
+            nn.Linear(100,100),
+            nn.ELU(),
+            nn.Linear(100,1)
+        )
+"""
 # In[1]:
 
 
@@ -365,7 +394,8 @@ target_acc_label = []
 target_acc_unlabel = []
 
 epochs = []
-
+KL_report_js_unlabeled = []
+KL_report_js_labeled = []
 
 
 assert start_epoch < end_epoch
@@ -442,14 +472,18 @@ for epoch in range(start_epoch, end_epoch, args.intervals*args.model_save_period
             target_y_unlabeled = torch.cat([target_y_unlabeled, target_y])
 
     # for loop to train the gfunction
+    gfunction_JS_div_labeled.train()
     for i in tqdm(range(args.gfunction_epoch)):
         if args.KL:
             optimizer_gfunction_KL_div_labeled.zero_grad()
             source_x_labeled_g = gfunction_KL_div_labeled(source_x_labeled_embedding)
             target_x_labeled_g = gfunction_KL_div_labeled(target_x_labeled_embedding)
             loss_KL_labeled = - KLDiv(source_x_labeled_g, target_x_labeled_g, device) # maximize
+            #loss_KL_labeled = - KLDiv(target_x_labeled_g, source_x_labeled_g, device) # maximize
             loss_KL_labeled.backward()
             optimizer_gfunction_KL_div_labeled.step()
+            if i % 500 == 0:
+                print("Epoch %i, Iter %i, labeled KL: %f"%(epoch, i, -loss_KL_labeled.item()))
 
         if args.JS:
             optimizer_gfunction_JS_div_labeled.zero_grad()
@@ -459,6 +493,25 @@ for epoch in range(start_epoch, end_epoch, args.intervals*args.model_save_period
             loss_JS_labeled.backward()
             optimizer_gfunction_JS_div_labeled.step()
 
+            #if i % 500 == 0:
+            #    print("Epoch %i, Iter %i, labeled JS: %f"%(epoch, i, -loss_JS_labeled.item()))
+    with torch.no_grad():
+        gfunction_JS_div_labeled.eval()
+        source_x_labeled_g = gfunction_JS_div_labeled(source_x_labeled_embedding)
+        KL_labeled_eval = source_x_labeled_g.mean()
+        KL_report_js_labeled.append(KL_labeled_eval)
+    """
+    with torch.no_grad():
+        source_x_labeled_g = gfunction_JS_div_labeled(source_x_labeled_embedding)
+        target_x_labeled_g = gfunction_JS_div_labeled(target_x_labeled_embedding)
+        KL_labeled_eval = KLDiv(source_x_labeled_g, target_x_labeled_g, device) # maximize
+        KL_report_js_labeled.append(KL_labeled_eval)
+    """
+
+
+
+
+
     if args.KL:
         loss_KL_labeled = - loss_KL_labeled.item()
         labeled_KL.append(loss_KL_labeled)
@@ -467,6 +520,8 @@ for epoch in range(start_epoch, end_epoch, args.intervals*args.model_save_period
         loss_JS_labeled = - loss_JS_labeled.item()
         labeled_JS.append(loss_JS_labeled)
 
+
+    gfunction_JS_div_unlabeled.train()
     for i in tqdm(range(args.gfunction_epoch)):
         if args.KL:
             optimizer_gfunction_KL_div_unlabeled.zero_grad()
@@ -483,6 +538,19 @@ for epoch in range(start_epoch, end_epoch, args.intervals*args.model_save_period
             loss_JS_unlabeled = - JSDiv(source_x_unlabeled_g, target_x_unlabeled_g, device) # maximize
             loss_JS_unlabeled.backward()
             optimizer_gfunction_JS_div_unlabeled.step()
+    with torch.no_grad():
+        gfunction_JS_div_unlabeled.eval()
+        source_x_unlabeled_g = gfunction_JS_div_unlabeled(source_x_unlabeled_embedding)
+        KL_unlabeled_eval = source_x_unlabeled_g.mean()
+        KL_report_js_unlabeled.append(KL_unlabeled_eval)
+    """
+
+    with torch.no_grad():
+        source_x_unlabeled_g = gfunction_JS_div_unlabeled(source_x_unlabeled_embedding)
+        target_x_unlabeled_g = gfunction_JS_div_unlabeled(target_x_unlabeled_embedding)
+        KL_unlabeled_eval = KLDiv(source_x_unlabeled_g, target_x_unlabeled_g, device) # maximize
+        KL_report_js_unlabeled.append(KL_unlabeled_eval)
+    """
 
     if args.KL:
         loss_KL_unlabeled = - loss_KL_unlabeled.item()
@@ -542,7 +610,7 @@ for epoch in range(start_epoch, end_epoch, args.intervals*args.model_save_period
     logger.info("-----------------------------------------")
     log_string = "Epoch %i: "%epoch
     if args.KL: log_string += "labeled KL: %f, unlabeled KL: %f; "%(loss_KL_labeled, loss_KL_unlabeled)
-    if args.JS: log_string += "labeled JS: %f, unlabeled JS: %f; "%(loss_JS_labeled, loss_JS_unlabeled)
+    if args.JS: log_string += "labeled JS: %f, unlabeled JS: %f; labeled KL: %f; unlabeled KL: %f;"%(loss_JS_labeled, loss_JS_unlabeled, KL_labeled_eval, KL_unlabeled_eval)
     if args.classifier: log_string += "src unlbl acc: %f, tgt unlbl acc: %f; "%(acc_source_unlabeled_classifier, acc_target_unlabeled_classifier)
     logger.info(log_string)
     logger.info("-----------------------------------------")
@@ -552,6 +620,8 @@ for epoch in range(start_epoch, end_epoch, args.intervals*args.model_save_period
     np.save(args.save_path+model_sub_folder+'/source_acc_unlabel.npy', source_acc_unlabel)
     np.save(args.save_path+model_sub_folder+'/target_acc_label.npy', target_acc_label)
     np.save(args.save_path+model_sub_folder+'/target_acc_unlabel.npy', target_acc_unlabel)
+    np.save(args.save_path+model_sub_folder+'/KL_report_js_labeled.npy', KL_report_js_labeled)
+    np.save(args.save_path+model_sub_folder+'/KL_report_js_unlabeled.npy', KL_report_js_unlabeled)
 
     if args.KL:
         np.save(args.save_path+model_sub_folder+'/labeled_KL.npy', labeled_KL)
