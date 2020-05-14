@@ -48,7 +48,7 @@ from binaryloss import BinaryLoss
 
 # Parameters
 parser = argparse.ArgumentParser(description='JDA Time series adaptation')
-parser.add_argument("--data_path", type=str, default="../data_unzip", help="dataset path")
+parser.add_argument("--data_path", type=str, default="/projects/rsalakhugroup/complex/domain_adaptation", help="dataset path")
 parser.add_argument("--task", type=str, help='3A or 3E')
 parser.add_argument('--gpu_num', type=int, default=0, help='gpu number')
 parser.add_argument('--batch_size', type=int, default=256, help='batch size')
@@ -58,7 +58,7 @@ parser.add_argument('--target_lbl_percentage', type=float, default=0.7, help='pe
 parser.add_argument('--source_lbl_percentage', type=float, default=0.7, help='percentage of which source data has label')
 parser.add_argument('--num_per_class', type=int, default=-1, help='number of sample per class when training local discriminator')
 parser.add_argument('--seed', type=int, default=0, help='manual seed')
-parser.add_argument('--save_path', type=str, default='../train_related/', help='where to store data')
+parser.add_argument('--save_path', type=str, help='where to store data')
 parser.add_argument('--model_save_period', type=int, default=2, help='period in which the model is saved')
 parser.add_argument('--model_path', type=str, help='where the data is stored')
 parser.add_argument('--intervals', type=int, default=2, help='freq of compute f-div')
@@ -69,8 +69,9 @@ parser.add_argument('--JS', type=bool, default=False, help="if calculate JS dive
 parser.add_argument('--classifier', type=bool, default=False, help="if optmizer classifier")
 parser.add_argument('--sclass', type=float, default=0.7, help='target classifier loss weight')
 parser.add_argument('--scent', type=float, default=0.0001, help='source domain classification weight on centerloss')
-parser.add_argument('--centerloss', type=bool, default=False, help='if use centerloss')
-parser.add_argument('--classifier_epoch', type=int, default=10000, help='max iteration to train classifier')
+parser.add_argument('--classifier_epoch', type=int, default=5000, help='max iteration to train classifier')
+parser.add_argument('--start_epoch', type=int, default=-1, help='start epoch')
+parser.add_argument('--end_epoch', type=int, default=-1, help='end epoch')
 
 
 args = parser.parse_args()
@@ -83,7 +84,7 @@ args = parser.parse_args()
 # class local_args:
 #     def __init__(self, **entries):
 #         self.__dict__.update(entries)
-        
+
 # args = local_args(**{
 #     'data_path': '../data_unzip',
 #     'task': '3E',
@@ -135,11 +136,29 @@ device = torch.device('cuda:{}'.format(args.gpu_num) if torch.cuda.is_available(
 
 if args.num_per_class == -1:
     args.num_per_class = math.ceil(args.batch_size / num_class)
-    
+
+
+source_acc_label_ = np.load(os.path.join(args.model_path, 'source_acc_label_.npy'))
+
+start_epoch = args.start_epoch
+end_epoch = args.end_epoch
+
+if args.start_epoch == -1:
+    start_epoch = 3
+if args.end_epoch == -1:
+    end_epoch = source_acc_label_.shape[0]
+
+assert start_epoch < end_epoch
+
+
+
 model_sub_folder = '/f-gan/'+args.model_name
 if args.KL: model_sub_folder += '_KL'
-if args.JS: model_sub_folder += '_JS'   
+if args.JS: model_sub_folder += '_JS'
 if args.classifier: model_sub_folder += '_classifier'
+if args.start_epoch != -1 or args.end_epoch != -1:
+    model_sub_folder += '_s{}_e{}'.format(start_epoch, end_epoch)
+
 model_sub_folder += '/'
 
 if not os.path.exists(args.save_path+model_sub_folder):
@@ -156,7 +175,7 @@ logger.setLevel(logging.INFO)
 
 if os.path.isfile(args.save_path+model_sub_folder+ '/logfile.log'):
     os.remove(args.save_path+model_sub_folder+ '/logfile.log')
-    
+
 file_log_handler = logging.FileHandler(args.save_path+model_sub_folder+ '/logfile.log')
 logger.addHandler(file_log_handler)
 
@@ -168,8 +187,9 @@ for item in attrs.items():
     logger.info("%s: %s"%item)
 
 
+print(start_epoch, end_epoch)
 # # Data Loading
-# 
+#
 
 # In[9]:
 
@@ -219,7 +239,18 @@ def weights_init(m):
 # In[ ]:
 
 
-'''
+class Gfunction(nn.Sequential):
+    def __init__(self):
+        super(Gfunction, self).__init__(
+            nn.Linear(128,100),
+            nn.ELU(),
+            nn.Linear(100,100),
+            nn.ELU(),
+            nn.Linear(100,1)
+        )
+"""
+
+
 class Gfunction(nn.Sequential):
     def __init__(self):
         super(Gfunction, self).__init__(
@@ -247,18 +278,7 @@ class Gfunction(nn.Sequential):
             nn.ELU(),
             nn.Linear(100,1)
         )
-'''
-class Gfunction(nn.Sequential):
-    def __init__(self):
-        super(Gfunction, self).__init__(
-            nn.Linear(128,100),
-            nn.ELU(),
-            nn.Linear(100,100),
-            nn.ELU(),
-            nn.Linear(100,1)
-        )
-
-
+"""
 # In[1]:
 
 
@@ -315,11 +335,10 @@ if args.KL:
 if args.JS:
     gfunction_JS_div_labeled = Gfunction().to(device)
     gfunction_JS_div_unlabeled = Gfunction().to(device)
-    
+
 if args.classifier:
     CNet = FNNLinear(d_h2=64*2, d_out=num_class).to(device)
-    if args.centerloss:
-        criterion_centerloss = CenterLoss(num_classes=num_class, feat_dim=64*2, use_gpu=device).to(device)
+    # criterion_centerloss = CenterLoss(num_classes=num_class, feat_dim=64*2, use_gpu=device).to(device)
     criterion_classifier = nn.CrossEntropyLoss().to(device)
 
 encoder.apply(weights_init)
@@ -375,9 +394,14 @@ target_acc_label = []
 target_acc_unlabel = []
 
 epochs = []
+KL_report_js_unlabeled = []
+KL_report_js_labeled = []
 
-for epoch in range(3, source_acc_label_.shape[0], args.intervals*args.model_save_period):
-    # initialize 
+
+assert start_epoch < end_epoch
+
+for epoch in range(start_epoch, end_epoch, args.intervals*args.model_save_period):
+    # initialize
     if args.KL:
         gfunction_KL_div_labeled.apply(weights_init)
         optimizer_gfunction_KL_div_labeled = torch.optim.Adam(gfunction_KL_div_labeled.parameters(), lr=args.lr)
@@ -392,22 +416,20 @@ for epoch in range(3, source_acc_label_.shape[0], args.intervals*args.model_save
 
     if args.classifier:
         CNet.load_state_dict(torch.load(os.path.join(args.model_path, 'CNet_%i.t7'%epoch)))
-        if args.centerloss:
-            criterion_centerloss.load_state_dict(torch.load(os.path.join(args.model_path, 'centerloss_%i.t7'%epoch)))
+        # criterion_centerloss.load_state_dict(torch.load(os.path.join(args.model_path, 'centerloss_%i.t7'%epoch)))
         optimizer_CNet = torch.optim.Adam(CNet.parameters(), lr=args.lr)
-        if args.centerloss:
-            optimizer_centerloss = torch.optim.Adam(criterion_centerloss.parameters(), lr=args.lr_centerloss)
-    
+        # optimizer_centerloss = torch.optim.Adam(criterion_centerloss.parameters(), lr=args.lr_centerloss)
+
     # load weight
     encoder.load_state_dict(torch.load(os.path.join(args.model_path, 'encoder_%i.t7'%epoch)))
-    encoder_MLP.load_state_dict(torch.load(os.path.join(args.model_path, 'encoder_MLP%i.t7'%epoch)))
+    encoder_MLP.load_state_dict(torch.load(os.path.join(args.model_path, 'encoder_MLP_%i.t7'%epoch)))
     GNet.load_state_dict(torch.load(os.path.join(args.model_path, 'GNet_%i.t7'%epoch)))
-    
+
     # inferencing
     GNet.eval()
     encoder.eval()
     encoder_MLP.eval()
-    
+
     # get source/target embedding
     source_x_labeled_embedding = torch.empty(0).to(device)
     source_y_labeled = torch.empty(0).long().to(device)
@@ -424,43 +446,45 @@ for epoch in range(3, source_acc_label_.shape[0], args.intervals*args.model_save
             source_x_embedding = encoder_inference(encoder, encoder_MLP, source_x).detach()
             source_x_labeled_embedding = torch.cat([source_x_labeled_embedding, source_x_embedding])
             source_y_labeled = torch.cat([source_y_labeled, source_y])
-            
+
         for batch_id, (source_x, source_y) in tqdm(enumerate(unlabeled_source_dataloader), total=len(unlabeled_source_dataloader)):
             source_x = source_x.to(device).float()
             source_y = source_y.to(device).long()
             source_x_embedding = encoder_inference(encoder, encoder_MLP, source_x).detach()
             source_x_unlabeled_embedding = torch.cat([source_x_unlabeled_embedding, source_x_embedding])
             source_y_unlabeled = torch.cat([source_y_unlabeled, source_y])
-            
+
         for batch_id, (target_x, target_y) in tqdm(enumerate(labeled_target_dataloader), total=len(labeled_target_dataloader)):
             target_x = target_x.to(device).float()
             target_y = target_y.to(device).long()
             target_x_embedding = encoder_inference(encoder, encoder_MLP, target_x)
             fake_x_embedding = GNet(target_x_embedding).detach()
-            target_x_labeled_embedding = torch.cat([target_x_labeled_embedding, fake_x_embedding])     
+            target_x_labeled_embedding = torch.cat([target_x_labeled_embedding, fake_x_embedding])
             target_y_labeled = torch.cat([target_y_labeled, target_y])
 
-            
+
         for batch_id, (target_x, target_y) in tqdm(enumerate(unlabeled_target_dataloader), total=len(unlabeled_target_dataloader)):
             target_x = target_x.to(device).float()
             target_y = target_y.to(device).long()
             target_x_embedding = encoder_inference(encoder, encoder_MLP, target_x)
             fake_x_embedding = GNet(target_x_embedding).detach()
-            target_x_unlabeled_embedding = torch.cat([target_x_unlabeled_embedding, fake_x_embedding])    
+            target_x_unlabeled_embedding = torch.cat([target_x_unlabeled_embedding, fake_x_embedding])
             target_y_unlabeled = torch.cat([target_y_unlabeled, target_y])
-            
-    # for loop to train the gfunction 
+
+    # for loop to train the gfunction
+    gfunction_JS_div_labeled.train()
     for i in tqdm(range(args.gfunction_epoch)):
         if args.KL:
             optimizer_gfunction_KL_div_labeled.zero_grad()
             source_x_labeled_g = gfunction_KL_div_labeled(source_x_labeled_embedding)
             target_x_labeled_g = gfunction_KL_div_labeled(target_x_labeled_embedding)
             loss_KL_labeled = - KLDiv(source_x_labeled_g, target_x_labeled_g, device) # maximize
+            #loss_KL_labeled = - KLDiv(target_x_labeled_g, source_x_labeled_g, device) # maximize
             loss_KL_labeled.backward()
             optimizer_gfunction_KL_div_labeled.step()
             if i % 500 == 0:
                 print("Epoch %i, Iter %i, labeled KL: %f"%(epoch, i, -loss_KL_labeled.item()))
-       
+
         if args.JS:
             optimizer_gfunction_JS_div_labeled.zero_grad()
             source_x_labeled_g = gfunction_JS_div_labeled(source_x_labeled_embedding)
@@ -468,17 +492,36 @@ for epoch in range(3, source_acc_label_.shape[0], args.intervals*args.model_save
             loss_JS_labeled = - JSDiv(source_x_labeled_g, target_x_labeled_g, device) # maximize
             loss_JS_labeled.backward()
             optimizer_gfunction_JS_div_labeled.step()
-            if i % 500 == 0:
-                print("Epoch %i, Iter %i, labeled JS: %f"%(epoch, i, -loss_JS_labeled.item()))
-            
+
+            #if i % 500 == 0:
+            #    print("Epoch %i, Iter %i, labeled JS: %f"%(epoch, i, -loss_JS_labeled.item()))
+    with torch.no_grad():
+        gfunction_JS_div_labeled.eval()
+        source_x_labeled_g = gfunction_JS_div_labeled(source_x_labeled_embedding)
+        KL_labeled_eval = source_x_labeled_g.mean()
+        KL_report_js_labeled.append(KL_labeled_eval)
+    """
+    with torch.no_grad():
+        source_x_labeled_g = gfunction_JS_div_labeled(source_x_labeled_embedding)
+        target_x_labeled_g = gfunction_JS_div_labeled(target_x_labeled_embedding)
+        KL_labeled_eval = KLDiv(source_x_labeled_g, target_x_labeled_g, device) # maximize
+        KL_report_js_labeled.append(KL_labeled_eval)
+    """
+
+
+
+
+
     if args.KL:
         loss_KL_labeled = - loss_KL_labeled.item()
         labeled_KL.append(loss_KL_labeled)
-      
+
     if args.JS:
         loss_JS_labeled = - loss_JS_labeled.item()
         labeled_JS.append(loss_JS_labeled)
-    
+
+
+    gfunction_JS_div_unlabeled.train()
     for i in tqdm(range(args.gfunction_epoch)):
         if args.KL:
             optimizer_gfunction_KL_div_unlabeled.zero_grad()
@@ -487,8 +530,6 @@ for epoch in range(3, source_acc_label_.shape[0], args.intervals*args.model_save
             loss_KL_unlabeled = - KLDiv(source_x_unlabeled_g, target_x_unlabeled_g, device) # maximize
             loss_KL_unlabeled.backward()
             optimizer_gfunction_KL_div_unlabeled.step()
-            if i % 500 == 0:
-                print("Epoch %i, Iter %i, unlabeled KL: %f"%(epoch, i, -loss_KL_unlabeled.item()))
 
         if args.JS:
             optimizer_gfunction_JS_div_unlabeled.zero_grad()
@@ -497,13 +538,24 @@ for epoch in range(3, source_acc_label_.shape[0], args.intervals*args.model_save
             loss_JS_unlabeled = - JSDiv(source_x_unlabeled_g, target_x_unlabeled_g, device) # maximize
             loss_JS_unlabeled.backward()
             optimizer_gfunction_JS_div_unlabeled.step()
-            if i % 500 == 0:
-                print("Epoch %i, Iter %i, unlabeled JS: %f"%(epoch, i, -loss_JS_unlabeled.item()))
-            
-    if args.KL:  
+    with torch.no_grad():
+        gfunction_JS_div_unlabeled.eval()
+        source_x_unlabeled_g = gfunction_JS_div_unlabeled(source_x_unlabeled_embedding)
+        KL_unlabeled_eval = source_x_unlabeled_g.mean()
+        KL_report_js_unlabeled.append(KL_unlabeled_eval)
+    """
+
+    with torch.no_grad():
+        source_x_unlabeled_g = gfunction_JS_div_unlabeled(source_x_unlabeled_embedding)
+        target_x_unlabeled_g = gfunction_JS_div_unlabeled(target_x_unlabeled_embedding)
+        KL_unlabeled_eval = KLDiv(source_x_unlabeled_g, target_x_unlabeled_g, device) # maximize
+        KL_report_js_unlabeled.append(KL_unlabeled_eval)
+    """
+
+    if args.KL:
         loss_KL_unlabeled = - loss_KL_unlabeled.item()
         unlabeled_KL.append(loss_KL_unlabeled)
-    
+
     if args.JS:
         loss_JS_unlabeled = - loss_JS_unlabeled.item()
         unlabeled_JS.append(loss_JS_unlabeled)
@@ -516,23 +568,21 @@ for epoch in range(3, source_acc_label_.shape[0], args.intervals*args.model_save
         for i in tqdm(range(args.classifier_epoch)):
             CNet.train()
             optimizer_CNet.zero_grad()
-            if args.centerloss:
-                optimizer_centerloss.zero_grad()
+            # optimizer_centerloss.zero_grad()
             pred = CNet(source_x_labeled_embedding)
             acc_source_labeled_classifier = (pred.argmax(-1) == source_y_labeled).sum().item() / pred.size(0)
             loss_source_classifier_labeled = criterion_classifier(pred, source_y_labeled) * args.sclass
-            if args.centerloss: loss_source_classifier_labeled += criterion_centerloss(source_x_labeled_embedding, source_y_labeled) * args.scent * args.sclass
             loss_source_classifier_labeled.backward()
-            if args.centerloss: optimizer_centerloss.step()
+            # optimizer_centerloss.step()
             optimizer_CNet.step()
-            
+
             optimizer_CNet.zero_grad()
             pred = CNet(target_x_labeled_embedding)
             acc_target_labeled_classifier = (pred.argmax(-1) == target_y_labeled).sum().item() / pred.size(0)
             loss_target_classifier_labeled = criterion_classifier(pred, target_y_labeled)
             loss_target_classifier_labeled.backward()
             optimizer_CNet.step()
-            
+
 #             if i % 500 == 0:
 #                 CNet.eval()
 #                 pred = CNet(source_x_unlabeled_embedding)
@@ -541,7 +591,7 @@ for epoch in range(3, source_acc_label_.shape[0], args.intervals*args.model_save
 #                 acc_target_unlabeled_classifier = (pred.argmax(-1) == target_y_unlabeled).sum().item() / pred.size(0)
 #                 print("Iter %i: source acc: labeled: %f, unlabeled: %f; target acc: labeled: %f, unlabeled: %f"%(
 #                     i, acc_source_labeled_classifier, acc_source_unlabeled_classifier, acc_target_labeled_classifier, acc_target_unlabeled_classifier))
-        
+
         CNet.eval()
         pred = CNet(source_x_unlabeled_embedding)
         acc_source_unlabeled_classifier = (pred.argmax(-1) == source_y_unlabeled).sum().item() / pred.size(0)
@@ -549,38 +599,40 @@ for epoch in range(3, source_acc_label_.shape[0], args.intervals*args.model_save
         acc_target_unlabeled_classifier = (pred.argmax(-1) == target_y_unlabeled).sum().item() / pred.size(0)
         acc_source_unlabeled_classifier_.append(acc_source_unlabeled_classifier)
         acc_target_unlabeled_classifier_.append(acc_target_unlabeled_classifier)
-        
+
     # save corresponding acc
     source_acc_label.append(source_acc_label_[epoch-1])
     source_acc_unlabel.append(source_acc_unlabel_[epoch-1])
     target_acc_label.append(target_acc_label_[epoch-1])
     target_acc_unlabel.append(target_acc_unlabel_[epoch-1])
     epochs.append(epoch)
-    
+
     logger.info("-----------------------------------------")
     log_string = "Epoch %i: "%epoch
     if args.KL: log_string += "labeled KL: %f, unlabeled KL: %f; "%(loss_KL_labeled, loss_KL_unlabeled)
-    if args.JS: log_string += "labeled JS: %f, unlabeled JS: %f; "%(loss_JS_labeled, loss_JS_unlabeled)   
-    if args.classifier: log_string += "src unlbl acc: %f, tgt unlbl acc: %f; "%(acc_source_unlabeled_classifier, acc_target_unlabeled_classifier)      
+    if args.JS: log_string += "labeled JS: %f, unlabeled JS: %f; labeled KL: %f; unlabeled KL: %f;"%(loss_JS_labeled, loss_JS_unlabeled, KL_labeled_eval, KL_unlabeled_eval)
+    if args.classifier: log_string += "src unlbl acc: %f, tgt unlbl acc: %f; "%(acc_source_unlabeled_classifier, acc_target_unlabeled_classifier)
     logger.info(log_string)
     logger.info("-----------------------------------------")
-    
+
     np.save(args.save_path+model_sub_folder+'/epochs.npy', epochs)
     np.save(args.save_path+model_sub_folder+'/source_acc_label.npy', source_acc_label)
     np.save(args.save_path+model_sub_folder+'/source_acc_unlabel.npy', source_acc_unlabel)
     np.save(args.save_path+model_sub_folder+'/target_acc_label.npy', target_acc_label)
     np.save(args.save_path+model_sub_folder+'/target_acc_unlabel.npy', target_acc_unlabel)
-    
-    if args.KL: 
+    np.save(args.save_path+model_sub_folder+'/KL_report_js_labeled.npy', KL_report_js_labeled)
+    np.save(args.save_path+model_sub_folder+'/KL_report_js_unlabeled.npy', KL_report_js_unlabeled)
+
+    if args.KL:
         np.save(args.save_path+model_sub_folder+'/labeled_KL.npy', labeled_KL)
         np.save(args.save_path+model_sub_folder+'/unlabeled_KL.npy', unlabeled_KL)
-        
+
     if args.JS:
         np.save(args.save_path+model_sub_folder+'/labeled_JS.npy', labeled_JS)
         np.save(args.save_path+model_sub_folder+'/unlabeled_JS.npy', unlabeled_JS)
-        
+
     if args.classifier:
         np.save(args.save_path+model_sub_folder+'/acc_source_unlabeled_classifier_.npy', acc_source_unlabeled_classifier_)
         np.save(args.save_path+model_sub_folder+'/acc_target_unlabeled_classifier_.npy', acc_target_unlabeled_classifier_)
-    
+
 
