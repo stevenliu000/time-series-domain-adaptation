@@ -58,7 +58,7 @@ parser.add_argument('--lr', type=float, default=1e-3, help='learning rate for cl
 parser.add_argument('--target_lbl_percentage', type=float, default=0.7, help='percentage of which target data has label')
 parser.add_argument('--source_lbl_percentage', type=float, default=0.7, help='percentage of which source data has label')
 parser.add_argument('--num_per_class', type=int, default=-1, help='number of sample per class when training local discriminator')
-parser.add_argument('--num_per_class', type=float, default=0.7, help='weight for source domain classification')
+parser.add_argument('--sclass', type=float, default=0.7, help='weight for source domain classification')
 parser.add_argument('--seed', type=int, default=0, help='manual seed')
 parser.add_argument('--save_path', type=str, help='where to store data')
 parser.add_argument('--model_save_period', type=int, default=2, help='period in which the model is saved')
