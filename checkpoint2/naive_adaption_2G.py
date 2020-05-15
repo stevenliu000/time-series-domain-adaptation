@@ -132,7 +132,7 @@ device = torch.device('cuda:{}'.format(args.gpu_num) if torch.cuda.is_available(
 if args.num_per_class == -1:
     args.num_per_class = math.ceil(args.batch_size / num_class)
     
-model_sub_folder = 'naive_adaption/lbl_percent_%f/task_%s_slp_%f_tlp_%f_sclass_%f_scent_%f_centerloss_%i'%(args.target_lbl_percentage, args.task, args.source_lbl_percentage, args.target_lbl_percentage, args.sclass, args.scent, args.is_centerloss)
+model_sub_folder = 'naive_adaption_2G/lbl_percent_%f/task_%s_slp_%f_tlp_%f_sclass_%f_scent_%f_centerloss_%i'%(args.target_lbl_percentage, args.task, args.source_lbl_percentage, args.target_lbl_percentage, args.sclass, args.scent, args.is_centerloss)
 
 
 save_folder = os.path.join(args.save_path, model_sub_folder)
