@@ -496,8 +496,8 @@ for epoch in range(start_epoch, end_epoch, args.intervals*args.model_save_period
             #loss_KL_labeled = - KLDiv(target_x_labeled_g, source_x_labeled_g, device) # maximize
             loss_KL_labeled.backward()
             optimizer_gfunction_KL_div_labeled.step()
-            if i % 500 == 0:
-                print("Epoch %i, Iter %i, labeled KL: %f"%(epoch, i, -loss_KL_labeled.item()))
+            # if i % 500 == 0:
+            #     print("Epoch %i, Iter %i, labeled KL: %f"%(epoch, i, -loss_KL_labeled.item()))
 
         if args.JS:
             optimizer_gfunction_JS_div_labeled.zero_grad()
