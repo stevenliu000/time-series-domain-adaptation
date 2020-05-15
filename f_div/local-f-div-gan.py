@@ -480,7 +480,6 @@ for epoch in range(start_epoch, end_epoch, args.intervals*args.model_save_period
             target_x_unlabeled_embedding = torch.cat([target_x_unlabeled_embedding, fake_x_embedding])
             target_y_unlabeled = torch.cat([target_y_unlabeled, target_y])
 
-    print(source_y_labeled.shape)
     mask_source_labeled = torch.zeros((source_y_labeled.size(0), num_class), device=device).scatter_(1, source_y_labeled.unsqueeze(1), 1)
     mask_target_labeled = torch.zeros((target_y_labeled.size(0), num_class), device=device).scatter_(1, target_y_labeled.unsqueeze(1), 1)
     mask_source_unlabeled = torch.zeros((source_y_unlabeled.size(0), num_class), device=device).scatter_(1, source_y_unlabeled.unsqueeze(1), 1)
