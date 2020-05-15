@@ -82,7 +82,7 @@ python_file_name = sys.argv[0]
 # class local_args:
 #     def __init__(self, **entries):
 #         self.__dict__.update(entries)
-        
+
 # args = local_args(**{
 #     'data_path': '../data_unzip',
 #     'task': '3E',
@@ -131,13 +131,13 @@ device = torch.device('cuda:{}'.format(args.gpu_num) if torch.cuda.is_available(
 
 if args.num_per_class == -1:
     args.num_per_class = math.ceil(args.batch_size / num_class)
-    
+
 model_sub_folder = 'naive_adaption_noG/lbl_percent_%f/task_%s_slp_%f_tlp_%f_sclass_%f_scent_%f_centerloss_%i'%(args.target_lbl_percentage, args.task, args.source_lbl_percentage, args.target_lbl_percentage, args.sclass, args.scent, args.is_centerloss)
 
 
 save_folder = os.path.join(args.save_path, model_sub_folder)
 if not os.path.exists(save_folder):
-    os.makedirs(save_folder)  
+    os.makedirs(save_folder)
 
 
 # # Logger
@@ -150,7 +150,7 @@ logger.setLevel(logging.INFO)
 
 if os.path.isfile(args.save_path+model_sub_folder+ '/logfile.log'):
     os.remove(args.save_path+model_sub_folder+ '/logfile.log')
-    
+
 file_log_handler = logging.FileHandler(args.save_path+model_sub_folder+ '/logfile.log')
 logger.addHandler(file_log_handler)
 
@@ -174,7 +174,7 @@ with open(os.path.join(save_folder, 'command.log'), 'w') as f:
 
 
 # # Data Loading
-# 
+#
 
 # In[ ]:
 
@@ -317,10 +317,10 @@ for epoch in range(args.epochs):
         optimizerCenterLoss.step()
         optimizerEncoderMLP.step()
         optimizerEncoder.step()
-        
+
     source_acc_label = source_acc_label / num_datas
     source_acc_label_.append(source_acc_label)
-    
+
     # on target domain
     CNet.train()
     encoder.train()
@@ -337,15 +337,15 @@ for epoch in range(args.epochs):
         target_x_embedding = encoder_inference(encoder, encoder_MLP, target_x)
         pred = CNet(target_x_embedding)
         target_acc_label += (pred.argmax(-1) == target_y).sum().item()
-        loss = criterion_classifier(pred, target_y) 
+        loss = criterion_classifier(pred, target_y)
         loss.backward()
         optimizerCNet.step()
         optimizerEncoderMLP.step()
         optimizerEncoder.step()
-        
+
     target_acc_label = target_acc_label / num_datas
     target_acc_label_.append(target_acc_label)
-    
+
     # eval
     # source_domain
     source_acc_unlabel = 0.0
@@ -360,10 +360,10 @@ for epoch in range(args.epochs):
         source_x_embedding = encoder_inference(encoder, encoder_MLP, source_x)
         pred = CNet(source_x_embedding)
         source_acc_unlabel += (pred.argmax(-1) == source_y).sum().item()
-        
+
     source_acc_unlabel = source_acc_unlabel/num_datas
     source_acc_unlabel_.append(source_acc_unlabel)
-    
+
     # target_domain
     target_acc_unlabel = 0.0
     num_datas = 0.0
@@ -377,20 +377,19 @@ for epoch in range(args.epochs):
         target_x_embedding = encoder_inference(encoder, encoder_MLP, target_x)
         pred = CNet(target_x_embedding)
         target_acc_unlabel += (pred.argmax(-1) == target_y).sum().item()
-        
+
     target_acc_unlabel = target_acc_unlabel/num_datas
     target_acc_unlabel_.append(target_acc_unlabel)
-    
+
     if epoch % args.model_save_period == 0:
         torch.save(encoder.state_dict(), args.save_path+model_sub_folder+ '/encoder_%i.t7'%(epoch+1))
         torch.save(encoder_MLP.state_dict(), args.save_path+model_sub_folder+ '/encoder_MLP%i.t7'%(epoch+1))
         torch.save(CNet.state_dict(), args.save_path+model_sub_folder+ '/CNet_%i.t7'%(epoch+1))
-        torch.save(criterion_centerloss.state_dict(), args.save_path+model_sub_folder+ '/centerloss_%i.t7'%(epoch+1))
 
     logger.info('Epochs %i: src labeled acc: %f; src unlabeled acc: %f; tgt labeled acc: %f; tgt unlabeled acc: %f'%(epoch+1, source_acc_label, source_acc_unlabel, target_acc_label, target_acc_unlabel))
     np.save(args.save_path+model_sub_folder+'/target_acc_label_.npy', target_acc_label_)
     np.save(args.save_path+model_sub_folder+'/target_acc_unlabel_.npy', target_acc_unlabel_)
     np.save(args.save_path+model_sub_folder+'/source_acc_label_.npy', source_acc_label_)
     np.save(args.save_path+model_sub_folder+'/source_acc_unlabel_.npy', source_acc_unlabel_)
-    
+
 
