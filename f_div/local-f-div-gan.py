@@ -312,7 +312,7 @@ def JSDiv(g_x_source, g_x_target, mask_source, mask_target, device):
 
     # E_{p(x|y)}
     s_score = s_score.sum(dim=0) / mask_source.sum(dim=0) # (num_class, )
-    t_score = t_score.sum(dim=0) / mask_source.sum(dim=0) # (num_class, )
+    t_score = t_score.sum(dim=0) / mask_target.sum(dim=0) # (num_class, )
 
     # E_{p(y)}
     return (- s_score - t_score).mean() # scalar
