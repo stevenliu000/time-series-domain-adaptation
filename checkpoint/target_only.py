@@ -128,6 +128,7 @@ model_sub_folder = '/target_only/task_%s_lbl_percentage_%f'%(args.task, args.lbl
 if not os.path.exists(args.save_path+model_sub_folder):
     os.makedirs(args.save_path+model_sub_folder)
 
+print("save at %s"%args.save_path+model_sub_folder)
 
 # # Logger
 
