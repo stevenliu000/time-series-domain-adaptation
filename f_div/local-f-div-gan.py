@@ -513,7 +513,7 @@ for epoch in range(start_epoch, end_epoch, args.intervals*args.model_save_period
         gfunction_JS_div_labeled.eval()
         source_x_labeled_g = gfunction_JS_div_labeled(source_x_labeled_embedding)
         KL_labeled_eval = source_x_labeled_g.mean()
-        KL_report_js_labeled.append(KL_labeled_eval)
+        KL_report_js_labeled.append(KL_labeled_eval.item())
     """
     with torch.no_grad():
         source_x_labeled_g = gfunction_JS_div_labeled(source_x_labeled_embedding)
@@ -556,7 +556,7 @@ for epoch in range(start_epoch, end_epoch, args.intervals*args.model_save_period
         gfunction_JS_div_unlabeled.eval()
         source_x_unlabeled_g = gfunction_JS_div_unlabeled(source_x_unlabeled_embedding)
         KL_unlabeled_eval = source_x_unlabeled_g.mean()
-        KL_report_js_unlabeled.append(KL_unlabeled_eval)
+        KL_report_js_unlabeled.append(KL_unlabeled_eval.item())
     """
 
     with torch.no_grad():
