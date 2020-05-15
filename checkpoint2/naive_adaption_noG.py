@@ -21,6 +21,7 @@ import copy
 import math
 from tqdm import tqdm
 import torch
+from shutil import copyfile
 from torch import nn
 from torch.utils.data import Dataset, DataLoader
 from torch.optim.lr_scheduler import ReduceLROnPlateau
@@ -56,14 +57,22 @@ parser.add_argument('--epochs', type=int, default=50, help='number of epochs')
 parser.add_argument('--lr_FNN', type=float, default=1e-3, help='learning rate for classification')
 parser.add_argument('--lr_encoder', type=float, default=1e-3, help='learning rate for classification')
 parser.add_argument('--lr_centerloss', type=float, default=0.005, help='learning rate for centerloss')
+parser.add_argument('--sclass', type=float, default=0.7, help='target classifier loss weight')
+parser.add_argument('--scent', type=float, default=0.0001, help='source domain classification weight on centerloss')
 parser.add_argument('--lr_gan', type=float, default=1e-3, help='learning rate for adversarial')
-parser.add_argument('--lbl_percentage', type=float, default=0.7, help='percentage of which target data has label')
+parser.add_argument('--target_lbl_percentage', type=float, default=0.7, help='percentage of which target data has label')
+parser.add_argument('--source_lbl_percentage', type=float, default=0.7, help='percentage of which source data has label')
 parser.add_argument('--num_per_class', type=int, default=-1, help='number of sample per class when training local discriminator')
 parser.add_argument('--seed', type=int, default=0, help='manual seed')
 parser.add_argument('--save_path', type=str, help='where to store data')
 parser.add_argument('--model_save_period', type=int, default=2, help='period in which the model is saved')
+parser.add_argument('--is_centerloss', type=int, default=0, help='if centerloss used')
 
 args = parser.parse_args()
+args.is_centerloss = True if args.is_centerloss == 1 else False
+
+# snap shot of py file and command
+python_file_name = sys.argv[0]
 
 
 # In[ ]:
@@ -123,12 +132,13 @@ device = torch.device('cuda:{}'.format(args.gpu_num) if torch.cuda.is_available(
 if args.num_per_class == -1:
     args.num_per_class = math.ceil(args.batch_size / num_class)
     
-model_sub_folder = '/target_only/task_%s_lbl_percentage_%f'%(args.task, args.lbl_percentage)
+model_sub_folder = 'naive_adaption_noG/lbl_percent_%f/task_%s_slp_%f_tlp_%f_sclass_%f_scent_%f_centerloss_%i'%(args.target_lbl_percentage, args.task, args.source_lbl_percentage, args.target_lbl_percentage, args.sclass, args.scent, args.is_centerloss)
 
-if not os.path.exists(args.save_path+model_sub_folder):
-    os.makedirs(args.save_path+model_sub_folder)
 
-print("save at %s"%args.save_path+model_sub_folder)
+save_folder = os.path.join(args.save_path, model_sub_folder)
+if not os.path.exists(save_folder):
+    os.makedirs(save_folder)  
+
 
 # # Logger
 
@@ -150,6 +160,17 @@ logger.addHandler(stdout_log_handler)
 attrs = vars(args)
 for item in attrs.items():
     logger.info("%s: %s"%item)
+logger.info("Saved in {}".format(save_folder))
+
+
+# In[ ]:
+
+
+copyfile(python_file_name, os.path.join(save_folder, 'executed.py'))
+commands = ['python']
+commands.extend(sys.argv)
+with open(os.path.join(save_folder, 'command.log'), 'w') as f:
+    f.write(' '.join(commands))
 
 
 # # Data Loading
@@ -158,10 +179,10 @@ for item in attrs.items():
 # In[ ]:
 
 
-labeled_target_x_filename = '/processed_file_not_one_hot_%s_%1.1f_target_known_label_x.npy'%(args.task, args.lbl_percentage)
-labeled_target_y_filename = '/processed_file_not_one_hot_%s_%1.1f_target_known_label_y.npy'%(args.task, args.lbl_percentage)
-unlabeled_target_x_filename = '/processed_file_not_one_hot_%s_%1.1f_target_unknown_label_x.npy'%(args.task, args.lbl_percentage)
-unlabeled_target_y_filename = '/processed_file_not_one_hot_%s_%1.1f_target_unknown_label_y.npy'%(args.task, args.lbl_percentage)
+labeled_target_x_filename = '/processed_file_not_one_hot_%s_%1.1f_target_known_label_x.npy'%(args.task, args.target_lbl_percentage)
+labeled_target_y_filename = '/processed_file_not_one_hot_%s_%1.1f_target_known_label_y.npy'%(args.task, args.target_lbl_percentage)
+unlabeled_target_x_filename = '/processed_file_not_one_hot_%s_%1.1f_target_unknown_label_x.npy'%(args.task, args.target_lbl_percentage)
+unlabeled_target_y_filename = '/processed_file_not_one_hot_%s_%1.1f_target_unknown_label_y.npy'%(args.task, args.target_lbl_percentage)
 labeled_target_x = np.load(args.data_path+labeled_target_x_filename)
 labeled_target_y = np.load(args.data_path+labeled_target_y_filename)
 unlabeled_target_x = np.load(args.data_path+unlabeled_target_x_filename)
@@ -170,6 +191,19 @@ labeled_target_dataset = SingleDataset(labeled_target_x, labeled_target_y)
 unlabled_target_dataset = SingleDataset(unlabeled_target_x, unlabeled_target_y)
 labeled_target_dataloader = DataLoader(labeled_target_dataset, batch_size=args.batch_size, shuffle=True, pin_memory=True, num_workers=4)
 unlabeled_target_dataloader = DataLoader(unlabled_target_dataset, batch_size=args.batch_size, shuffle=False, pin_memory=True, num_workers=4)
+
+labeled_source_x_filename = '/processed_file_not_one_hot_%s_%1.1f_source_known_label_x.npy'%(args.task, args.source_lbl_percentage)
+labeled_source_y_filename = '/processed_file_not_one_hot_%s_%1.1f_source_known_label_y.npy'%(args.task, args.source_lbl_percentage)
+unlabeled_source_x_filename = '/processed_file_not_one_hot_%s_%1.1f_source_unknown_label_x.npy'%(args.task, args.source_lbl_percentage)
+unlabeled_source_y_filename = '/processed_file_not_one_hot_%s_%1.1f_source_unknown_label_y.npy'%(args.task, args.source_lbl_percentage)
+labeled_source_x = np.load(args.data_path+labeled_source_x_filename)
+labeled_source_y = np.load(args.data_path+labeled_source_y_filename)
+unlabeled_source_x = np.load(args.data_path+unlabeled_source_x_filename)
+unlabeled_source_y = np.load(args.data_path+unlabeled_source_y_filename)
+labeled_source_dataset = SingleDataset(labeled_source_x, labeled_source_y)
+unlabled_source_dataset = SingleDataset(unlabeled_source_x, unlabeled_source_y)
+labeled_source_dataloader = DataLoader(labeled_source_dataset, batch_size=args.batch_size, shuffle=True, pin_memory=True, num_workers=4)
+unlabeled_source_dataloader = DataLoader(unlabled_source_dataset, batch_size=args.batch_size, shuffle=False, pin_memory=True, num_workers=4)
 
 
 # # Weight initialize
@@ -205,18 +239,18 @@ encoder = ComplexTransformer(layers=3,
                                leaky_slope=0.2).to(device)
 encoder_MLP = FNNSeparated(d_in=64 * 2 * 1, d_h1=64*4, d_h2=64*2, dp=0.2).to(device)
 CNet = FNNLinear(d_h2=64*2, d_out=num_class).to(device)
-GNet = Generator(dim=64*2).to(device)
+
+criterion_centerloss = CenterLoss(num_classes=num_class, feat_dim=64*2, use_gpu=torch.cuda.is_available()).to(device)
 criterion_classifier = nn.CrossEntropyLoss().to(device)
 
 encoder.apply(weights_init)
 encoder_MLP.apply(weights_init)
 CNet.apply(weights_init)
-GNet.apply(weights_init)
 
 optimizerCNet = torch.optim.Adam(CNet.parameters(), lr=args.lr_FNN)
 optimizerEncoderMLP = torch.optim.Adam(encoder_MLP.parameters(), lr=args.lr_encoder)
 optimizerEncoder = torch.optim.Adam(encoder.parameters(), lr=args.lr_encoder)
-optimizerGNet = torch.optim.Adam(GNet.parameters(), lr=args.lr_gan)
+optimizerCenterLoss = torch.optim.Adam(criterion_centerloss.parameters(), lr=args.lr_centerloss)
 
 
 # In[ ]:
@@ -248,12 +282,45 @@ def encoder_inference(encoder, encoder_MLP, x):
 # In[ ]:
 
 
+source_acc_label_ = []
+source_acc_unlabel_ = []
 target_acc_label_ = []
 target_acc_unlabel_ = []
 
 logger.info('Started Training')
 for epoch in range(args.epochs):
     # update classifier
+    # on source domain
+    CNet.train()
+    encoder.train()
+    encoder_MLP.train()
+    source_acc_label = 0.0
+    num_datas = 0.0
+    for batch_id, (source_x, source_y) in tqdm(enumerate(labeled_source_dataloader), total=len(labeled_source_dataloader)):
+        optimizerCNet.zero_grad()
+        optimizerEncoder.zero_grad()
+        optimizerEncoderMLP.zero_grad()
+        optimizerCenterLoss.zero_grad()
+        source_x = source_x.to(device).float()
+        source_y = source_y.to(device)
+        num_datas += source_x.size(0)
+        source_x_embedding = encoder_inference(encoder, encoder_MLP, source_x)
+        pred = CNet(source_x_embedding)
+        source_acc_label += (pred.argmax(-1) == source_y).sum().item()
+        if args.is_centerloss:
+            loss = (criterion_classifier(pred, source_y) +
+                criterion_centerloss(source_x_embedding, source_y) * args.scent) * args.sclass
+        else:
+            loss = criterion_classifier(pred, source_y) * args.sclass
+        loss.backward()
+        optimizerCNet.step()
+        optimizerCenterLoss.step()
+        optimizerEncoderMLP.step()
+        optimizerEncoder.step()
+        
+    source_acc_label = source_acc_label / num_datas
+    source_acc_label_.append(source_acc_label)
+    
     # on target domain
     CNet.train()
     encoder.train()
@@ -264,25 +331,40 @@ for epoch in range(args.epochs):
         optimizerCNet.zero_grad()
         optimizerEncoder.zero_grad()
         optimizerEncoderMLP.zero_grad()
-        optimizerGNet.zero_grad()
         target_x = target_x.to(device).float()
         target_y = target_y.to(device)
         num_datas += target_x.size(0)
         target_x_embedding = encoder_inference(encoder, encoder_MLP, target_x)
-        fake_x_embedding = GNet(target_x_embedding)
-        pred = CNet(fake_x_embedding)
+        pred = CNet(target_x_embedding)
         target_acc_label += (pred.argmax(-1) == target_y).sum().item()
         loss = criterion_classifier(pred, target_y) 
         loss.backward()
         optimizerCNet.step()
-        optimizerGNet.step()
         optimizerEncoderMLP.step()
         optimizerEncoder.step()
         
     target_acc_label = target_acc_label / num_datas
     target_acc_label_.append(target_acc_label)
     
-    # eval    
+    # eval
+    # source_domain
+    source_acc_unlabel = 0.0
+    num_datas = 0.0
+    CNet.eval()
+    encoder.eval()
+    encoder_MLP.eval()
+    for batch_id, (source_x, source_y) in tqdm(enumerate(unlabeled_source_dataloader), total=len(unlabeled_source_dataloader)):
+        source_x = source_x.to(device).float()
+        source_y = source_y.to(device)
+        num_datas += source_x.shape[0]
+        source_x_embedding = encoder_inference(encoder, encoder_MLP, source_x)
+        pred = CNet(source_x_embedding)
+        source_acc_unlabel += (pred.argmax(-1) == source_y).sum().item()
+        
+    source_acc_unlabel = source_acc_unlabel/num_datas
+    source_acc_unlabel_.append(source_acc_unlabel)
+    
+    # target_domain
     target_acc_unlabel = 0.0
     num_datas = 0.0
     CNet.eval()
@@ -293,8 +375,7 @@ for epoch in range(args.epochs):
         target_y = target_y.to(device)
         num_datas += target_x.shape[0]
         target_x_embedding = encoder_inference(encoder, encoder_MLP, target_x)
-        fake_x_embedding = GNet(target_x_embedding)
-        pred = CNet(fake_x_embedding)
+        pred = CNet(target_x_embedding)
         target_acc_unlabel += (pred.argmax(-1) == target_y).sum().item()
         
     target_acc_unlabel = target_acc_unlabel/num_datas
@@ -304,10 +385,12 @@ for epoch in range(args.epochs):
         torch.save(encoder.state_dict(), args.save_path+model_sub_folder+ '/encoder_%i.t7'%(epoch+1))
         torch.save(encoder_MLP.state_dict(), args.save_path+model_sub_folder+ '/encoder_MLP%i.t7'%(epoch+1))
         torch.save(CNet.state_dict(), args.save_path+model_sub_folder+ '/CNet_%i.t7'%(epoch+1))
-        torch.save(GNet.state_dict(), args.save_path+model_sub_folder+ '/GNet_%i.t7'%(epoch+1))
+        torch.save(criterion_centerloss.state_dict(), args.save_path+model_sub_folder+ '/centerloss_%i.t7'%(epoch+1))
 
-    logger.info('Epochs %i: target labeled acc: %f; target unlabeled acc: %f'%(epoch+1, target_acc_label, target_acc_unlabel))
+    logger.info('Epochs %i: src labeled acc: %f; src unlabeled acc: %f; tgt labeled acc: %f; tgt unlabeled acc: %f'%(epoch+1, source_acc_label, source_acc_unlabel, target_acc_label, target_acc_unlabel))
     np.save(args.save_path+model_sub_folder+'/target_acc_label_.npy', target_acc_label_)
     np.save(args.save_path+model_sub_folder+'/target_acc_unlabel_.npy', target_acc_unlabel_)
+    np.save(args.save_path+model_sub_folder+'/source_acc_label_.npy', source_acc_label_)
+    np.save(args.save_path+model_sub_folder+'/source_acc_unlabel_.npy', source_acc_unlabel_)
     
 
