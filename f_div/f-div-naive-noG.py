@@ -423,7 +423,6 @@ for epoch in range(start_epoch, end_epoch, args.intervals*args.model_save_period
     encoder_MLP.load_state_dict(torch.load(os.path.join(args.model_path, 'encoder_MLP%i.t7'%epoch)))
 
     # inferencing
-    GNet.eval()
     encoder.eval()
     encoder_MLP.eval()
 
