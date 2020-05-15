@@ -507,8 +507,8 @@ for epoch in range(start_epoch, end_epoch, args.intervals*args.model_save_period
             loss_JS_labeled.backward()
             optimizer_gfunction_JS_div_labeled.step()
 
-            if i % 500 == 0:
-               print("Epoch %i, Iter %i, labeled JS: %f"%(epoch, i, -loss_JS_labeled.item()))
+            # if i % 500 == 0:
+            #    print("Epoch %i, Iter %i, labeled JS: %f"%(epoch, i, -loss_JS_labeled.item()))
     with torch.no_grad():
         gfunction_JS_div_labeled.eval()
         source_x_labeled_g = gfunction_JS_div_labeled(source_x_labeled_embedding)
