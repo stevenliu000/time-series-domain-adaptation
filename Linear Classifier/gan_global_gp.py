@@ -172,7 +172,7 @@ device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 if args.num_per_class == -1:
     args.num_per_class = math.ceil(args.batch_size / num_class)
     
-model_sub_folder = 'Linear_GAN/lbl_percent_%f/task_%s_gpweight_%f_critic_%f_sclass_%f_globalonly'%(args.target_lbl_percentage , args.task, args.gpweight, args.n_critic, args.sclass)
+model_sub_folder = 'Linear_GAN/lbl_percent_%f/task_%s_gpweight_%f_critic_%f_sclass_%f_globalonly_%f'%(args.target_lbl_percentage , args.task, args.gpweight, args.n_critic, args.sclass, args.dglobal)
 
 save_folder = os.path.join(args.save_path, model_sub_folder)
 if not os.path.exists(save_folder):
