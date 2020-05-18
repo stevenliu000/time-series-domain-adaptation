@@ -52,14 +52,14 @@ class JoinDataset(Dataset):
         self.source_y = source_y
         self.target_x = target_x
         self.target_y = target_y
-        
+
         self.source_len = self.source_y.shape[0]
         self.target_len = self.target_y.shape[0]
-    
+
         self.random = random
     def __len__(self):
         return self.target_len
-    
+
     def __getitem__(self, index):
         if self.random:
             index_source = random.randrange(self.source_len)
@@ -69,17 +69,17 @@ class JoinDataset(Dataset):
             index_target = index
 
         return (self.source_x[index_source], self.source_y[index_source]), (self.target_x[index_target], self.target_y[index_target])
-    
-    
+
+
 class SingleDataset(Dataset):
     def __init__(self, x, y):
         self.x = x
         self.y = y
         self.len = self.y.shape[0]
-    
+
     def __len__(self):
         return self.len
-    
+
     def __getitem__(self, index):
         return self.x[index], self.y[index]
 
@@ -132,7 +132,7 @@ python_file_name = sys.argv[0]
 # class local_args:
 #     def __init__(self, **entries):
 #         self.__dict__.update(entries)
-        
+
 # args = local_args(**{
 #     'data_path': '/home/tianqinl/Code/time-series-domain-adaptation/data_unzip',
 #     'task': '3E',
@@ -173,12 +173,15 @@ device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
 if args.num_per_class == -1:
     args.num_per_class = math.ceil(args.batch_size / num_class)
-    
-model_sub_folder = 'Linear_GAN/update_encoder_GAN/lbl_percent_%f/task_%s_gpweight_%f_dlocal_%f_critic_%f_rand_%i_sclass_%f_global_%i'%(args.target_lbl_percentage, args.task, args.gpweight, args.dlocal, args.n_critic, args.pure_random, args.sclass, args.isglobal)
+
+if args.update_encoder:
+    model_sub_folder = 'Linear_GAN/update_encoder_GAN/lbl_percent_%f/task_%s_gpweight_%f_dlocal_%f_critic_%f_rand_%i_sclass_%f_global_%i'%(args.target_lbl_percentage, args.task, args.gpweight, args.dlocal, args.n_critic, args.pure_random, args.sclass, args.isglobal)
+else:
+    model_sub_folder = 'Linear_GAN/lbl_percent_%f/task_%s_gpweight_%f_dlocal_%f_critic_%f_rand_%i_sclass_%f_global_%i'%(args.target_lbl_percentage, args.task, args.gpweight, args.dlocal, args.n_critic, args.pure_random, args.sclass, args.isglobal)
 
 save_folder = os.path.join(args.save_path, model_sub_folder)
 if not os.path.exists(save_folder):
-    os.makedirs(save_folder)   
+    os.makedirs(save_folder)
 
 
 # # Logger
@@ -459,11 +462,11 @@ for epoch in range(args.epochs):
         optimizerEncoder.step()
         optimizerEncoderMLP.step()
 
-        
+
     source_acc = source_acc / num_datas
     source_acc_.append(source_acc)
-    
-    
+
+
     # on target domain
     target_acc = 0.0
     num_datas = 0.0
@@ -490,10 +493,10 @@ for epoch in range(args.epochs):
         optimizerEncoder.step()
         optimizerEncoderMLP.step()
 
-    
+
     target_acc = target_acc / num_datas
     target_acc_label_.append(target_acc)
-    
+
     # eval
     # source_domain
     source_acc_unlabel = 0.0
@@ -508,10 +511,10 @@ for epoch in range(args.epochs):
         source_x_embedding = encoder_inference(encoder, encoder_MLP, source_x)
         pred = CNet(source_x_embedding)
         source_acc_unlabel += (pred.argmax(-1) == source_y).sum().item()
-        
+
     source_acc_unlabel = source_acc_unlabel/num_datas
     source_acc_unlabel_.append(source_acc_unlabel)
-    
+
     # Assign Pesudo Label
     correct_target = 0.0
     target_pesudo_y = []
@@ -521,20 +524,20 @@ for epoch in range(args.epochs):
     GNet.eval()
     for batch in range(math.ceil(unlabeled_target_x.shape[0]/args.batch_size)):
         target_unlabel_x_batch = torch.Tensor(unlabeled_target_x[batch*args.batch_size:(batch+1)*args.batch_size]).to(device).float()
-        target_unlabel_y_batch = torch.Tensor(unlabeled_target_y[batch*args.batch_size:(batch+1)*args.batch_size]).to(device)        
+        target_unlabel_y_batch = torch.Tensor(unlabeled_target_y[batch*args.batch_size:(batch+1)*args.batch_size]).to(device)
         # print(target_unlabel_y_batch.shape)
-        
+
         target_unlabel_x_embedding = encoder_inference(encoder, encoder_MLP, target_unlabel_x_batch)
         fake_source_embedding = GNet(target_unlabel_x_embedding)
         pred = CNet(fake_source_embedding)
         correct_target += (pred.argmax(-1) == target_unlabel_y_batch).sum().item()
         target_pesudo_y.extend(pred.argmax(-1).cpu().numpy())
-        
+
     target_pesudo_y = np.array(target_pesudo_y)
     pesudo_dict = get_class_data_dict(unlabeled_target_x, target_pesudo_y, num_class)
     target_acc_unlabel = correct_target/(unlabeled_target_x.shape[0])
     target_acc_unlabel_.append(target_acc_unlabel)
-    
+
     logger.info('Epoch: %i, update classifier: source acc: %f; source unlbl acc: %f; target acc: %f; target unlabel acc: %f'%(epoch+1, source_acc, source_acc_unlabel, target_acc, target_acc_unlabel))
 
     # Update GAN
@@ -551,7 +554,7 @@ for epoch in range(args.epochs):
         for batch_id, ((source_x, source_y), (target_x, target_y)) in tqdm(enumerate(join_dataloader), total=len(join_dataloader)):
             optimizerD_global.zero_grad()
             optimizerG.zero_grad()
-            if args.update_encoder: 
+            if args.update_encoder:
                 optimizerEncoder.zero_grad()
                 optimizerEncoderMLP.zero_grad()
             source_data = source_x.to(device).float()
@@ -559,7 +562,7 @@ for epoch in range(args.epochs):
             target_data = target_x.to(device).float()
             target_embedding = encoder_inference(encoder, encoder_MLP, target_data)
             fake_source_embedding = GNet(target_embedding)
-            """Update G Network"""     
+            """Update G Network"""
 
             # adversarial loss
             loss_G = -DNet_global(fake_source_embedding,1).mean()
@@ -568,10 +571,10 @@ for epoch in range(args.epochs):
 
             loss_G.backward()
             optimizerG.step()
-            if args.update_encoder: 
+            if args.update_encoder:
                 optimizerEncoder.step()
                 optimizerEncoderMLP.step()
-            
+
 
             if batch_id % int(1/args.n_critic) == 0:
                 """Update D Net"""
@@ -598,7 +601,7 @@ for epoch in range(args.epochs):
 
             #if batch_id % args.n_critic == 0:
 
-        
+
         logger.info('Epoch: %i, Global Discrimator Updates: Loss D_global: %f, Loss G: %f; update_ratio: %i'%(epoch+1, total_error_D_global, total_error_G, int(1/args.n_critic)))
 
         error_D_global.append(total_error_D_global)
@@ -612,7 +615,7 @@ for epoch in range(args.epochs):
     encoder_MLP.eval()
     GNet.train()
     DNet_local.train()
-    
+
     update_id = int(1/args.n_critic)
     if args.pure_random:
         update_id = max(1, update_id + np.random.randint(-2,2,1)[0])
@@ -626,7 +629,7 @@ for epoch in range(args.epochs):
     for batch_id in tqdm(range(math.ceil(label_target_len/args.batch_size))):
         target_x, target_y, target_weight = get_batch_target_data_on_class(target_labeled_dict, args.num_per_class, pesudo_dict, no_pesudo=True)
         source_x, source_y = get_batch_source_data_on_class(source_labeled_dict, args.num_per_class)
-        
+
         source_x = torch.Tensor(source_x).to(device).float()
         target_x = torch.Tensor(target_x).to(device).float()
         source_y = torch.LongTensor(target_y).to(device)
@@ -635,11 +638,11 @@ for epoch in range(args.epochs):
         source_mask = torch.zeros(source_x.size(0), num_class).to(device).scatter_(1, source_y.unsqueeze(-1), 1)
         target_mask = torch.zeros(target_x.size(0), num_class).to(device).scatter_(1, target_y.unsqueeze(-1), 1)
         target_weight = torch.zeros(target_x.size(0), num_class).to(device).scatter_(1, target_y.unsqueeze(-1), target_weight.unsqueeze(-1))
-        
+
 
         source_weight_count = source_mask.sum(dim=0)
         target_weight_count = target_weight.sum(dim=0)
-    
+
         if args.n_critic > 1:
             """Update D Net"""
             optimizerD_local.zero_grad()
@@ -655,7 +658,7 @@ for epoch in range(args.epochs):
             target_weight_count = target_weight.sum(dim=0)
 
             source_DNet_local_mean = source_DNet_local.sum(dim=0) / source_weight_count
-            target_DNet_local_mean = (target_DNet_local * target_weight).sum(dim=0) / target_weight_count        
+            target_DNet_local_mean = (target_DNet_local * target_weight).sum(dim=0) / target_weight_count
 
             gp = _gradient_penalty(source_embedding, fake_source_embedding, DNet_local, source_mask, num_class, device, args)
 
@@ -677,16 +680,16 @@ for epoch in range(args.epochs):
 
                 # adversarial loss
                 target_DNet_local = DNet_local(fake_source_embedding, target_mask)
-                target_DNet_local_mean = (target_DNet_local * target_weight).sum(dim=0) / target_weight_count        
+                target_DNet_local_mean = (target_DNet_local * target_weight).sum(dim=0) / target_weight_count
 
-                loss_G = -target_DNet_local_mean.sum() 
+                loss_G = -target_DNet_local_mean.sum()
                 loss_G = loss_G * args.dlocal
 
                 total_error_G += loss_G.item()
 
                 loss_G.backward()
                 optimizerG.step()
-                if args.update_encoder: 
+                if args.update_encoder:
                     optimizerEncoder.step()
                     optimizerEncoderMLP.step()
         else:
@@ -699,20 +702,20 @@ for epoch in range(args.epochs):
 
             # adversarial loss
             target_DNet_local = DNet_local(fake_source_embedding, target_mask)
-            target_DNet_local_mean = (target_DNet_local * target_weight).sum(dim=0) / target_weight_count        
+            target_DNet_local_mean = (target_DNet_local * target_weight).sum(dim=0) / target_weight_count
 
-            loss_G = -target_DNet_local_mean.sum() 
+            loss_G = -target_DNet_local_mean.sum()
             loss_G = loss_G * args.dlocal
 
             total_error_G += loss_G.item()
 
             loss_G.backward()
             optimizerG.step()
-            if args.update_encoder: 
+            if args.update_encoder:
                 optimizerEncoder.step()
                 optimizerEncoderMLP.step()
-            
-            
+
+
             if batch_id % update_id == 0:
                 """Update D Net"""
                 optimizerD_local.zero_grad()
@@ -725,7 +728,7 @@ for epoch in range(args.epochs):
                 target_DNet_local = DNet_local(fake_source_embedding, target_mask)
 
                 source_DNet_local_mean = source_DNet_local.sum(dim=0) / source_weight_count
-                target_DNet_local_mean = (target_DNet_local * target_weight).sum(dim=0) / target_weight_count        
+                target_DNet_local_mean = (target_DNet_local * target_weight).sum(dim=0) / target_weight_count
 
                 gp = _gradient_penalty(source_embedding, fake_source_embedding, DNet_local, source_mask, num_class, device, args)
 
@@ -736,11 +739,11 @@ for epoch in range(args.epochs):
 
                 loss_D_local.backward()
                 optimizerD_local.step()
-            
+
     logger.info('Epoch: %i, Local Discrimator Updates: Loss D_local: %f, Loss G: %f; update_ratio: %i'%(epoch+1, total_error_D_local, total_error_G, update_id))
     error_D_local.append(total_error_D_local)
     error_G_global.append(total_error_G)
- 
+
     np.save(os.path.join(args.save_path, model_sub_folder, 'target_acc_label_.npy'),target_acc_label_)
     np.save(os.path.join(args.save_path, model_sub_folder, 'source_acc_.npy'),source_acc_)
     np.save(os.path.join(args.save_path, model_sub_folder, 'target_acc_unlabel_.npy'),target_acc_unlabel_)
