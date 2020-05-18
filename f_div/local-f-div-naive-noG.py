@@ -240,13 +240,13 @@ def weights_init(m):
 
 
 class Gfunction(nn.Sequential):
-    def __init__(self):
+    def __init__(self, num_class):
         super(Gfunction, self).__init__(
-            nn.Linear(128,100),
+            nn.Linear(128+num_class,100),
             nn.ELU(),
             nn.Linear(100,100),
             nn.ELU(),
-            nn.Linear(100,1)
+            nn.Linear(100, num_class)
         )
 """
 
@@ -337,12 +337,12 @@ encoder = ComplexTransformer(layers=3,
 encoder_MLP = FNNSeparated(d_in=64 * 2 * 1, d_h1=64*4, d_h2=64*2, dp=0.2).to(device)
 
 if args.KL:
-    gfunction_KL_div_labeled = Gfunction().to(device)
-    gfunction_KL_div_unlabeled = Gfunction().to(device)
+    gfunction_KL_div_labeled = Gfunction(num_class).to(device)
+    gfunction_KL_div_unlabeled = Gfunction(num_class).to(device)
 
 if args.JS:
-    gfunction_JS_div_labeled = Gfunction().to(device)
-    gfunction_JS_div_unlabeled = Gfunction().to(device)
+    gfunction_JS_div_labeled = Gfunction(num_class).to(device)
+    gfunction_JS_div_unlabeled = Gfunction(num_class).to(device)
 
 if args.classifier:
     CNet = FNNLinear(d_h2=64*2, d_out=num_class).to(device)
@@ -479,6 +479,11 @@ for epoch in range(start_epoch, end_epoch, args.intervals*args.model_save_period
     mask_source_unlabeled = torch.zeros((source_y_unlabeled.size(0), num_class), device=device).scatter_(1, source_y_unlabeled.unsqueeze(1), 1)
     mask_target_unlabeled = torch.zeros((target_y_unlabeled.size(0), num_class), device=device).scatter_(1, target_y_unlabeled.unsqueeze(1), 1)
 
+    source_x_labeled_embedding_cat = torch.cat([source_x_labeled_embedding, mask_source_labeled], dim=1)
+    source_x_unlabeled_embedding_cat = torch.cat([source_x_unlabeled_embedding, mask_source_unlabeled], dim=1)
+    target_x_labeled_embedding_cat = torch.cat([target_x_labeled_embedding, mask_target_labeled], dim=1)
+    target_x_unlabeled_embedding_cat = torch.cat([target_x_unlabeled_embedding, mask_target_unlabeled], dim=1)
+
     # for loop to train the gfunction
     gfunction_JS_div_labeled.train()
     for i in tqdm(range(args.gfunction_epoch)):
@@ -495,8 +500,8 @@ for epoch in range(start_epoch, end_epoch, args.intervals*args.model_save_period
 
         if args.JS:
             optimizer_gfunction_JS_div_labeled.zero_grad()
-            source_x_labeled_g = gfunction_JS_div_labeled(source_x_labeled_embedding)
-            target_x_labeled_g = gfunction_JS_div_labeled(target_x_labeled_embedding)
+            source_x_labeled_g = gfunction_JS_div_labeled(source_x_labeled_embedding_cat)
+            target_x_labeled_g = gfunction_JS_div_labeled(target_x_labeled_embedding_cat)
             loss_JS_labeled = - JSDiv(source_x_labeled_g, target_x_labeled_g, mask_source_labeled, mask_target_labeled, device) # maximize
             loss_JS_labeled.backward()
             optimizer_gfunction_JS_div_labeled.step()
@@ -505,7 +510,7 @@ for epoch in range(start_epoch, end_epoch, args.intervals*args.model_save_period
             #    print("Epoch %i, Iter %i, labeled JS: %f"%(epoch, i, -loss_JS_labeled.item()))
     with torch.no_grad():
         gfunction_JS_div_labeled.eval()
-        source_x_labeled_g = gfunction_JS_div_labeled(source_x_labeled_embedding)
+        source_x_labeled_g = gfunction_JS_div_labeled(source_x_labeled_embedding_cat)
         KL_labeled_eval = source_x_labeled_g.mean()
         KL_report_js_labeled.append(KL_labeled_eval.item())
     """
@@ -541,14 +546,14 @@ for epoch in range(start_epoch, end_epoch, args.intervals*args.model_save_period
 
         if args.JS:
             optimizer_gfunction_JS_div_unlabeled.zero_grad()
-            source_x_unlabeled_g = gfunction_JS_div_unlabeled(source_x_unlabeled_embedding)
-            target_x_unlabeled_g = gfunction_JS_div_unlabeled(target_x_unlabeled_embedding)
+            source_x_unlabeled_g = gfunction_JS_div_unlabeled(source_x_unlabeled_embedding_cat)
+            target_x_unlabeled_g = gfunction_JS_div_unlabeled(target_x_unlabeled_embedding_cat)
             loss_JS_unlabeled = - JSDiv(source_x_unlabeled_g, target_x_unlabeled_g, mask_source_unlabeled, mask_target_unlabeled, device) # maximize
             loss_JS_unlabeled.backward()
             optimizer_gfunction_JS_div_unlabeled.step()
     with torch.no_grad():
         gfunction_JS_div_unlabeled.eval()
-        source_x_unlabeled_g = gfunction_JS_div_unlabeled(source_x_unlabeled_embedding)
+        source_x_unlabeled_g = gfunction_JS_div_unlabeled(source_x_unlabeled_embedding_cat)
         KL_unlabeled_eval = source_x_unlabeled_g.mean()
         KL_report_js_unlabeled.append(KL_unlabeled_eval.item())
     """
