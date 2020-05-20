@@ -16,7 +16,7 @@ class Generator(nn.Module):
             nn.Linear(500, 500),
             nn.LayerNorm(500),
             nn.LeakyReLU(0.2, inplace=True),
-
+            
             nn.Linear(500, 300),
             nn.LayerNorm(300),
             nn.LeakyReLU(0.2, inplace=True),
