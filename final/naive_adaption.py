@@ -74,7 +74,6 @@ parser.add_argument('--lr_encoder', type=float, default=1e-3, help='learning rat
 parser.add_argument('--sclass', type=float, default=0.7, help='source-domain classification loss weight')
 parser.add_argument('--target_lbl_percentage', type=float, default=0.7, help='percentage of which target data has label')
 parser.add_argument('--source_lbl_percentage', type=float, default=0.7, help='percentage of which source data has label')
-parser.add_argument('--num_per_class', type=int, default=-1, help='number of sample per class when training local discriminator')
 parser.add_argument('--seed', type=int, default=0, help='manual seed')
 parser.add_argument('--save_path', type=str, help='where to store data')
 parser.add_argument('--model_save_period', type=int, default=2, help='period in which the model is saved')
@@ -83,9 +82,6 @@ args = parser.parse_args()
 
 assert args.task in ['3Av2', '3E']
 num_class = 50 if args.task == "3Av2" else 65
-
-if args.num_per_class == -1:
-    args.num_per_class = math.ceil(args.batch_size / num_class)
 
 model_sub_folder = 'result/naive_adaption/lbl_percent_%f/task_%s_slp_%f_tlp_%f_sclass_%f'%(args.target_lbl_percentage, args.task, args.source_lbl_percentage, args.target_lbl_percentage, args.sclass)
 save_folder = os.path.join(args.save_path, model_sub_folder)

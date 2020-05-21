@@ -74,7 +74,6 @@ parser.add_argument('--epochs', type=int, default=50, help='number of epochs')
 parser.add_argument('--lr_FNN', type=float, default=1e-3, help='learning rate for classification')
 parser.add_argument('--lr_encoder', type=float, default=1e-3, help='learning rate for encoder')
 parser.add_argument('--lbl_percentage', type=float, default=0.7, help='percentage of which source data has label')
-parser.add_argument('--num_per_class', type=int, default=-1, help='number of sample per class when training local discriminator')
 parser.add_argument('--seed', type=int, default=0, help='manual seed')
 parser.add_argument('--save_path', type=str, required=True, help='where to store data')
 parser.add_argument('--model_save_period', type=int, default=2, help='period in which the model is saved')
@@ -86,9 +85,6 @@ assert args.domain in ['source', 'target']
 num_class = 50 if args.task == "3Av2" else 65
 device = torch.device('cuda:{}'.format(args.gpu_num) if torch.cuda.is_available() else 'cpu')
 print(device)
-
-if args.num_per_class == -1:
-    args.num_per_class = math.ceil(args.batch_size / num_class)
     
 model_sub_folder = 'result/baseline/task_%s_lbl_percentage_%f'%(args.task, args.lbl_percentage)
 save_folder = os.path.join(args.save_path, model_sub_folder)
