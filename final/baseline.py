@@ -76,7 +76,7 @@ parser.add_argument('--lr_encoder', type=float, default=1e-3, help='learning rat
 parser.add_argument('--lbl_percentage', type=float, default=0.7, help='percentage of which source data has label')
 parser.add_argument('--seed', type=int, default=0, help='manual seed')
 parser.add_argument('--save_path', type=str, required=True, help='where to store data')
-parser.add_argument('--model_save_period', type=int, default=2, help='period in which the model is saved')
+parser.add_argument('--model_save_period', type=int, default=2, help='period of which the model is saved')
 
 args = parser.parse_args()
 
