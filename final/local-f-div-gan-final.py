@@ -39,7 +39,7 @@ from torch.autograd import Variable
 
 
 
-# Parameters
+##################### Parameters ###########################
 parser = argparse.ArgumentParser(description='JDA Time series adaptation')
 parser.add_argument("--data_path", type=str, default="../data_unzip/", help="dataset path")
 parser.add_argument("--task", type=str, default='3E', help='3A or 3E')
@@ -63,105 +63,12 @@ parser.add_argument('--start_epoch', type=int, default=-1, help='start epoch')
 parser.add_argument('--end_epoch', type=int, default=-1, help='end epoch')
 parser.add_argument('--naive_adaptation', type=bool, default=False, help='Whether to calculate the naive adaptation KL; set False if want to estimate KL for GAN')
 
-
 args = parser.parse_args()
 
-device = torch.device('cuda:{}'.format(args.gpu_num) if torch.cuda.is_available() else 'cpu')
-
-# seed
-torch.manual_seed(args.seed)
-torch.cuda.manual_seed(args.seed)
-np.random.seed(args.seed)
-cudnn.deterministic = True
-torch.backends.cudnn.deterministic = True
+#################### END of Parameters loading ############
 
 
-args.task = '3Av2' if args.task == '3A' else '3E'
-num_class = 50 if args.task == "3Av2" else 65
-device = torch.device('cuda:{}'.format(args.gpu_num) if torch.cuda.is_available() else 'cpu')
-
-if args.num_per_class == -1:
-    args.num_per_class = math.ceil(args.batch_size / num_class)
-
-
-source_acc_label_ = np.load(os.path.join(args.model_path, 'source_acc_label_.npy'))
-
-start_epoch = args.start_epoch
-end_epoch = args.end_epoch
-
-if args.start_epoch == -1:
-    start_epoch = 3
-if args.end_epoch == -1:
-    end_epoch = source_acc_label_.shape[0]
-
-assert start_epoch < end_epoch
-
-
-
-model_sub_folder = '/local-f-gan-test/'+args.model_name
-model_sub_folder += '_JS'
-if args.classifier: model_sub_folder += '_classifier'
-if args.start_epoch != -1 or args.end_epoch != -1:
-    model_sub_folder += '_s{}_e{}'.format(start_epoch, end_epoch)
-
-model_sub_folder += '/'
-save_folder = os.path.join(args.save_path+model_sub_folder)
-
-if not os.path.exists(save_folder):
-    os.makedirs(save_folder)
-
-
-logger = logging.getLogger()
-logger.setLevel(logging.INFO)
-
-if os.path.isfile(args.save_path+model_sub_folder+ '/logfile.log'):
-    os.remove(args.save_path+model_sub_folder+ '/logfile.log')
-
-file_log_handler = logging.FileHandler(args.save_path+model_sub_folder+ '/logfile.log')
-logger.addHandler(file_log_handler)
-
-stdout_log_handler = logging.StreamHandler(sys.stdout)
-logger.addHandler(stdout_log_handler)
-
-attrs = vars(args)
-for item in attrs.items():
-    logger.info("%s: %s"%item)
-
-logger.info("Saved in {}".format(save_folder))
-
-
-labeled_target_x_filename = '/processed_file_not_one_hot_%s_%1.1f_target_known_label_x.npy'%(args.task, args.target_lbl_percentage)
-labeled_target_y_filename = '/processed_file_not_one_hot_%s_%1.1f_target_known_label_y.npy'%(args.task, args.target_lbl_percentage)
-unlabeled_target_x_filename = '/processed_file_not_one_hot_%s_%1.1f_target_unknown_label_x.npy'%(args.task, args.target_lbl_percentage)
-unlabeled_target_y_filename = '/processed_file_not_one_hot_%s_%1.1f_target_unknown_label_y.npy'%(args.task, args.target_lbl_percentage)
-labeled_target_x = np.load(args.data_path+labeled_target_x_filename)
-labeled_target_y = np.load(args.data_path+labeled_target_y_filename)
-unlabeled_target_x = np.load(args.data_path+unlabeled_target_x_filename)
-unlabeled_target_y = np.load(args.data_path+unlabeled_target_y_filename)
-labeled_target_dataset = SingleDataset(labeled_target_x, labeled_target_y)
-unlabled_target_dataset = SingleDataset(unlabeled_target_x, unlabeled_target_y)
-labeled_target_dataloader = DataLoader(labeled_target_dataset, batch_size=args.batch_size, shuffle=True, pin_memory=True, num_workers=4)
-unlabeled_target_dataloader = DataLoader(unlabled_target_dataset, batch_size=args.batch_size, shuffle=False, pin_memory=True, num_workers=4)
-
-labeled_source_x_filename = '/processed_file_not_one_hot_%s_%1.1f_source_known_label_x.npy'%(args.task, args.source_lbl_percentage)
-labeled_source_y_filename = '/processed_file_not_one_hot_%s_%1.1f_source_known_label_y.npy'%(args.task, args.source_lbl_percentage)
-unlabeled_source_x_filename = '/processed_file_not_one_hot_%s_%1.1f_source_unknown_label_x.npy'%(args.task, args.source_lbl_percentage)
-unlabeled_source_y_filename = '/processed_file_not_one_hot_%s_%1.1f_source_unknown_label_y.npy'%(args.task, args.source_lbl_percentage)
-labeled_source_x = np.load(args.data_path+labeled_source_x_filename)
-labeled_source_y = np.load(args.data_path+labeled_source_y_filename)
-unlabeled_source_x = np.load(args.data_path+unlabeled_source_x_filename)
-unlabeled_source_y = np.load(args.data_path+unlabeled_source_y_filename)
-labeled_source_dataset = SingleDataset(labeled_source_x, labeled_source_y)
-unlabled_source_dataset = SingleDataset(unlabeled_source_x, unlabeled_source_y)
-labeled_source_dataloader = DataLoader(labeled_source_dataset, batch_size=args.batch_size, shuffle=True, pin_memory=True, num_workers=4)
-unlabeled_source_dataloader = DataLoader(unlabled_source_dataset, batch_size=args.batch_size, shuffle=False, pin_memory=True, num_workers=4)
-
-
-# # Weight initialize
-
-# In[10]:
-
-
+################ Definition ###############################
 def weights_init(m):
     if type(m) == nn.Linear:
         torch.nn.init.xavier_uniform_(m.weight)
@@ -191,17 +98,9 @@ def log_mean_exp(x, device):
     stable_x = x - max_score
     return max_score - batch_size.log() + stable_x.exp().sum(dim=0).log()
 
-a = torch.rand([100,1]).to(device)
-assert torch.all(log_mean_exp(a, device) - a.exp().mean(dim=0).log() < 1e-6)
-
-
-# In[276]:
-
 
 def KLDiv(g_x_source, g_x_target, device):
     return g_x_source.mean(dim=0) - log_mean_exp(g_x_target, device)
-
-
 
 
 def JSDiv(g_x_source, g_x_target, mask_source, mask_target, device):
@@ -268,11 +167,104 @@ def get_source_embedding(labeled_source_dataloader, encoder, encoder_MLP, source
             source_x_labeled_embedding = torch.cat([source_x_labeled_embedding, source_x_embedding])
             source_y_labeled = torch.cat([source_y_labeled, source_y])
         return source_x_labeled_embedding, source_y_labeled
+
 ################################### Definition END #########################################
 
 device = torch.device('cuda:{}'.format(args.gpu_num) if torch.cuda.is_available() else 'cpu')
+
+# seed
+torch.manual_seed(args.seed)
+torch.cuda.manual_seed(args.seed)
+np.random.seed(args.seed)
+cudnn.deterministic = True
+torch.backends.cudnn.deterministic = True
+
+
+args.task = '3Av2' if args.task == '3A' else '3E'
+num_class = 50 if args.task == "3Av2" else 65
+device = torch.device('cuda:{}'.format(args.gpu_num) if torch.cuda.is_available() else 'cpu')
+
+if args.num_per_class == -1:
+    args.num_per_class = math.ceil(args.batch_size / num_class)
+
+
+source_acc_label_ = np.load(os.path.join(args.model_path, 'source_acc_label_.npy'))
+
+start_epoch = args.start_epoch
+end_epoch = args.end_epoch
+
+if args.start_epoch == -1:
+    start_epoch = 3
+if args.end_epoch == -1:
+    end_epoch = source_acc_label_.shape[0]
+
+assert start_epoch < end_epoch
+
+
+
+model_sub_folder = '/local-f-gan-test/'+args.model_name
+model_sub_folder += '_JS'
+if args.classifier: model_sub_folder += '_classifier'
+if args.start_epoch != -1 or args.end_epoch != -1:
+    model_sub_folder += '_s{}_e{}'.format(start_epoch, end_epoch)
+
+model_sub_folder += '/'
+save_folder = os.path.join(args.save_path+model_sub_folder)
+
+if not os.path.exists(save_folder):
+    os.makedirs(save_folder)
+
+
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+
+if os.path.isfile(args.save_path+model_sub_folder+ '/logfile.log'):
+    os.remove(args.save_path+model_sub_folder+ '/logfile.log')
+
+file_log_handler = logging.FileHandler(args.save_path+model_sub_folder+ '/logfile.log')
+logger.addHandler(file_log_handler)
+
+stdout_log_handler = logging.StreamHandler(sys.stdout)
+logger.addHandler(stdout_log_handler)
+
+attrs = vars(args)
+for item in attrs.items():
+    logger.info("%s: %s"%item)
+
+logger.info("Saved in {}".format(save_folder))
+
+
+################# Load data #################################
+labeled_target_x_filename = '/processed_file_not_one_hot_%s_%1.1f_target_known_label_x.npy'%(args.task, args.target_lbl_percentage)
+labeled_target_y_filename = '/processed_file_not_one_hot_%s_%1.1f_target_known_label_y.npy'%(args.task, args.target_lbl_percentage)
+unlabeled_target_x_filename = '/processed_file_not_one_hot_%s_%1.1f_target_unknown_label_x.npy'%(args.task, args.target_lbl_percentage)
+unlabeled_target_y_filename = '/processed_file_not_one_hot_%s_%1.1f_target_unknown_label_y.npy'%(args.task, args.target_lbl_percentage)
+labeled_target_x = np.load(args.data_path+labeled_target_x_filename)
+labeled_target_y = np.load(args.data_path+labeled_target_y_filename)
+unlabeled_target_x = np.load(args.data_path+unlabeled_target_x_filename)
+unlabeled_target_y = np.load(args.data_path+unlabeled_target_y_filename)
+labeled_target_dataset = SingleDataset(labeled_target_x, labeled_target_y)
+unlabled_target_dataset = SingleDataset(unlabeled_target_x, unlabeled_target_y)
+labeled_target_dataloader = DataLoader(labeled_target_dataset, batch_size=args.batch_size, shuffle=True, pin_memory=True, num_workers=4)
+unlabeled_target_dataloader = DataLoader(unlabled_target_dataset, batch_size=args.batch_size, shuffle=False, pin_memory=True, num_workers=4)
+
+labeled_source_x_filename = '/processed_file_not_one_hot_%s_%1.1f_source_known_label_x.npy'%(args.task, args.source_lbl_percentage)
+labeled_source_y_filename = '/processed_file_not_one_hot_%s_%1.1f_source_known_label_y.npy'%(args.task, args.source_lbl_percentage)
+unlabeled_source_x_filename = '/processed_file_not_one_hot_%s_%1.1f_source_unknown_label_x.npy'%(args.task, args.source_lbl_percentage)
+unlabeled_source_y_filename = '/processed_file_not_one_hot_%s_%1.1f_source_unknown_label_y.npy'%(args.task, args.source_lbl_percentage)
+labeled_source_x = np.load(args.data_path+labeled_source_x_filename)
+labeled_source_y = np.load(args.data_path+labeled_source_y_filename)
+unlabeled_source_x = np.load(args.data_path+unlabeled_source_x_filename)
+unlabeled_source_y = np.load(args.data_path+unlabeled_source_y_filename)
+labeled_source_dataset = SingleDataset(labeled_source_x, labeled_source_y)
+unlabled_source_dataset = SingleDataset(unlabeled_source_x, unlabeled_source_y)
+labeled_source_dataloader = DataLoader(labeled_source_dataset, batch_size=args.batch_size, shuffle=True, pin_memory=True, num_workers=4)
+unlabeled_source_dataloader = DataLoader(unlabled_source_dataset, batch_size=args.batch_size, shuffle=False, pin_memory=True, num_workers=4)
+device = torch.device('cuda:{}'.format(args.gpu_num) if torch.cuda.is_available() else 'cpu')
 print(device)
 
+
+############# Define models #################################
 seq_len = 10
 feature_dim = 160
 encoder = ComplexTransformer(layers=3,
@@ -284,6 +276,7 @@ encoder = ComplexTransformer(layers=3,
                                out_dropout=0.2,
                                leaky_slope=0.2).to(device)
 encoder_MLP = FNNSeparated(d_in=64 * 2 * 1, d_h1=64*4, d_h2=64*2, dp=0.2).to(device)
+
 if not args.naive_adaptation:
     GNet = Generator(dim=64*2).to(device)
 else:
@@ -297,12 +290,14 @@ if args.classifier:
     CNet = FNNLinear(d_h2=64*2, d_out=num_class).to(device)
     criterion_classifier = nn.CrossEntropyLoss().to(device)
 
+############ Initialize Neural Network Weights #############
 encoder.apply(weights_init)
 encoder_MLP.apply(weights_init)
 if not args.naive_adaptation:
     GNet.apply(weights_init)
 
 
+############ Training gFunction for each epochs ############
 logger.info('Started loading')
 source_acc_label_ = np.load(os.path.join(args.model_path, 'source_acc_label_.npy'))
 source_acc_unlabel_ = np.load(os.path.join(args.model_path, 'source_acc_unlabel_.npy'))
