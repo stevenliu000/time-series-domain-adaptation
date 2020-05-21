@@ -165,7 +165,7 @@ for epoch in range(args.epochs):
     if epoch % args.model_save_period == 0:
         torch.save(encoder.state_dict(), os.path.join(save_folder, 'encoder_%i.t7'%(epoch+1)))
         torch.save(encoder_MLP.state_dict(), os.path.join(save_folder, 'encoder_MLP_%i.t7'%(epoch+1)))
-        torch.save(CNet.state_dict(), os.path.join(save_folder, '/CNet_%i.t7'%(epoch+1)))
+        torch.save(CNet.state_dict(), os.path.join(save_folder, 'CNet_%i.t7'%(epoch+1)))
 
     logger.info('Epochs %i: source labeled acc: %f; source unlabeled acc: %f'%(epoch+1, acc_label, acc_unlabel))
     np.save(os.path.join(save_folder, 'acc_label_.npy'), acc_label_)
