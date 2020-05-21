@@ -230,9 +230,9 @@ def train_local_GAN(CNet, encoder, encoder_MLP, GNet, DNet_local, optimizerCNet,
 #                                 parameters                                  #
 ###############################################################################
 parser = argparse.ArgumentParser(description='GAN')
-parser.add_argument("--data_path", type=str, required=True, help='dataset path')
+parser.add_argument("--data_path", type=str, required=True, help='dataset path, root level of data path folder which contains processed_file_not_one_hot_3E_0.7_target_known_label_x.npy for example.')
 parser.add_argument("--task", type=str, required=True, help='3Av2 or 3E')
-parser.add_argument('--batch_size', type=int, default=2000, help='batch size')
+parser.add_argument('--batch_size', type=int, default=256, help='batch size')
 parser.add_argument('--gpu_num', type=int, default=0, help='gpu number')
 parser.add_argument('--epochs', type=int, default=2000, help='number of epochs')
 parser.add_argument('--lr_gan', type=float, default=1e-3, help='learning rate for GAN')
@@ -248,7 +248,7 @@ parser.add_argument('--model_save_period', type=int, default=2, help='period in 
 parser.add_argument('--gpweight', type=float, default=10, help='gradient penalty for WGAN-gp')
 parser.add_argument('--sclass', type=float, default=0.7, help='source domain classification weight on loss function')
 parser.add_argument('--dgan', type=float, default=0.01, help='GAN weight on loss function')
-parser.add_argument('--isglobal', type=int, default=0, help='if using global GAN')
+parser.add_argument('--isglobal', type=int, default=0, help='Control if using global GAN; default is 0 where run conditional GAN only. set to 1 if need to run global GAN only.')
 parser.add_argument('--pseudo', type=int, default=0, help='if using pseudo label for target domain')
 
 args = parser.parse_args()

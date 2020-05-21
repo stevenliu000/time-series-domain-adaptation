@@ -1,0 +1,1 @@
+python gan_global_gp.py --data_path ../data_unzip/ --save_path ../train_related/ --epochs 2000 --n_critic 0.08 --num_per_class 3 --gpweight 5 --pure_random 1 --isglobal 1 --batch_size 256
