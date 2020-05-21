@@ -171,10 +171,10 @@ def train_local_GAN(CNet, encoder, encoder_MLP, GNet, DNet_local, optimizerCNet,
     GNet.train()
     DNet_local.train()
     for batch_id, ((source_x, source_y), (target_x, target_y, target_weight)) in tqdm(enumerate(join_dataloader), total=join_dataloader.num_batch):
-        source_x = source_x.to(device)
-        target_x = target_x.to(device)
-        source_y = source_y.to(device)
-        target_y = target_y.to(device)
+        source_x = source_x.to(device).float()
+        target_x = target_x.to(device).float()
+        source_y = source_y.to(device).long()
+        target_y = target_y.to(device).long()
         target_weight = target_weight.to(device)
 
         source_mask = torch.zeros(source_x.size(0), num_class).to(device).scatter_(1, source_y.unsqueeze(-1), 1)
