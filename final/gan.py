@@ -408,26 +408,26 @@ for epoch in range(args.epochs):
         logger.info('Epoch: %i, Local Discrimator Updates: Loss D_local: %f, Loss G: %f; update_ratio: %i'%(epoch+1, total_error_D_local, total_error_G, args.n_critic))
 
     # save
-    np.save(os.path.join(args.save_path, model_sub_folder, 'target_acc_label_.npy'),target_acc_label_)
-    np.save(os.path.join(args.save_path, model_sub_folder, 'source_acc_.npy'),source_acc_)
-    np.save(os.path.join(args.save_path, model_sub_folder, 'target_acc_unlabel_.npy'),target_acc_unlabel_)
-    np.save(os.path.join(args.save_path, model_sub_folder, 'source_acc_unlabel_.npy'),source_acc_unlabel_)
+    np.save(os.path.join(save_folder, 'target_acc_label_.npy'),target_acc_label_)
+    np.save(os.path.join(save_folder, 'source_acc_.npy'),source_acc_)
+    np.save(os.path.join(save_folder,'target_acc_unlabel_.npy'),target_acc_unlabel_)
+    np.save(os.path.join(save_folder, 'source_acc_unlabel_.npy'),source_acc_unlabel_)
     if args.isglobal:
-        np.save(os.path.join(args.save_path, model_sub_folder, 'error_D_global.npy'),error_D_global)
-        np.save(os.path.join(args.save_path, model_sub_folder, 'error_G_global.npy'),error_G_global)
+        np.save(os.path.join(save_folder, 'error_D_global.npy'),error_D_global)
+        np.save(os.path.join(save_folder, 'error_G_global.npy'),error_G_global)
     else:
-        np.save(os.path.join(args.save_path, model_sub_folder, 'error_D_local.npy'),error_D_local)
-        np.save(os.path.join(args.save_path, model_sub_folder, 'error_G_local.npy'),error_G_local)
+        np.save(os.path.join(save_folder, 'error_D_local.npy'),error_D_local)
+        np.save(os.path.join(save_folder, 'error_G_local.npy'),error_G_local)
 
     if epoch % args.model_save_period == 0:
-        torch.save(CNet.state_dict(), os.path.join(args.save_path,model_sub_folder, 'CNet_%i.t7'%(epoch+1)))
-        torch.save(GNet.state_dict(), os.path.join(args.save_path,model_sub_folder, 'GNet_%i.t7'%(epoch+1)))
-        torch.save(encoder.state_dict(), os.path.join(args.save_path,model_sub_folder,'encoder_%i.t7'%(epoch+1)))
-        torch.save(encoder_MLP.state_dict(), os.path.join(args.save_path,model_sub_folder,'encoder_MLP_%i.t7'%(epoch+1)))
+        torch.save(CNet.state_dict(), os.path.join(save_folder, 'CNet_%i.t7'%(epoch+1)))
+        torch.save(GNet.state_dict(), os.path.join(save_folder, 'GNet_%i.t7'%(epoch+1)))
+        torch.save(encoder.state_dict(), os.path.join(save_folder, 'encoder_%i.t7'%(epoch+1)))
+        torch.save(encoder_MLP.state_dict(), os.path.join(save_folder,' encoder_MLP_%i.t7'%(epoch+1)))
         if args.isglobal:
-            torch.save(DNet_global.state_dict(),  os.path.join(args.save_path,model_sub_folder,'DNet_global_%i.t7'%(epoch+1)))
+            torch.save(DNet_global.state_dict(),  os.path.join(save_folder, 'DNet_global_%i.t7'%(epoch+1)))
         else:
-            torch.save(DNet_local.state_dict(), os.path.join(args.save_path,model_sub_folder, 'DNet_local_%i.t7'%(epoch+1)))
+            torch.save(DNet_local.state_dict(), os.path.join(save_folder, 'DNet_local_%i.t7'%(epoch+1)))
 
 
 

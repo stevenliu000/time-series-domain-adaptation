@@ -281,16 +281,16 @@ for epoch in range(start_epoch, end_epoch, args.intervals*args.model_save_period
     logger.info(log_string)
     logger.info("-----------------------------------------")
 
-    np.save(args.save_path+model_sub_folder+'/epochs.npy', epochs)
-    np.save(args.save_path+model_sub_folder+'/source_acc_label.npy', source_acc_label)
-    np.save(args.save_path+model_sub_folder+'/source_acc_unlabel.npy', source_acc_unlabel)
-    np.save(args.save_path+model_sub_folder+'/target_acc_label.npy', target_acc_label)
-    np.save(args.save_path+model_sub_folder+'/target_acc_unlabel.npy', target_acc_unlabel)
-    np.save(args.save_path+model_sub_folder+'/labeled_KL_.npy', labeled_KL_)
-    np.save(args.save_path+model_sub_folder+'/unlabeled_KL_.npy', unlabeled_KL_)
+    np.save(os.path.join(save_folder, '/epochs.npy'), epochs)
+    np.save(os.path.join(save_folder, '/source_acc_label.npy'), source_acc_label)
+    np.save(os.path.join(save_folder, '/source_acc_unlabel.npy'), source_acc_unlabel)
+    np.save(os.path.join(save_folder, '/target_acc_label.npy'), target_acc_label)
+    np.save(os.path.join(save_folder, '/target_acc_unlabel.npy'), target_acc_unlabel)
+    np.save(os.path.join(save_folder, '/labeled_KL_.npy'), labeled_KL_)
+    np.save(os.path.join(save_folder, '/unlabeled_KL_.npy'), unlabeled_KL_)
 
     if args.classifier:
-        np.save(args.save_path+model_sub_folder+'/acc_source_unlabeled_classifier_.npy', acc_source_unlabeled_classifier_)
-        np.save(args.save_path+model_sub_folder+'/acc_target_unlabeled_classifier_.npy', acc_target_unlabeled_classifier_)
+        np.save(os.path.join(save_folder, '/acc_source_unlabeled_classifier_.npy'), acc_source_unlabeled_classifier_)
+        np.save(os.path.join(save_folder, '/acc_target_unlabeled_classifier_.npy'), acc_target_unlabeled_classifier_)
 
 
