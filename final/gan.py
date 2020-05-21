@@ -233,6 +233,7 @@ parser = argparse.ArgumentParser(description='GAN')
 parser.add_argument("--data_path", type=str, required=True, help='dataset path')
 parser.add_argument("--task", type=str, required=True, help='3Av2 or 3E')
 parser.add_argument('--batch_size', type=int, default=2000, help='batch size')
+parser.add_argument('--gpu_num', type=int, default=0, help='gpu number')
 parser.add_argument('--epochs', type=int, default=2000, help='number of epochs')
 parser.add_argument('--lr_gan', type=float, default=1e-3, help='learning rate for GAN')
 parser.add_argument('--lr_FNN', type=float, default=1e-3, help='learning rate for classification')
@@ -252,7 +253,7 @@ parser.add_argument('--isglobal', type=int, default=0, help='if using global GAN
 args = parser.parse_args()
 args.isglobal = True if args.isglobal == 1 else False
 
-device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+device = torch.device('cuda:{}'.format(args.gpu_num) if torch.cuda.is_available() else 'cpu')
 print(device)
 
 assert args.task in ['3Av2', '3E']

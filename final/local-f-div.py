@@ -48,7 +48,7 @@ assert args.task in ['3Av2', '3E']
 assert args.what_model in ['naive', "GAN"]
 num_class = 50 if args.task == "3Av2" else 65
 device = torch.device('cuda:{}'.format(args.gpu_num) if torch.cuda.is_available() else 'cpu')
-
+print(device)
 source_acc_label_ = np.load(os.path.join(args.model_path, 'source_acc_label_.npy'))
 
 start_epoch = args.start_epoch
