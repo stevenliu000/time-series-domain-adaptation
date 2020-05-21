@@ -52,7 +52,6 @@ def _gradient_penalty(real_data, generated_data, DNet, mask, num_class, device, 
         gradients_norm = torch.sqrt(torch.sum(gradients ** 2, dim=1) + 1e-12)
     else:
         gradients_norm = torch.sqrt(torch.sum(gradients ** 2, dim=1, keepdim=True) + 1e-12)
-
         gradients_norm = gradients_norm * mask
     
     # Return gradient penalty
@@ -127,17 +126,17 @@ def train_global_GAN(CNet, encoder, encoder_MLP, GNet, DNet_global, optimizerCNe
     for batch_id, ((source_x, source_y), (target_x, target_y)) in tqdm(enumerate(join_dataloader), total=len(join_dataloader)):
         optimizerD_global.zero_grad()
         optimizerG.zero_grad()
+
         source_data = source_x.to(device).float()
         source_embedding = encoder_inference(encoder, encoder_MLP, source_data)
         target_data = target_x.to(device).float()
         target_embedding = encoder_inference(encoder, encoder_MLP, target_data)
         fake_source_embedding = GNet(target_embedding)
-        """Update G Network"""
+        """Update G Network"""     
 
         # adversarial loss
         loss_G = -DNet_global(fake_source_embedding,1).mean()
-        total_error_G += loss_G.item() * args.dgan
-
+        total_error_G += loss_G.item() * args.dglobal
         loss_G.backward()
         optimizerG.step()
 
@@ -154,7 +153,7 @@ def train_global_GAN(CNet, encoder, encoder_MLP, GNet, DNet_global, optimizerCNe
             gradient_penalty = _gradient_penalty(source_embedding, fake_source_embedding, DNet_global, 1, num_class, device, args)
 
             loss_D_global = loss_D_global + gradient_penalty
-            loss_D_global = loss_D_global * args.dgan
+            loss_D_global = loss_D_global * args.dglobal
             total_error_D_global += loss_D_global.item()
 
             loss_D_global.backward()
