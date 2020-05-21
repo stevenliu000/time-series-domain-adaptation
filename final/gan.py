@@ -93,7 +93,7 @@ def train_classification(if_target, CNet, encoder, encoder_MLP, GNet, optimizerC
     return acc
 
 def eval_classification(if_target, CNet, encoder, encoder_MLP, GNet, unlabeled_dataloader, args):
-    correct_target = 0.0
+    acc_unlabel = 0.0
     num_datas = 0.0
     pesudo_y = []
     CNet.eval()
