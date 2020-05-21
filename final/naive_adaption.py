@@ -175,14 +175,14 @@ for epoch in range(args.epochs):
     target_acc_unlabel_.append(target_acc_unlabel)
 
     if epoch % args.model_save_period == 0:
-        torch.save(encoder.state_dict(), args.save_path+model_sub_folder+ 'encoder_%i.t7'%(epoch+1))
-        torch.save(encoder_MLP.state_dict(), args.save_path+model_sub_folder+ 'encoder_MLP_%i.t7'%(epoch+1))
-        torch.save(CNet.state_dict(), args.save_path+model_sub_folder+ 'CNet_%i.t7'%(epoch+1))
+        torch.save(encoder.state_dict(), os.path.join(save_folder, 'encoder_%i.t7'%(epoch+1)))
+        torch.save(encoder_MLP.state_dict(), os.path.join(save_folder, 'encoder_MLP_%i.t7'%(epoch+1)))
+        torch.save(CNet.state_dict(), os.path.join(save_folder, 'CNet_%i.t7'%(epoch+1)))
 
     logger.info('Epochs %i: src labeled acc: %f; src unlabeled acc: %f; tgt labeled acc: %f; tgt unlabeled acc: %f'%(epoch+1, source_acc_label, source_acc_unlabel, target_acc_label, target_acc_unlabel))
-    np.save(args.save_path+model_sub_folder+'target_acc_label_.npy', target_acc_label_)
-    np.save(args.save_path+model_sub_folder+'target_acc_unlabel_.npy', target_acc_unlabel_)
-    np.save(args.save_path+model_sub_folder+'source_acc_label_.npy', source_acc_label_)
-    np.save(args.save_path+model_sub_folder+'source_acc_unlabel_.npy', source_acc_unlabel_)
+    np.save(os.path.join(save_folder, 'target_acc_label_.npy'), target_acc_label_)
+    np.save(os.path.join(save_folder, 'target_acc_unlabel_.npy'), target_acc_unlabel_)
+    np.save(os.path.join(save_folder, 'source_acc_label_.npy'), source_acc_label_)
+    np.save(os.path.join(save_folder, 'source_acc_unlabel_.npy'), source_acc_unlabel_)
 
 
