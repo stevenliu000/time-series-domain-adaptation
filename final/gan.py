@@ -408,7 +408,7 @@ for epoch in range(args.epochs):
         total_error_D_local, total_error_G = train_local_GAN(CNet, encoder, encoder_MLP, GNet, DNet_local, optimizerCNet, optimizerEncoder, optimizerEncoderMLP, optimizerG, optimizerD_local, classwise_dataloader, args)
 
         error_D_local.append(total_error_D_local)
-        error_G_global.append(total_error_G)
+        error_G_local.append(total_error_G)
 
         logger.info('Epoch: %i, Local Discrimator Updates: Loss D_local: %f, Loss G: %f; update_ratio: %i'%(epoch+1, total_error_D_local, total_error_G, args.n_critic))
 
