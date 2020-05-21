@@ -382,7 +382,7 @@ for epoch in range(args.epochs):
         source_x_embedding = encoder_inference(encoder, encoder_MLP, source_x)
         pred = CNet(source_x_embedding)
         source_acc_label += (pred.argmax(-1) == source_y).sum().item()
-        loss = (criterion_classifier(pred, source_y) * args.sclass
+        loss = (criterion_classifier(pred, source_y)) * args.sclass
         loss.backward()
         optimizerCNet.step()
         optimizerEncoderMLP.step()
