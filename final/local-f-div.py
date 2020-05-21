@@ -22,7 +22,7 @@ from models.FDIV import *
 ###############################################################################
 parser = argparse.ArgumentParser(description='f-div')
 parser.add_argument("--data_path", type=str, required=True, help="dataset path")
-parser.add_argument("--data_path", type=str, required=True, help="dataset path")
+parser.add_argument("--task", type=str, required=True, help="chose '3E' or '3Av2'")
 parser.add_argument('--gpu_num', type=int, default=0, help='gpu number')
 parser.add_argument('--batch_size', type=int, default=256, help='batch size')
 parser.add_argument('--lr', type=float, default=1e-3, help='learning rate')
@@ -167,7 +167,7 @@ def get_KL(source_x_embedding, target_x_embedding, mask_source, mask_target, mod
 
     with torch.no_grad():
         model.eval()
-        source_x_g = model(source_x_g)
+        source_x_g = model(source_x_embedding)
         KL = source_x_g.mean().item()
 
     return KL
@@ -206,12 +206,12 @@ for epoch in range(start_epoch, end_epoch, args.intervals*args.model_save_period
 
     # load weight
     encoder.load_state_dict(torch.load(os.path.join(args.model_path, 'encoder_%i.t7'%epoch)))
-    encoder_MLP.load_state_dict(torch.load(os.path.join(args.model_path, 'encoder_MLP%i.t7'%epoch)))
+    encoder_MLP.load_state_dict(torch.load(os.path.join(args.model_path, 'encoder_MLP_%i.t7'%epoch)))
     if args.what_model == "GAN": GNet.load_state_dict(torch.load(os.path.join(args.model_path, 'GNet_%i.t7'%epoch)))
 
     # get source/target embedding
     source_x_unlabeled_embedding, source_y_unlabeled = get_embedding(encoder, encoder_MLP, unlabeled_source_dataloader, GNet=GNet)
-    source_x_labeled_embedding, source_y_labeled = get_embedding(encoder, encoder_MLP, labeled_source_dataloader, GNet=GNet)    
+    source_x_labeled_embedding, source_y_labeled = get_embedding(encoder, encoder_MLP, labeled_source_dataloader, GNet=GNet)
     target_x_unlabeled_embedding, target_y_unlabeled = get_embedding(encoder, encoder_MLP, unlabeled_target_dataloader, GNet=GNet)
     target_x_labeled_embedding, target_y_labeled = get_embedding(encoder, encoder_MLP, labeled_target_dataloader, GNet=GNet)
 
@@ -276,21 +276,21 @@ for epoch in range(start_epoch, end_epoch, args.intervals*args.model_save_period
 
     logger.info("-----------------------------------------")
     log_string = "Epoch %i: "%epoch
-    if args.KL: log_string += "labeled KL: %f, unlabeled KL: %f; "%(KL_labeled_eval, KL_unlabeled_eval)
+    log_string += "labeled KL: %f, unlabeled KL: %f; "%(KL_labeled_eval, KL_unlabeled_eval)
     if args.classifier: log_string += "src unlbl acc: %f, tgt unlbl acc: %f; "%(acc_source_unlabeled_classifier, acc_target_unlabeled_classifier)
     logger.info(log_string)
     logger.info("-----------------------------------------")
 
-    np.save(os.path.join(save_folder, '/epochs.npy'), epochs)
-    np.save(os.path.join(save_folder, '/source_acc_label.npy'), source_acc_label)
-    np.save(os.path.join(save_folder, '/source_acc_unlabel.npy'), source_acc_unlabel)
-    np.save(os.path.join(save_folder, '/target_acc_label.npy'), target_acc_label)
-    np.save(os.path.join(save_folder, '/target_acc_unlabel.npy'), target_acc_unlabel)
-    np.save(os.path.join(save_folder, '/labeled_KL_.npy'), labeled_KL_)
-    np.save(os.path.join(save_folder, '/unlabeled_KL_.npy'), unlabeled_KL_)
+    np.save(os.path.join(save_folder, 'epochs.npy'), epochs)
+    np.save(os.path.join(save_folder, 'source_acc_label.npy'), source_acc_label)
+    np.save(os.path.join(save_folder, 'source_acc_unlabel.npy'), source_acc_unlabel)
+    np.save(os.path.join(save_folder, 'target_acc_label.npy'), target_acc_label)
+    np.save(os.path.join(save_folder, 'target_acc_unlabel.npy'), target_acc_unlabel)
+    np.save(os.path.join(save_folder, 'labeled_KL_.npy'), labeled_KL_)
+    np.save(os.path.join(save_folder, 'unlabeled_KL_.npy'), unlabeled_KL_)
 
     if args.classifier:
-        np.save(os.path.join(save_folder, '/acc_source_unlabeled_classifier_.npy'), acc_source_unlabeled_classifier_)
-        np.save(os.path.join(save_folder, '/acc_target_unlabeled_classifier_.npy'), acc_target_unlabeled_classifier_)
+        np.save(os.path.join(save_folder, 'acc_source_unlabeled_classifier_.npy'), acc_source_unlabeled_classifier_)
+        np.save(os.path.join(save_folder, 'acc_target_unlabeled_classifier_.npy'), acc_target_unlabeled_classifier_)
 
 

@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 class Gfunction(nn.Sequential):
     def __init__(self, num_class):
@@ -13,7 +14,7 @@ class Gfunction(nn.Sequential):
 
 
 def JSDiv(g_x_source, g_x_target, mask_source, mask_target, device):
-    # class one hot encoding mask 
+    # class one hot encoding mask
     s_score = F.softplus(-g_x_source) * mask_source # (batch_size, num_class)
     t_score = F.softplus(g_x_target) * mask_target # (batch_size, num_class)
 
