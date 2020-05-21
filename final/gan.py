@@ -250,9 +250,11 @@ parser.add_argument('--gpweight', type=float, default=10, help='gradient penalty
 parser.add_argument('--sclass', type=float, default=0.7, help='source domain classification weight on loss function')
 parser.add_argument('--dgan', type=float, default=0.01, help='GAN weight on loss function')
 parser.add_argument('--isglobal', type=int, default=0, help='if using global GAN')
+parser.add_argument('--pseudo', type=int, default=0, help='if using pseudo label for target domain')
 
 args = parser.parse_args()
 args.isglobal = True if args.isglobal == 1 else False
+args.pseudo = True if args.pseudo == 1 else False
 
 device = torch.device('cuda:{}'.format(args.gpu_num) if torch.cuda.is_available() else 'cpu')
 print(device)
@@ -308,7 +310,7 @@ target_labeled_dict = get_class_data_dict(labeled_target_x, labeled_target_y, nu
 
 label_target_len = labeled_target_x.shape[0]
 
-classwise_dataloader = ClassWiseDataLoader(label_target_len, args.batch_size, args.num_per_class, source_labeled_dict, target_labeled_dict)
+classwise_dataloader = ClassWiseDataLoader(label_target_len, args.batch_size, args.num_per_class, source_labeled_dict, target_labeled_dict, no_pesudo=not args.pseudo)
 
 ###############################################################################
 #                               Model Creation                                #
@@ -386,6 +388,9 @@ for epoch in range(args.epochs):
     target_acc_unlabel, target_pesudo_y = eval_classification(True, CNet, encoder, encoder_MLP, GNet, unlabeled_target_dataloader, args)
     pesudo_dict = get_class_data_dict(unlabeled_target_x, target_pesudo_y, num_class)
     target_acc_unlabel_.append(target_acc_unlabel)
+
+    # Note that pseudo label needed to be turn on by setting args.pesudo = False
+    classwise_dataloader.reset_pesudo_dict(pesudo_dict)
 
     logger.info('Epoch: %i, update classifier: source acc: %f; source unlbl acc: %f; target acc: %f; target unlabel acc: %f'%(epoch+1, source_acc, source_acc_unlabel, target_acc, target_acc_unlabel))
 
