@@ -13,8 +13,7 @@ from models.FNNSeparated import FNNSeparated
 from utils import *
 import argparse
 import logging
-from data_utils import SingleDataset
-
+from data_utils import SingleDataset, read_data
 
 def train_classification(ifsource, CNet, encoder, encoder_MLP, optimizerCNet, optimizerEncoder, optimizerEncoderMLP, criterion_classifier, labeled_dataloader, args):
     CNet.train()
@@ -69,6 +68,7 @@ parser.add_argument("--data_path", type=str, required=True, help="dataset path")
 parser.add_argument("--task", type=str, required=True, help='3Av2 or 3E')
 parser.add_argument('--batch_size', type=int, default=256, help='batch size')
 parser.add_argument('--epochs', type=int, default=50, help='number of epochs')
+parser.add_argument('--gpu_num', type=int, default=0, help='gpu number')
 parser.add_argument('--lr_FNN', type=float, default=1e-3, help='learning rate for classification')
 parser.add_argument('--lr_encoder', type=float, default=1e-3, help='learning rate for classification')
 parser.add_argument('--sclass', type=float, default=0.7, help='source-domain classification loss weight')
@@ -83,7 +83,6 @@ args = parser.parse_args()
 
 assert args.task in ['3Av2', '3E']
 num_class = 50 if args.task == "3Av2" else 65
-device = torch.device('cuda:{}'.format(args.gpu_num) if torch.cuda.is_available() else 'cpu')
 
 if args.num_per_class == -1:
     args.num_per_class = math.ceil(args.batch_size / num_class)

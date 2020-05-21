@@ -1,5 +1,7 @@
 import numpy as np
 import os
+import math
+import torch
 from torch.utils.data import Dataset, DataLoader
 import random
 
@@ -199,3 +201,24 @@ def get_batch_target_data_on_class(real_dict, num_per_class, pesudo_dict, unlabe
                 
 
     return np.array(batch_x), np.array(batch_y), np.array(batch_weight)
+
+class ClassWiseDataLoader(DataLoader):
+    def __init__(self, lengths, batch_size, num_per_class, source_labeled_dict, target_labeled_dict, no_pesudo=True):
+        self.len = lengths
+        self.batch_size = batch_size
+        self.num_per_class = num_per_class
+        self.num_batch = math.ceil(lengths/batch_size)
+        self.no_pesudo = no_pesudo
+        self.target_labeled_dict = target_labeled_dict
+        self.source_labeled_dict = source_labeled_dict
+        self.pesudo_dict = None
+
+    def reset_pesudo_dict(self, pesudo_dict):
+        self.pesudo_dict = pesudo_dict
+
+    def __iter__(self):
+        for i in range(self.num_batch):
+            source_x, source_y = get_batch_source_data_on_class(self.source_labeled_dict, self.num_per_class)
+            target_x, target_y, target_weight = get_batch_target_data_on_class(self.target_labeled_dict, self.num_per_class, self.pesudo_dict, no_pesudo=self.no_pesudo)
+            
+            yield (torch.tensor(source_x), torch.LongTensor(source_y)), (torch.tensor(target_x), torch.LongTensor(target_y), torch.tensor(target_weight))

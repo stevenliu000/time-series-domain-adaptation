@@ -66,6 +66,7 @@ def eval_classification(CNet, encoder, encoder_MLP, unlabeled_dataloader, args):
 ###############################################################################
 parser = argparse.ArgumentParser(description='Baseline: only train on one domain')
 parser.add_argument("--data_path", type=str, required=True, help="dataset path")
+parser.add_argument('--gpu_num', type=int, default=0, help='gpu number')
 parser.add_argument("--domain", type=str, required=True, help='source or domain')
 parser.add_argument("--task", type=str, required=True, help='3Av2 or 3E')
 parser.add_argument('--batch_size', type=int, default=256, help='batch size')
@@ -84,6 +85,7 @@ assert args.task in ['3Av2', '3E']
 assert args.domain in ['source', 'target']
 num_class = 50 if args.task == "3Av2" else 65
 device = torch.device('cuda:{}'.format(args.gpu_num) if torch.cuda.is_available() else 'cpu')
+print(device)
 
 if args.num_per_class == -1:
     args.num_per_class = math.ceil(args.batch_size / num_class)
@@ -92,9 +94,6 @@ model_sub_folder = 'result/baseline/task_%s_lbl_percentage_%f'%(args.task, args.
 save_folder = os.path.join(args.save_path, model_sub_folder)
 if not os.path.exists(save_folder):
     os.makedirs(save_folder)
-
-device = torch.device('cuda:{}'.format(args.gpu_num) if torch.cuda.is_available() else 'cpu')
-print(device)
 
 
 ###############################################################################
