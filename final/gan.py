@@ -290,9 +290,9 @@ logger = get_logger(save_folder, args)
 ###############################################################################
 labeled_target_x, labeled_target_y, unlabeled_target_x, unlabeled_target_y = read_data(args.task, 'target', args.target_lbl_percentage, args.data_path)
 labeled_target_dataset = SingleDataset(labeled_target_x, labeled_target_y)
-unlabled_target_dataset = SingleDataset(unlabeled_target_x, unlabeled_target_y)
+unlabeled_target_dataset = SingleDataset(unlabeled_target_x, unlabeled_target_y)
 labeled_target_dataloader = DataLoader(labeled_target_dataset, batch_size=args.batch_size, shuffle=True, pin_memory=True, num_workers=4)
-unlabeled_target_dataloader = DataLoader(unlabled_target_dataset, batch_size=args.batch_size, shuffle=False, pin_memory=True, num_workers=4)
+unlabeled_target_dataloader = DataLoader(unlabeled_target_dataset, batch_size=args.batch_size, shuffle=False, pin_memory=True, num_workers=4)
 
 labeled_source_x, labeled_source_y, unlabeled_source_x, unlabeled_source_y = read_data(args.task, 'source', args.source_lbl_percentage, args.data_path)
 labeled_source_dataset = SingleDataset(labeled_source_x, labeled_source_y)
@@ -373,7 +373,7 @@ for epoch in range(args.epochs):
 
     # update classifier
     # on target domain
-    target_acc = train_classification(True, CNet, encoder, encoder_MLP, GNet, optimizerCNet, optimizerEncoder, optimizerEncoderMLP, optimizerG, labeled_source_dataloader, args)
+    target_acc = train_classification(True, CNet, encoder, encoder_MLP, GNet, optimizerCNet, optimizerEncoder, optimizerEncoderMLP, optimizerG, labeled_target_dataloader, args)
     target_acc_label_.append(target_acc)
 
     # eval
