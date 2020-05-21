@@ -155,7 +155,7 @@ acc_unlabel_ = []
 logger.info('Started Training')
 for epoch in range(args.epochs):
     # update classifier
-    acc_label = (CNet, encoder, encoder_MLP, optimizerCNet, optimizerEncoder, optimizerEncoderMLP, criterion_classifier, labeled_dataloader, args)
+    acc_label = train_classification(CNet, encoder, encoder_MLP, optimizerCNet, optimizerEncoder, optimizerEncoderMLP, criterion_classifier, labeled_dataloader, args)
     acc_label_.append(acc_label)
     
     # eval    
