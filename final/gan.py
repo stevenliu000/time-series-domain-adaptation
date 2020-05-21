@@ -136,7 +136,7 @@ def train_global_GAN(CNet, encoder, encoder_MLP, GNet, DNet_global, optimizerCNe
 
         # adversarial loss
         loss_G = -DNet_global(fake_source_embedding,1).mean()
-        total_error_G += loss_G.item() * args.dglobal
+        total_error_G += loss_G.item() * args.dgan
         loss_G.backward()
         optimizerG.step()
 
@@ -153,7 +153,7 @@ def train_global_GAN(CNet, encoder, encoder_MLP, GNet, DNet_global, optimizerCNe
             gradient_penalty = _gradient_penalty(source_embedding, fake_source_embedding, DNet_global, 1, num_class, device, args)
 
             loss_D_global = loss_D_global + gradient_penalty
-            loss_D_global = loss_D_global * args.dglobal
+            loss_D_global = loss_D_global * args.dgan
             total_error_D_global += loss_D_global.item()
 
             loss_D_global.backward()
