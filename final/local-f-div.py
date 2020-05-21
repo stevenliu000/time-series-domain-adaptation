@@ -22,8 +22,8 @@ from models.FDIV import *
 ###############################################################################
 parser = argparse.ArgumentParser(description='f-div')
 parser.add_argument("--data_path", type=str, required=True, help="dataset path")
-parser.add_argument("--data_path", type=str, required=True, help="dataset path")
 parser.add_argument('--gpu_num', type=int, default=0, help='gpu number')
+parser.add_argument("--task", type=str, help='3Av2 or 3E')
 parser.add_argument('--batch_size', type=int, default=256, help='batch size')
 parser.add_argument('--lr', type=float, default=1e-3, help='learning rate')
 parser.add_argument('--target_lbl_percentage', type=float, default=0.7, help='percentage of which target data has label')
