@@ -177,9 +177,9 @@ def train_local_GAN(CNet, encoder, encoder_MLP, GNet, DNet_local, optimizerCNet,
         target_y = target_y.to(device).long()
         target_weight = target_weight.to(device)
 
-        source_mask = torch.zeros(source_x.size(0), num_class).to(device).scatter_(1, source_y.unsqueeze(-1), 1)
-        target_mask = torch.zeros(target_x.size(0), num_class).to(device).scatter_(1, target_y.unsqueeze(-1), 1)
-        target_weight = torch.zeros(target_x.size(0), num_class).to(device).scatter_(1, target_y.unsqueeze(-1), target_weight.unsqueeze(-1))
+        source_mask = torch.zeros(source_x.size(0), num_class, device=device).scatter_(1, source_y.unsqueeze(-1), 1)
+        target_mask = torch.zeros(target_x.size(0), num_class, device=device).scatter_(1, target_y.unsqueeze(-1), 1)
+        target_weight = torch.zeros(target_x.size(0), num_class, device=device).scatter_(1, target_y.unsqueeze(-1), target_weight.unsqueeze(-1))
 
         source_weight_count = source_mask.sum(dim=0)
         target_weight_count = target_weight.sum(dim=0)
