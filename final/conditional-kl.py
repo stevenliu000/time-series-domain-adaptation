@@ -1,20 +1,28 @@
+"""
+Estimating conditional KL via conjugate approximation.
 
-# coding: utf-8
+Example:
 
-# In[2]:
+- For GAN:
+$ python conditional-kl.py\
+$        --data_path ../data_unzip
+$        --save_path ../train_related
+$        --model_name global_gan_conditional_KL_lbl0.7
+$        --model_path [root folder you save your model]
+
+- For Naive adaptation:
+$ python conditional-kl.py\
+$        --data_path ../data_unzip
+$        --save_path ../train_related
+$        --model_name global_gan_conditional_KL_lbl0.7
+$        --model_path [root folder you save your model]
+$        --naive_adaptation True
+"""
+
+
 
 
 import sys, os, inspect
-current_dir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-parent_dir = os.path.dirname(current_dir)
-sys.path.insert(0, parent_dir)
-sys.path.insert(0, os.path.join(parent_dir,'spring-break'))
-sys.path.insert(0, os.path.join(parent_dir,'Linear Classifier'))
-
-
-# In[3]:
-
-
 import numpy as np
 import random
 import copy
@@ -26,16 +34,16 @@ from torch.utils.data import Dataset, DataLoader
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 import torch.nn.functional as F
 import torch.backends.cudnn as cudnn
-from martins.complex_transformer import ComplexTransformer
-from FNNLinear import FNNLinear
-from FNNSeparated import FNNSeparated
-from GAN import Generator, Discriminator
-from data_utils import *
+from models.complex_transformer import ComplexTransformer
+from models.FNNLinear import FNNLinear
+from models.FNNSeparated import FNNSeparated
+from models.GAN import Generator
+from utils import *
+from data_utils import SingleDataset, read_data
 import argparse
 import logging
-import logging.handlers
-from DataSetLoader import JoinDataset, SingleDataset
 from torch.autograd import Variable
+
 
 
 
@@ -168,8 +176,10 @@ def get_source_embedding(labeled_source_dataloader, encoder, encoder_MLP, source
             source_y_labeled = torch.cat([source_y_labeled, source_y])
         return source_x_labeled_embedding, source_y_labeled
 
-################################### Definition END #########################################
 
+###############################################################################
+#                              Save Path and Logger                           #
+###############################################################################
 device = torch.device('cuda:{}'.format(args.gpu_num) if torch.cuda.is_available() else 'cpu')
 
 # seed
@@ -179,14 +189,13 @@ np.random.seed(args.seed)
 cudnn.deterministic = True
 torch.backends.cudnn.deterministic = True
 
-
+# parameter processing
 args.task = '3Av2' if args.task == '3A' else '3E'
 num_class = 50 if args.task == "3Av2" else 65
 device = torch.device('cuda:{}'.format(args.gpu_num) if torch.cuda.is_available() else 'cpu')
 
 if args.num_per_class == -1:
     args.num_per_class = math.ceil(args.batch_size / num_class)
-
 
 source_acc_label_ = np.load(os.path.join(args.model_path, 'source_acc_label_.npy'))
 
@@ -200,8 +209,7 @@ if args.end_epoch == -1:
 
 assert start_epoch < end_epoch
 
-
-
+# save folder
 model_sub_folder = '/local-f-gan-test/'+args.model_name
 model_sub_folder += '_JS'
 if args.classifier: model_sub_folder += '_classifier'
@@ -215,6 +223,7 @@ if not os.path.exists(save_folder):
     os.makedirs(save_folder)
 
 
+# logging
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
@@ -234,37 +243,25 @@ for item in attrs.items():
 logger.info("Saved in {}".format(save_folder))
 
 
-################# Load data #################################
-labeled_target_x_filename = '/processed_file_not_one_hot_%s_%1.1f_target_known_label_x.npy'%(args.task, args.target_lbl_percentage)
-labeled_target_y_filename = '/processed_file_not_one_hot_%s_%1.1f_target_known_label_y.npy'%(args.task, args.target_lbl_percentage)
-unlabeled_target_x_filename = '/processed_file_not_one_hot_%s_%1.1f_target_unknown_label_x.npy'%(args.task, args.target_lbl_percentage)
-unlabeled_target_y_filename = '/processed_file_not_one_hot_%s_%1.1f_target_unknown_label_y.npy'%(args.task, args.target_lbl_percentage)
-labeled_target_x = np.load(args.data_path+labeled_target_x_filename)
-labeled_target_y = np.load(args.data_path+labeled_target_y_filename)
-unlabeled_target_x = np.load(args.data_path+unlabeled_target_x_filename)
-unlabeled_target_y = np.load(args.data_path+unlabeled_target_y_filename)
+###############################################################################
+#                                 Data Loading                                #
+###############################################################################
+labeled_target_x, labeled_target_y, unlabeled_target_x, unlabeled_target_y = read_data(args.task, 'target', args.target_lbl_percentage, args.data_path)
 labeled_target_dataset = SingleDataset(labeled_target_x, labeled_target_y)
-unlabled_target_dataset = SingleDataset(unlabeled_target_x, unlabeled_target_y)
+unlabeled_target_dataset = SingleDataset(unlabeled_target_x, unlabeled_target_y)
 labeled_target_dataloader = DataLoader(labeled_target_dataset, batch_size=args.batch_size, shuffle=True, pin_memory=True, num_workers=4)
-unlabeled_target_dataloader = DataLoader(unlabled_target_dataset, batch_size=args.batch_size, shuffle=False, pin_memory=True, num_workers=4)
+unlabeled_target_dataloader = DataLoader(unlabeled_target_dataset, batch_size=args.batch_size, shuffle=False, pin_memory=True, num_workers=4)
 
-labeled_source_x_filename = '/processed_file_not_one_hot_%s_%1.1f_source_known_label_x.npy'%(args.task, args.source_lbl_percentage)
-labeled_source_y_filename = '/processed_file_not_one_hot_%s_%1.1f_source_known_label_y.npy'%(args.task, args.source_lbl_percentage)
-unlabeled_source_x_filename = '/processed_file_not_one_hot_%s_%1.1f_source_unknown_label_x.npy'%(args.task, args.source_lbl_percentage)
-unlabeled_source_y_filename = '/processed_file_not_one_hot_%s_%1.1f_source_unknown_label_y.npy'%(args.task, args.source_lbl_percentage)
-labeled_source_x = np.load(args.data_path+labeled_source_x_filename)
-labeled_source_y = np.load(args.data_path+labeled_source_y_filename)
-unlabeled_source_x = np.load(args.data_path+unlabeled_source_x_filename)
-unlabeled_source_y = np.load(args.data_path+unlabeled_source_y_filename)
+labeled_source_x, labeled_source_y, unlabeled_source_x, unlabeled_source_y = read_data(args.task, 'source', args.source_lbl_percentage, args.data_path)
 labeled_source_dataset = SingleDataset(labeled_source_x, labeled_source_y)
 unlabled_source_dataset = SingleDataset(unlabeled_source_x, unlabeled_source_y)
 labeled_source_dataloader = DataLoader(labeled_source_dataset, batch_size=args.batch_size, shuffle=True, pin_memory=True, num_workers=4)
 unlabeled_source_dataloader = DataLoader(unlabled_source_dataset, batch_size=args.batch_size, shuffle=False, pin_memory=True, num_workers=4)
-device = torch.device('cuda:{}'.format(args.gpu_num) if torch.cuda.is_available() else 'cpu')
-print(device)
 
 
-############# Define models #################################
+###############################################################################
+#                                 Define models                               #
+###############################################################################
 seq_len = 10
 feature_dim = 160
 encoder = ComplexTransformer(layers=3,
@@ -290,14 +287,18 @@ if args.classifier:
     CNet = FNNLinear(d_h2=64*2, d_out=num_class).to(device)
     criterion_classifier = nn.CrossEntropyLoss().to(device)
 
-############ Initialize Neural Network Weights #############
+###############################################################################
+#                      Initialize Nueral network weights                      #
+###############################################################################
 encoder.apply(weights_init)
 encoder_MLP.apply(weights_init)
 if not args.naive_adaptation:
     GNet.apply(weights_init)
 
 
-############ Training gFunction for each epochs ############
+###############################################################################
+#                   Training gFunction for each epochs                        #
+###############################################################################
 logger.info('Started loading')
 source_acc_label_ = np.load(os.path.join(args.model_path, 'source_acc_label_.npy'))
 source_acc_unlabel_ = np.load(os.path.join(args.model_path, 'source_acc_unlabel_.npy'))
