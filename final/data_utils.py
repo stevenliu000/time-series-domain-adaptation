@@ -5,19 +5,19 @@ import torch
 from torch.utils.data import Dataset, DataLoader
 import random
 
-def read_data(args, domain):
+def read_data(task, domain, lbl_percentage, data_path):
     '''
     domain: source or target
     '''
     assert domain in ['source', 'target']
-    labeled_x_filename = 'processed_file_not_one_hot_%s_%1.1f_%s_known_label_x.npy'%(args.task, args.lbl_percentage, args.domain)
-    labeled_y_filename = 'processed_file_not_one_hot_%s_%1.1f_%s_known_label_y.npy'%(args.task, args.lbl_percentage, args.domain)
-    unlabeled_x_filename = 'processed_file_not_one_hot_%s_%1.1f_%s_unknown_label_x.npy'%(args.task, args.lbl_percentage, args.domain)
-    unlabeled_y_filename = 'processed_file_not_one_hot_%s_%1.1f_%s_unknown_label_y.npy'%(args.task, args.lbl_percentage, args.domain)
-    labeled_x = np.load(os.path.join(args.data_path, labeled_x_filename))
-    labeled_y = np.load(os.path.join(args.data_path, labeled_y_filename))
-    unlabeled_x = np.load(os.path.join(args.data_path, unlabeled_x_filename))
-    unlabeled_y = np.load(os.path.join(args.data_path, unlabeled_y_filename))
+    labeled_x_filename = 'processed_file_not_one_hot_%s_%1.1f_%s_known_label_x.npy'%(task, lbl_percentage, domain)
+    labeled_y_filename = 'processed_file_not_one_hot_%s_%1.1f_%s_known_label_y.npy'%(task, lbl_percentage, domain)
+    unlabeled_x_filename = 'processed_file_not_one_hot_%s_%1.1f_%s_unknown_label_x.npy'%(task, lbl_percentage, domain)
+    unlabeled_y_filename = 'processed_file_not_one_hot_%s_%1.1f_%s_unknown_label_y.npy'%(task, lbl_percentage, domain)
+    labeled_x = np.load(os.path.join(data_path, labeled_x_filename))
+    labeled_y = np.load(os.path.join(data_path, labeled_y_filename))
+    unlabeled_x = np.load(os.path.join(data_path, unlabeled_x_filename))
+    unlabeled_y = np.load(os.path.join(data_path, unlabeled_y_filename))
 
     return labeled_x, labeled_y, unlabeled_x, unlabeled_y
 

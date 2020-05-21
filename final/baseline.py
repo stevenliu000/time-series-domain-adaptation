@@ -70,7 +70,7 @@ parser.add_argument('--gpu_num', type=int, default=0, help='gpu number')
 parser.add_argument("--domain", type=str, required=True, help='source or domain')
 parser.add_argument("--task", type=str, required=True, help='3Av2 or 3E')
 parser.add_argument('--batch_size', type=int, default=256, help='batch size')
-parser.add_argument('--epochs', type=int, default=50, help='number of epochs')
+parser.add_argument('--epochs', type=int, default=2000, help='number of epochs')
 parser.add_argument('--lr_FNN', type=float, default=1e-3, help='learning rate for classification')
 parser.add_argument('--lr_encoder', type=float, default=1e-3, help='learning rate for encoder')
 parser.add_argument('--lbl_percentage', type=float, default=0.7, help='percentage of which source data has label')
@@ -110,7 +110,7 @@ logger = get_logger(save_folder, args)
 ###############################################################################
 #                                 Data Loading                                #
 ###############################################################################
-labeled_x, labeled_y, unlabeled_x, unlabeled_y = read_data(args, args.domain)
+labeled_x, labeled_y, unlabeled_x, unlabeled_y = read_data(args.task, args.domain, args.lbl_percentage, args.data_path)
 labeled_dataset = SingleDataset(labeled_x, labeled_y)
 unlabled_dataset = SingleDataset(unlabeled_x, unlabeled_y)
 labeled_dataloader = DataLoader(labeled_dataset, batch_size=args.batch_size, shuffle=True, pin_memory=True, num_workers=4)

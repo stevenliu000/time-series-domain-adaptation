@@ -67,7 +67,7 @@ parser = argparse.ArgumentParser(description='Naive Adaptation: shared architect
 parser.add_argument("--data_path", type=str, required=True, help="dataset path")
 parser.add_argument("--task", type=str, required=True, help='3Av2 or 3E')
 parser.add_argument('--batch_size', type=int, default=256, help='batch size')
-parser.add_argument('--epochs', type=int, default=50, help='number of epochs')
+parser.add_argument('--epochs', type=int, default=2000, help='number of epochs')
 parser.add_argument('--gpu_num', type=int, default=0, help='gpu number')
 parser.add_argument('--lr_FNN', type=float, default=1e-3, help='learning rate for classification')
 parser.add_argument('--lr_encoder', type=float, default=1e-3, help='learning rate for encoder')
@@ -83,7 +83,7 @@ args = parser.parse_args()
 assert args.task in ['3Av2', '3E']
 num_class = 50 if args.task == "3Av2" else 65
 
-model_sub_folder = 'result/naive_adaption/lbl_percent_%f/task_%s_slp_%f_tlp_%f_sclass_%f'%(args.target_lbl_percentage, args.task, args.source_lbl_percentage, args.target_lbl_percentage, args.sclass)
+model_sub_folder = 'result/naive_adaption/task_%s_slp_%f_tlp_%f_sclass_%f'%(args.task, args.source_lbl_percentage, args.target_lbl_percentage, args.sclass)
 save_folder = os.path.join(args.save_path, model_sub_folder)
 if not os.path.exists(save_folder):
     os.makedirs(save_folder)
@@ -109,13 +109,13 @@ logger = get_logger(save_folder, args)
 ###############################################################################
 #                                 Data Loading                                #
 ###############################################################################
-labeled_target_x, labeled_target_y, unlabeled_target_x, unlabeled_target_y = read_data(args, 'target')
+labeled_target_x, labeled_target_y, unlabeled_target_x, unlabeled_target_y = read_data(args.task, 'target', args.tgt_lbl_percentage, args.data_path)
 labeled_target_dataset = SingleDataset(labeled_target_x, labeled_target_y)
 unlabled_target_dataset = SingleDataset(unlabeled_target_x, unlabeled_target_y)
 labeled_target_dataloader = DataLoader(labeled_target_dataset, batch_size=args.batch_size, shuffle=True, pin_memory=True, num_workers=4)
 unlabeled_target_dataloader = DataLoader(unlabled_target_dataset, batch_size=args.batch_size, shuffle=False, pin_memory=True, num_workers=4)
 
-labeled_source_x, labeled_source_y, unlabeled_source_x, unlabeled_source_y = read_data(args, 'source')
+labeled_source_x, labeled_source_y, unlabeled_source_x, unlabeled_source_y = read_data(args.task, 'source', args.src_lbl_percentage, args.data_path)
 labeled_source_dataset = SingleDataset(labeled_source_x, labeled_source_y)
 unlabled_source_dataset = SingleDataset(unlabeled_source_x, unlabeled_source_y)
 labeled_source_dataloader = DataLoader(labeled_source_dataset, batch_size=args.batch_size, shuffle=True, pin_memory=True, num_workers=4)
