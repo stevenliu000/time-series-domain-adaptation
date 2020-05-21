@@ -306,7 +306,7 @@ def KLDiv(g_x_source, g_x_target, device):
 
 
 def JSDiv(g_x_source, g_x_target, mask_source, mask_target, device):
-    # class one hot encoding mask 
+    # class one hot encoding mask
     s_score = F.softplus(-g_x_source) * mask_source # (batch_size, num_class)
     t_score = F.softplus(g_x_target) * mask_target # (batch_size, num_class)
 
@@ -335,7 +335,6 @@ encoder = ComplexTransformer(layers=3,
                                out_dropout=0.2,
                                leaky_slope=0.2).to(device)
 encoder_MLP = FNNSeparated(d_in=64 * 2 * 1, d_h1=64*4, d_h2=64*2, dp=0.2).to(device)
-GNet = Generator(dim=64*2).to(device)
 
 if args.KL:
     gfunction_KL_div_labeled = Gfunction(num_class).to(device)
@@ -352,7 +351,6 @@ if args.classifier:
 
 encoder.apply(weights_init)
 encoder_MLP.apply(weights_init)
-GNet.apply(weights_init)
 
 
 # In[12]:
@@ -432,10 +430,8 @@ for epoch in range(start_epoch, end_epoch, args.intervals*args.model_save_period
     # load weight
     encoder.load_state_dict(torch.load(os.path.join(args.model_path, 'encoder_%i.t7'%epoch)))
     encoder_MLP.load_state_dict(torch.load(os.path.join(args.model_path, 'encoder_MLP%i.t7'%epoch)))
-    GNet.load_state_dict(torch.load(os.path.join(args.model_path, 'GNet_%i.t7'%epoch)))
 
     # inferencing
-    GNet.eval()
     encoder.eval()
     encoder_MLP.eval()
 
@@ -466,18 +462,16 @@ for epoch in range(start_epoch, end_epoch, args.intervals*args.model_save_period
         for batch_id, (target_x, target_y) in tqdm(enumerate(labeled_target_dataloader), total=len(labeled_target_dataloader)):
             target_x = target_x.to(device).float()
             target_y = target_y.to(device).long()
-            target_x_embedding = encoder_inference(encoder, encoder_MLP, target_x)
-            fake_x_embedding = GNet(target_x_embedding).detach()
-            target_x_labeled_embedding = torch.cat([target_x_labeled_embedding, fake_x_embedding])
+            target_x_embedding = encoder_inference(encoder, encoder_MLP, target_x).detach()
+            target_x_labeled_embedding = torch.cat([target_x_labeled_embedding, target_x_embedding])
             target_y_labeled = torch.cat([target_y_labeled, target_y])
 
 
         for batch_id, (target_x, target_y) in tqdm(enumerate(unlabeled_target_dataloader), total=len(unlabeled_target_dataloader)):
             target_x = target_x.to(device).float()
             target_y = target_y.to(device).long()
-            target_x_embedding = encoder_inference(encoder, encoder_MLP, target_x)
-            fake_x_embedding = GNet(target_x_embedding).detach()
-            target_x_unlabeled_embedding = torch.cat([target_x_unlabeled_embedding, fake_x_embedding])
+            target_x_embedding = encoder_inference(encoder, encoder_MLP, target_x).detach()
+            target_x_unlabeled_embedding = torch.cat([target_x_unlabeled_embedding,target_x_embedding])
             target_y_unlabeled = torch.cat([target_y_unlabeled, target_y])
 
     mask_source_labeled = torch.zeros((source_y_labeled.size(0), num_class), device=device).scatter_(1, source_y_labeled.unsqueeze(1), 1)

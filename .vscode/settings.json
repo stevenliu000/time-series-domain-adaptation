@@ -1,4 +1,5 @@
 {
   "python.dataScience.jupyterServerURI": "http://localhost:8888/?token=db98e80a322443fab5436c4d0052f6fa1770acdbd1d746bc",
-  "python.pythonPath": "/Users/stevenliu/anaconda3/envs/torch_p36/bin/python"
+  "python.pythonPath": "/Users/stevenliu/anaconda3/envs/torch_p36/bin/python",
+  "editor.fontFamily": "'Consolas', 'monospace', monospace, 'Droid Sans Fallback'"
 }
