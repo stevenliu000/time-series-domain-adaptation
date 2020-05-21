@@ -241,7 +241,7 @@ parser.add_argument('--n_critic', type=float, default=7, help='gap: Generator tr
 parser.add_argument('--target_lbl_percentage', type=float, default=0.7, help='percentage of target labeled data')
 parser.add_argument('--source_lbl_percentage', type=float, default=0.7, help='percentage of source labeled data')
 parser.add_argument('--num_per_class', type=int, default=-1, help='number of sample per class when training local discriminator')
-parser.add_argument('--seed', type=int, help='manual seed')
+parser.add_argument('--seed', type=int, default=0, help='manual seed')
 parser.add_argument('--save_path', type=str, required=True, help='where to store data')
 parser.add_argument('--model_save_period', type=int, default=2, help='period in which the model is saved')
 parser.add_argument('--gpweight', type=float, default=10, help='gradient penalty for WGAN-gp')
