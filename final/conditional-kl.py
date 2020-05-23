@@ -45,20 +45,17 @@ import argparse
 import logging
 from torch.autograd import Variable
 
-
-
-
-
-##################### Parameters ###########################
-parser = argparse.ArgumentParser(description='JDA Time series adaptation')
+###############################################################################
+#                                 Parameters                                  #
+###############################################################################
+parser = argparse.ArgumentParser(description='Conditional KL')
 parser.add_argument("--data_path", type=str, default="../data_unzip/", help="dataset path")
 parser.add_argument("--task", type=str, default='3E', help='3A or 3E')
 parser.add_argument('--gpu_num', type=int, default=0, help='gpu number')
 parser.add_argument('--batch_size', type=int, default=256, help='batch size')
-parser.add_argument('--lr', type=float, default=1e-3, help='learning rate')
+parser.add_argument('--lr', type=float, default=1e-3, help='learning rate for gFunction and CNet')
 parser.add_argument('--target_lbl_percentage', type=float, default=0.7, help='percentage of which target data has label')
 parser.add_argument('--source_lbl_percentage', type=float, default=0.7, help='percentage of which source data has label')
-parser.add_argument('--num_per_class', type=int, default=-1, help='number of sample per class when training local discriminator')
 parser.add_argument('--seed', type=int, default=0, help='manual seed')
 parser.add_argument('--save_path', type=str, default="../train_related/", help='where to store data')
 parser.add_argument('--model_save_period', type=int, default=2, help='period in which the model is saved')
@@ -75,10 +72,9 @@ parser.add_argument('--naive_adaptation', type=bool, default=False, help='Whethe
 
 args = parser.parse_args()
 
-#################### END of Parameters loading ############
-
-
-################ Definition ###############################
+###############################################################################
+#                              Function Definition                            #
+###############################################################################
 
 def eval_KL(gfunction_JS_div, source_x_embedding_cat, KL_report_js):
     with torch.no_grad():
@@ -143,8 +139,6 @@ args.task = '3Av2' if args.task == '3A' else '3E'
 num_class = 50 if args.task == "3Av2" else 65
 device = torch.device('cuda:{}'.format(args.gpu_num) if torch.cuda.is_available() else 'cpu')
 
-if args.num_per_class == -1:
-    args.num_per_class = math.ceil(args.batch_size / num_class)
 
 source_acc_label_ = np.load(os.path.join(args.model_path, 'source_acc_label_.npy'))
 
@@ -268,7 +262,7 @@ for epoch in range(start_epoch, end_epoch, args.intervals*args.model_save_period
 
     # load weight
     encoder.load_state_dict(torch.load(os.path.join(args.model_path, 'encoder_%i.t7'%epoch)))
-    encoder_MLP.load_state_dict(torch.load(os.path.join(args.model_path, 'encoder_MLP%i.t7'%epoch)))
+    encoder_MLP.load_state_dict(torch.load(os.path.join(args.model_path, 'encoder_MLP_%i.t7'%epoch)))
     if not args.naive_adaptation:
         GNet.load_state_dict(torch.load(os.path.join(args.model_path, 'GNet_%i.t7'%epoch)))
 
