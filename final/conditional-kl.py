@@ -38,11 +38,13 @@ from models.complex_transformer import ComplexTransformer
 from models.FNNLinear import FNNLinear
 from models.FNNSeparated import FNNSeparated
 from models.GAN import Generator
+from models.FDIV import *
 from utils import *
 from data_utils import SingleDataset, read_data
 import argparse
 import logging
 from torch.autograd import Variable
+
 
 
 
@@ -77,59 +79,6 @@ args = parser.parse_args()
 
 
 ################ Definition ###############################
-def weights_init(m):
-    if type(m) == nn.Linear:
-        torch.nn.init.xavier_uniform_(m.weight)
-    elif type(m) == nn.LayerNorm:
-        torch.nn.init.normal_(m.weight, 1.0, 0.02)
-        torch.nn.init.constant_(m.bias, 0)
-
-
-# # Model creation
-
-# In[ ]:
-
-
-class Gfunction(nn.Sequential):
-    def __init__(self, num_class):
-        super(Gfunction, self).__init__(
-            nn.Linear(128+num_class,100),
-            nn.ELU(),
-            nn.Linear(100,100),
-            nn.ELU(),
-            nn.Linear(100, num_class)
-        )
-
-def log_mean_exp(x, device):
-    max_score = x.max()
-    batch_size = torch.Tensor([x.shape[0]]).to(device)
-    stable_x = x - max_score
-    return max_score - batch_size.log() + stable_x.exp().sum(dim=0).log()
-
-
-def KLDiv(g_x_source, g_x_target, device):
-    return g_x_source.mean(dim=0) - log_mean_exp(g_x_target, device)
-
-
-def JSDiv(g_x_source, g_x_target, mask_source, mask_target, device):
-    # class one hot encoding mask
-    s_score = F.softplus(-g_x_source) * mask_source # (batch_size, num_class)
-    t_score = F.softplus(g_x_target) * mask_target # (batch_size, num_class)
-
-    # E_{p(x|y)}
-    s_score = s_score.sum(dim=0) / mask_source.sum(dim=0) # (num_class, )
-    t_score = t_score.sum(dim=0) / mask_target.sum(dim=0) # (num_class, )
-
-    # E_{p(y)}
-    return (- s_score - t_score).mean() # scalar
-
-def encoder_inference(encoder, encoder_MLP, x):
-    real = x[:,:,0].reshape(x.size(0), seq_len, feature_dim).float()
-    imag = x[:,:,1].reshape(x.size(0), seq_len, feature_dim).float()
-    real, imag = encoder(real, imag)
-    cat_embedding = torch.cat((real[:,-1,:], imag[:,-1,:]), -1).reshape(x.shape[0], -1)
-    cat_embedding = encoder_MLP(cat_embedding)
-    return cat_embedding
 
 def eval_KL(gfunction_JS_div, source_x_embedding_cat, KL_report_js):
     with torch.no_grad():
@@ -210,39 +159,22 @@ if args.end_epoch == -1:
 assert start_epoch < end_epoch
 
 # save folder
-model_sub_folder = '/local-f-gan-test/'+args.model_name
+model_sub_folder = '/conditional_KL/'+args.model_name
 model_sub_folder += '_JS'
 if args.classifier: model_sub_folder += '_classifier'
 if args.start_epoch != -1 or args.end_epoch != -1:
     model_sub_folder += '_s{}_e{}'.format(start_epoch, end_epoch)
 
 model_sub_folder += '/'
-save_folder = os.path.join(args.save_path+model_sub_folder)
+save_folder = os.path.join(args.save_path, model_sub_folder)
 
 if not os.path.exists(save_folder):
     os.makedirs(save_folder)
 
 
 # logging
-logger = logging.getLogger()
-logger.setLevel(logging.INFO)
 
-if os.path.isfile(args.save_path+model_sub_folder+ '/logfile.log'):
-    os.remove(args.save_path+model_sub_folder+ '/logfile.log')
-
-file_log_handler = logging.FileHandler(args.save_path+model_sub_folder+ '/logfile.log')
-logger.addHandler(file_log_handler)
-
-stdout_log_handler = logging.StreamHandler(sys.stdout)
-logger.addHandler(stdout_log_handler)
-
-attrs = vars(args)
-for item in attrs.items():
-    logger.info("%s: %s"%item)
-
-logger.info("Saved in {}".format(save_folder))
-
-
+logger = get_logger(save_folder, args)
 ###############################################################################
 #                                 Data Loading                                #
 ###############################################################################
