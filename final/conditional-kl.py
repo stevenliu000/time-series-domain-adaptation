@@ -153,14 +153,14 @@ if args.end_epoch == -1:
 assert start_epoch < end_epoch
 
 # save folder
-model_sub_folder = '/conditional_KL/'+args.model_name
+model_sub_folder = '/results/conditional_KL/'+args.model_name
 model_sub_folder += '_JS'
 if args.classifier: model_sub_folder += '_classifier'
 if args.start_epoch != -1 or args.end_epoch != -1:
     model_sub_folder += '_s{}_e{}'.format(start_epoch, end_epoch)
 
 model_sub_folder += '/'
-save_folder = os.path.join(args.save_path, model_sub_folder)
+save_folder = os.path.abspath(os.path.join(args.save_path + model_sub_folder))
 
 if not os.path.exists(save_folder):
     os.makedirs(save_folder)
@@ -354,8 +354,8 @@ for epoch in range(start_epoch, end_epoch, args.intervals*args.model_save_period
 
     logger.info("-----------------------------------------")
     log_string = "Epoch %i: "%epoch
-    log_string += "labeled JS: %f, unlabeled JS: %f; labeled KL: %f; unlabeled KL: %f;"%(loss_JS_labeled, loss_JS_unlabeled, KL_labeled_eval, KL_unlabeled_eval)
-    if args.classifier: log_string += "src unlbl acc: %f, tgt unlbl acc: %f; "%(acc_source_unlabeled_classifier, acc_target_unlabeled_classifier)
+    log_string += "labeled JS: %f, unlabeled JS: %f; labeled KL: %f; unlabeled KL: %f; "%(loss_JS_labeled, loss_JS_unlabeled, KL_labeled_eval, KL_unlabeled_eval)
+    if args.classifier: log_string += "src unlbl acc: %f; tgt unlbl acc: %f; "%(acc_source_unlabeled_classifier, acc_target_unlabeled_classifier)
     logger.info(log_string)
     logger.info("-----------------------------------------")
 
