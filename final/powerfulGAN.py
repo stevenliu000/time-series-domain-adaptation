@@ -1,1 +1,0 @@
-../Linear Classifier/powerfulGAN.py
