@@ -19,13 +19,13 @@ def weights_init(m):
         nn.init.normal_(m.weight, 1.0, 0.02)
         nn.init.constant_(m.bias, 0)
 
-def get_logger(save_folder, args):
+def get_logger(save_folder, device, args):
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
 
     if os.path.isfile(os.path.join(save_folder, 'logfile.log')):
         os.remove(os.path.join(save_folder, 'logfile.log'))
-        
+
     file_log_handler = logging.FileHandler(os.path.join(save_folder, 'logfile.log'))
     logger.addHandler(file_log_handler)
 
@@ -35,6 +35,7 @@ def get_logger(save_folder, args):
     attrs = vars(args)
     for item in attrs.items():
         logger.info("%s: %s"%item)
-    logger.info("Saved in %s"%save_folder)
+    logger.info("Device: %s"%device)
+    logger.info("Saved in: %s"%save_folder)
 
     return logger

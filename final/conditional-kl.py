@@ -123,7 +123,7 @@ def get_source_embedding(labeled_source_dataloader, encoder, encoder_MLP, source
 
 
 ###############################################################################
-#                              Save Path and Logger                           #
+#                             Parameter processing                            #
 ###############################################################################
 device = torch.device('cuda:{}'.format(args.gpu_num) if torch.cuda.is_available() else 'cpu')
 
@@ -152,23 +152,26 @@ if args.end_epoch == -1:
 
 assert start_epoch < end_epoch
 
+###############################################################################
+#                              Save Path and Logger                           #
+###############################################################################
 # save folder
-model_sub_folder = '/results/conditional_KL/'+args.model_name
+model_sub_folder = 'results/conditional_KL/'+args.model_name
 model_sub_folder += '_JS'
 if args.classifier: model_sub_folder += '_classifier'
 if args.start_epoch != -1 or args.end_epoch != -1:
     model_sub_folder += '_s{}_e{}'.format(start_epoch, end_epoch)
 
 model_sub_folder += '/'
-save_folder = os.path.abspath(os.path.join(args.save_path + model_sub_folder))
+save_folder = os.path.abspath(os.path.join(args.save_path, model_sub_folder))
 
 if not os.path.exists(save_folder):
     os.makedirs(save_folder)
 
 
 # logging
+logger = get_logger(save_folder, device, args)
 
-logger = get_logger(save_folder, args)
 ###############################################################################
 #                                 Data Loading                                #
 ###############################################################################

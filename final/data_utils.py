@@ -27,14 +27,14 @@ class JoinDataset(Dataset):
         self.source_y = source_y
         self.target_x = target_x
         self.target_y = target_y
-        
+
         self.source_len = self.source_y.shape[0]
         self.target_len = self.target_y.shape[0]
-    
+
         self.random = random
     def __len__(self):
         return self.target_len
-    
+
     def __getitem__(self, index):
         if self.random:
             index_source = random.randrange(self.source_len)
@@ -44,17 +44,17 @@ class JoinDataset(Dataset):
             index_target = index
 
         return (self.source_x[index_source], self.source_y[index_source]), (self.target_x[index_target], self.target_y[index_target])
-    
-    
+
+
 class SingleDataset(Dataset):
     def __init__(self, x, y):
             self.x = x
             self.y = y
             self.len = self.y.shape[0]
-    
+
     def __len__(self):
         return self.len
-    
+
     def __getitem__(self, index):
         return self.x[index], self.y[index]
 
@@ -160,8 +160,6 @@ def get_batch_target_data_on_class(real_dict, num_per_class, pesudo_dict, unlabe
     keys.sort()
     for key in keys:
         real_num = len(real_dict[key])
-        pesudo_num = len(pesudo_dict[key])
-        num_in_class = real_num + pesudo_num
 
         if no_pesudo:
             # known label data only
@@ -172,6 +170,8 @@ def get_batch_target_data_on_class(real_dict, num_per_class, pesudo_dict, unlabe
             batch_weight.extend([real_weight] * num_per_class)
 
         else:
+            pesudo_num = len(pesudo_dict[key])
+            num_in_class = real_num + pesudo_num
             not_enough_pesudo = num_per_class - pesudo_num
             if not_enough_pesudo <= 0:
                 # have enough label data in this class
@@ -198,7 +198,7 @@ def get_batch_target_data_on_class(real_dict, num_per_class, pesudo_dict, unlabe
                 batch_x.extend(real_dict[key][index_known])
                 batch_weight.extend([real_weight] * not_enough_pesudo)
                 batch_y.extend([key] * num_per_class)
-                
+
 
     return np.array(batch_x), np.array(batch_y), np.array(batch_weight)
 
@@ -220,5 +220,5 @@ class ClassWiseDataLoader(DataLoader):
         for i in range(self.num_batch):
             source_x, source_y = get_batch_source_data_on_class(self.source_labeled_dict, self.num_per_class)
             target_x, target_y, target_weight = get_batch_target_data_on_class(self.target_labeled_dict, self.num_per_class, self.pesudo_dict, no_pesudo=self.no_pesudo)
-            
+
             yield (torch.tensor(source_x), torch.LongTensor(source_y)), (torch.tensor(target_x), torch.LongTensor(target_y), torch.tensor(target_weight))
