@@ -12,17 +12,20 @@ python data_seperation.py --data_path [data_path] --save_path [save_path] --task
 
 - Conditional GAN
 ```
-python gan.py --islocal 1 --n_critic 6 --gpweight 10 --sclass 0.7
+python gan.py --data_path [data_path] --save_path [save_path] \
+              --islocal 1 --n_critic 6 --gpweight 10 --sclass 0.7
 ```
 
 - Global GAN
 ```
-python gan.py --isglobal --n_critic 12 --gpweight 5 --sclass 0.7
+python gan.py --data_path [data_path] --save_path [save_path] \
+              --isglobal --n_critic 12 --gpweight 5 --sclass 0.7
 ```
 
 - Conditional KL estimation
 ```
-python conditional-kl.py --model_path [model_path] --model_name [model_name]
+python conditional-kl.py --data_path [data_path] --save_path [save_path] \
+                         --model_path [model_path] --model_name [model_name]
 ```
 
 # Results
