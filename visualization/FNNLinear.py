@@ -1,1 +1,0 @@
-../Linear Classifier/FNNLinear.py
