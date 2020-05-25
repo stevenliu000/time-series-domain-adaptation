@@ -19,7 +19,7 @@ python gan.py --data_path [data_path] --save_path [save_path] \
 - Global GAN
 ```
 python gan.py --data_path [data_path] --save_path [save_path] \
-              --isglobal --n_critic 12 --gpweight 5 --sclass 0.7
+              --isglobal 1 --n_critic 12 --gpweight 5 --sclass 0.7
 ```
 
 - Conditional KL estimation
