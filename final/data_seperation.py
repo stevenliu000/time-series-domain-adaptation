@@ -91,10 +91,10 @@ for labeled_target_percentage in percentage:
     assert target_unknown_label_x.shape[0] == target_unknown_label_y.shape[0]
     assert target_known_label_x.shape[0] == target_known_label_y.shape[0]
     assert target_all_x_shuffled.shape[0] == target_all_y_shuffled.shape[0]
-    np.save(os.path.join(save_path, "processed_file_not_one_hot_%s_%1.1f_target_known_label_x.npy"%(task, labeled_target_percentage), target_known_label_x))
-    np.save(os.path.join(save_path, "processed_file_not_one_hot_%s_%1.1f_target_known_label_y.npy"%(task, labeled_target_percentage), target_known_label_y))
-    np.save(os.path.join(save_path, "processed_file_not_one_hot_%s_%1.1f_target_unknown_label_x.npy"%(task, labeled_target_percentage), target_unknown_label_x))
-    np.save(os.path.join(save_path, "processed_file_not_one_hot_%s_%1.1f_target_unknown_label_y.npy"%(task, labeled_target_percentage), target_unknown_label_y))
+    np.save(os.path.join(save_path, "processed_file_not_one_hot_%s_%1.1f_target_known_label_x.npy"%(task, labeled_target_percentage)), target_known_label_x)
+    np.save(os.path.join(save_path, "processed_file_not_one_hot_%s_%1.1f_target_known_label_y.npy"%(task, labeled_target_percentage)), target_known_label_y)
+    np.save(os.path.join(save_path, "processed_file_not_one_hot_%s_%1.1f_target_unknown_label_x.npy"%(task, labeled_target_percentage)), target_unknown_label_x)
+    np.save(os.path.join(save_path, "processed_file_not_one_hot_%s_%1.1f_target_unknown_label_y.npy"%(task, labeled_target_percentage)), target_unknown_label_y)
 
 for labeled_source_percentage in percentage: 
     (source_known_label_x, source_known_label_y), (source_unknown_label_x, source_unknown_label_y) = separate_data_by_percentage(source_dict, labeled_source_percentage)
@@ -102,10 +102,10 @@ for labeled_source_percentage in percentage:
     assert source_unknown_label_x.shape[0] == source_unknown_label_y.shape[0]
     assert source_known_label_x.shape[0] == source_known_label_y.shape[0]
     assert source_all_x_shuffled.shape[0] == source_all_y_shuffled.shape[0]
-    np.save(os.path.join(save_path, "processed_file_not_one_hot_%s_%1.1f_source_known_label_x.npy"%(task, labeled_source_percentage), source_known_label_x))
-    np.save(os.path.join(save_path, "processed_file_not_one_hot_%s_%1.1f_source_known_label_y.npy"%(task, labeled_source_percentage), source_known_label_y))
-    np.save(os.path.join(save_path, "processed_file_not_one_hot_%s_%1.1f_source_unknown_label_x.npy"%(task, labeled_source_percentage), source_unknown_label_x))
-    np.save(os.path.join(save_path, "processed_file_not_one_hot_%s_%1.1f_source_unknown_label_y.npy"%(task, labeled_source_percentage), source_unknown_label_y))
+    np.save(os.path.join(save_path, "processed_file_not_one_hot_%s_%1.1f_source_known_label_x.npy"%(task, labeled_source_percentage)), source_known_label_x)
+    np.save(os.path.join(save_path, "processed_file_not_one_hot_%s_%1.1f_source_known_label_y.npy"%(task, labeled_source_percentage)), source_known_label_y)
+    np.save(os.path.join(save_path, "processed_file_not_one_hot_%s_%1.1f_source_unknown_label_x.npy"%(task, labeled_source_percentage)), source_unknown_label_x)
+    np.save(os.path.join(save_path, "processed_file_not_one_hot_%s_%1.1f_source_unknown_label_y.npy"%(task, labeled_source_percentage)), source_unknown_label_y)
 
 
         
