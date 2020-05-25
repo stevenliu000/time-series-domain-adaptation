@@ -35,5 +35,7 @@ python conditional-kl.py --model_path [model_path] --model_name [model_name]
 ![Image description](visualization/prob_acc.png)
 
 - Conditional KL Divergence estimation
+<p align="center">
+  <img src="visualization/Conditional_KL.png"/>
+</p>
 
-![Image description](visualization/Conditional_KL.png)
