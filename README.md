@@ -1,6 +1,6 @@
 # Time-series-domain-adaptation
 
-This is the repository for using GAN for time series doamin adaptation. 
+This is the repository for time series doamin adaptation. 
 
 
 # Usage
